@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+pkg/
+target/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+
+# VitePress
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
+# pnpm
+.pnpm-debug.log
+
+# npm prepublishOnly copies (from root)
+js/LICENSE
+js/LICENSE_EDLv1.txt
+
+# Claude
+.claude/
+tmp/

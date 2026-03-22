@@ -1,0 +1,54 @@
+{
+  "name": "interior-point",
+  "version": "0.1.0",
+  "description": "Compute an interior point (representative point) of any GeoJSON geometry, ported from JTS",
+  "type": "module",
+  "license": "MIT",
+  "author": "Ko Nagase",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sanak/interior-point.git",
+    "directory": "js"
+  },
+  "homepage": "https://sanak.github.io/interior-point/",
+  "bugs": "https://github.com/sanak/interior-point/issues",
+  "keywords": [
+    "geojson",
+    "geometry",
+    "interior-point",
+    "representative-point",
+    "polygon",
+    "jts",
+    "gis"
+  ],
+  "sideEffects": false,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE_EDLv1.txt"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "cp ../LICENSE . && cp ../LICENSE_EDLv1.txt .",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@types/geojson": "^7946.0.15"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "betterknown": "^1.2.0",
+    "fast-xml-parser": "^5.5.8",
+    "point-in-polygon-hao": "^1.2.4",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

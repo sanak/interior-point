@@ -1,0 +1,4 @@
+packages:
+  - "js"
+  - "docs"
+  - "examples/*"

@@ -1,0 +1,58 @@
+[package]
+name = "interior-point"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "JTS InteriorPoint algorithm ported to Rust"
+authors = ["Ko Nagase"]
+repository = "https://github.com/sanak/interior-point"
+homepage = "https://sanak.github.io/interior-point/"
+readme = "README.md"
+keywords = ["geometry", "interior-point", "representative-point", "polygon", "jts"]
+categories = ["algorithms", "science::geo"]
+include = ["src/**/*", "benches/**/*", "Cargo.toml", "LICENSE", "LICENSE_EDLv1.txt", "README.md"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+geo = "0.29"
+geo-types = "0.7"
+
+[dependencies.wasm-bindgen]
+version = "0.2"
+optional = true
+
+[dependencies.serde-wasm-bindgen]
+version = "0.6"
+optional = true
+
+[dependencies.geojson]
+version = "0.24"
+optional = true
+
+[dependencies.serde]
+version = "1.0"
+features = ["derive"]
+optional = true
+
+[dependencies.serde_json]
+version = "1.0"
+optional = true
+
+[dependencies.js-sys]
+version = "0.3"
+optional = true
+
+[dev-dependencies]
+wkt = "0.11"
+quick-xml = "0.37"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "interior_point_bench"
+harness = false
+
+[features]
+default = []
+wasm = ["wasm-bindgen", "serde-wasm-bindgen", "geojson", "serde", "serde_json", "js-sys"]

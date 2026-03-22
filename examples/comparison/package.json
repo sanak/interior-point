@@ -1,0 +1,6 @@
+{
+  "name": "@interior-point/comparison",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Comparison app for interior-point implementations"
+}
