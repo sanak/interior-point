@@ -75,10 +75,17 @@ let result = interior_point(&poly.into());
 ```
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch, onUnmounted } from "vue";
+import { useData } from "vitepress";
 import { interiorPoint } from "interior-point";
 
+const { isDark } = useData();
 const mapContainer = ref(null);
+let map = null;
+
+// Carto vector tile styles (no labels)
+const CARTO_LIGHT = "https://basemaps.cartocdn.com/gl/positron-nolabels-gl-style/style.json";
+const CARTO_DARK = "https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-style/style.json";
 
 // L-shaped polygon as GeoJSON geometry ([lng, lat] order)
 const lPolygon = {
@@ -99,45 +106,74 @@ const lPolygon = {
 // Compute interior point using the project's own library
 const ip = interiorPoint(lPolygon);
 
-onMounted(async () => {
-  const L = await import("leaflet");
-  await import("leaflet/dist/leaflet.css");
+// Add GeoJSON source and layers to the map
+const addLayers = () => {
+  if (!map) return;
 
-  const map = L.map(mapContainer.value, { attributionControl: false }).setView(
-    [34.39, 132.45],
-    12
-  );
+  map.addSource("polygon", {
+    type: "geojson",
+    data: { type: "Feature", properties: {}, geometry: lPolygon },
+  });
 
-  L.control.attribution({ prefix: false }).addTo(map);
+  map.addLayer({
+    id: "polygon-fill",
+    type: "fill",
+    source: "polygon",
+    paint: { "fill-color": "#3b82f6", "fill-opacity": 0.3 },
+  });
 
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    maxZoom: 19,
-  }).addTo(map);
+  map.addLayer({
+    id: "polygon-outline",
+    type: "line",
+    source: "polygon",
+    paint: { "line-color": "#2563eb", "line-width": 2 },
+  });
 
-  // L-shaped polygon (blue, semi-transparent)
-  L.geoJSON(
-    { type: "Feature", properties: {}, geometry: lPolygon },
-    {
-      style: {
-        color: "#2563eb",
-        weight: 2,
-        fillColor: "#3b82f6",
-        fillOpacity: 0.3,
-      },
-    }
-  ).addTo(map);
-
-  // Interior point marker (orange)
   if (ip) {
-    L.circleMarker([ip[1], ip[0]], {
-      radius: 7,
-      fillColor: "#f97316",
-      color: "#ffffff",
-      weight: 2,
-      fillOpacity: 1,
-    }).addTo(map);
+    map.addSource("interior-point", {
+      type: "geojson",
+      data: { type: "Feature", properties: {}, geometry: { type: "Point", coordinates: ip } },
+    });
+
+    map.addLayer({
+      id: "interior-point",
+      type: "circle",
+      source: "interior-point",
+      paint: {
+        "circle-color": "#f97316",
+        "circle-radius": 7,
+        "circle-stroke-color": "#ffffff",
+        "circle-stroke-width": 2,
+      },
+    });
+  }
+};
+
+onMounted(async () => {
+  const maplibregl = await import("maplibre-gl");
+  await import("maplibre-gl/dist/maplibre-gl.css");
+
+  map = new maplibregl.Map({
+    container: mapContainer.value,
+    style: isDark.value ? CARTO_DARK : CARTO_LIGHT,
+    center: [132.45, 34.385],
+    zoom: 11,
+    attributionControl: false,
+  });
+
+  map.addControl(new maplibregl.AttributionControl({ compact: true }));
+
+  map.on("style.load", addLayers);
+
+  watch(isDark, (dark) => {
+    if (map) map.setStyle(dark ? CARTO_DARK : CARTO_LIGHT);
+  });
+});
+
+onUnmounted(() => {
+  if (map) {
+    map.remove();
+    map = null;
   }
 });
 </script>
@@ -151,5 +187,13 @@ onMounted(async () => {
   overflow: hidden;
   border: 1px solid var(--vp-c-divider);
   z-index: 0;
+}
+
+.map-container :deep(.maplibregl-canvas) {
+  border-radius: 8px;
+}
+
+.map-container :deep(.maplibregl-ctrl-attrib summary) {
+  margin: 0;
 }
 </style>
