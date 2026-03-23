@@ -55,7 +55,7 @@ importers:
         version: 7946.0.16
     devDependencies:
       '@types/node':
-        specifier: ^22.19.15
+        specifier: ^22
         version: 22.19.15
       betterknown:
         specifier: ^1.2.0
