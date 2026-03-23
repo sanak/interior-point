@@ -4,7 +4,7 @@ import tseslint from "typescript-eslint";
 import prettier from "eslint-config-prettier";
 
 export default tseslint.config(
-  { ignores: ["**/dist/**", "**/pkg/**", "**/node_modules/**", "**/target/**"] },
+  { ignores: ["**/dist/**", "**/pkg/**", "**/node_modules/**", "**/target/**", "docs/.vitepress/cache/**"] },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   prettier,
