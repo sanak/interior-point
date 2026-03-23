@@ -6,21 +6,16 @@ export default defineConfig({
   base: "/interior-point/",
   themeConfig: {
     nav: [
-      { text: "Introduction", link: "/" },
-      { text: "Getting Started", link: "/guide/getting-started" },
+      { text: "Getting Started", link: "/" },
       { text: "API Reference", link: "/api/" },
     ],
     sidebar: [
       {
-        text: "Introduction",
-        link: "/",
-      },
-      {
         text: "Getting Started",
-        link: "/guide/getting-started",
+        link: "/",
         items: [
-          { text: "TypeScript", link: "/guide/getting-started#typescript" },
-          { text: "Rust", link: "/guide/getting-started#rust" },
+          { text: "Installation", link: "/#installation" },
+          { text: "Usage", link: "/#usage" },
         ],
       },
       {
