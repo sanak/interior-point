@@ -20,49 +20,23 @@ npm install interior-point
 import { interiorPoint } from "interior-point";
 
 const polygon = {
-  type: "Polygon" as const,
+  type: "Polygon",
   coordinates: [
     [
       [0, 0],
-      [0, 10],
-      [10, 10],
-      [10, 0],
+      [6, 0],
+      [6, 2],
+      [2, 2],
+      [2, 8],
+      [0, 8],
       [0, 0],
     ],
   ],
 };
 
 const point = interiorPoint(polygon);
-// => [5, 5]
-```
-
-The main `interiorPoint` function automatically dispatches based on geometry type. You can also call the specialized functions directly:
-
-```typescript
-import { interiorPointArea, interiorPointLine, interiorPointPoint } from "interior-point";
-
-// Polygon — scanline algorithm
-const areaResult = interiorPointArea(polygon);
-
-// LineString — vertex closest to centroid
-const line = {
-  type: "LineString" as const,
-  coordinates: [
-    [0, 0],
-    [10, 10],
-  ],
-};
-const lineResult = interiorPointLine(line);
-
-// Point / MultiPoint — point closest to centroid
-const mp = {
-  type: "MultiPoint" as const,
-  coordinates: [
-    [0, 0],
-    [10, 10],
-  ],
-};
-const pointResult = interiorPointPoint(mp);
+console.log(point);
+// => [1, 5]
 ```
 
 ### Handling Empty Geometries
@@ -93,18 +67,18 @@ use geo::{Polygon, LineString};
 
 let poly = Polygon::new(
     LineString::from(vec![
-        (0.0, 0.0), (0.0, 10.0), (10.0, 10.0), (10.0, 0.0), (0.0, 0.0),
+        (0.0, 0.0),
+        (6.0, 0.0),
+        (6.0, 2.0),
+        (2.0, 2.0),
+        (2.0, 8.0),
+        (0.0, 8.0),
+        (0.0, 0.0),
     ]),
     vec![],
 );
 let result = interior_point(&poly.into());
-// => Some(Coord { x: 5.0, y: 5.0 })
-```
-
-Specialized functions are also available:
-
-```rust
-use interior_point::{interior_point_area, interior_point_line, interior_point_point};
+// => Some(Coord { x: 1.0, y: 5.0 })
 ```
 
 ### Handling Empty Geometries

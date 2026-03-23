@@ -16,20 +16,23 @@ npm install interior-point
 import { interiorPoint } from "interior-point";
 
 const polygon = {
-  type: "Polygon" as const,
+  type: "Polygon",
   coordinates: [
     [
       [0, 0],
-      [10, 0],
-      [10, 10],
-      [0, 10],
+      [6, 0],
+      [6, 2],
+      [2, 2],
+      [2, 8],
+      [0, 8],
       [0, 0],
     ],
   ],
 };
 
 const point = interiorPoint(polygon);
-// [5, 5]
+console.log(point);
+// => [1, 5]
 ```
 
 ## API
