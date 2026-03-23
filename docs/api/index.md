@@ -39,6 +39,13 @@ interiorPoint({
 // => [1, 5]
 ```
 
+Returns `null` for empty geometries:
+
+```typescript
+interiorPoint(null); // => null
+interiorPoint({ type: "GeometryCollection", geometries: [] }); // => null
+```
+
 ### Type Reference
 
 | Type       | Definition                               |
@@ -78,6 +85,14 @@ let poly = Polygon::new(
 );
 let result = interior_point(&poly.into());
 // => Some(Coord { x: 5.0, y: 5.0 })
+```
+
+Returns `None` for empty geometries:
+
+```rust
+use geo::GeometryCollection;
+let empty = GeometryCollection::<f64>(vec![]).into();
+assert_eq!(interior_point::interior_point(&empty), None);
 ```
 
 ### Type Reference

@@ -39,15 +39,6 @@ console.log(point);
 // => [1, 5]
 ```
 
-### Handling Empty Geometries
-
-All functions return `null` for empty geometries:
-
-```typescript
-interiorPoint(null); // => null
-interiorPoint({ type: "GeometryCollection", geometries: [] }); // => null
-```
-
 ## Rust
 
 ### Installation
@@ -79,14 +70,4 @@ let poly = Polygon::new(
 );
 let result = interior_point(&poly.into());
 // => Some(Coord { x: 1.0, y: 5.0 })
-```
-
-### Handling Empty Geometries
-
-All functions return `None` for empty geometries:
-
-```rust
-use geo::GeometryCollection;
-let empty = GeometryCollection::<f64>(vec![]).into();
-assert_eq!(interior_point::interior_point(&empty), None);
 ```
