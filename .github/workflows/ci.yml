@@ -23,6 +23,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm test:js
+      - run: pnpm build:js
 
   test-rs:
     name: Test Rust
@@ -36,6 +37,7 @@ jobs:
       - run: cd rs && cargo test
       - run: cd rs && cargo clippy -- -D warnings
       - run: cd rs && cargo fmt --check
+      - run: cd rs && cargo build
 
   docs:
     name: Build Docs
@@ -58,6 +60,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm build:js
       - run: pnpm docs:build
       - uses: actions/upload-pages-artifact@v3
         with:
