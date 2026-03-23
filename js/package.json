@@ -22,12 +22,14 @@
     "gis"
   ],
   "sideEffects": false,
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/interior-point.cjs",
+  "module": "dist/interior-point.mjs",
+  "types": "dist/types/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/interior-point.mjs",
+      "require": "./dist/interior-point.cjs"
     }
   },
   "files": [
@@ -35,7 +37,7 @@
     "LICENSE_EDLv1.txt"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "vite build && tsc -p tsconfig.build.json",
     "prepack": "cp ../LICENSE . && cp ../LICENSE_EDLv1.txt .",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -49,6 +51,7 @@
     "fast-xml-parser": "^5.5.8",
     "point-in-polygon-hao": "^1.2.4",
     "typescript": "^5.7.0",
+    "vite": "^8.0.1",
     "vitest": "^3.0.0"
   }
 }
