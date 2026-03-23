@@ -4,6 +4,47 @@ export default defineConfig({
   title: "Interior Point",
   description: "JTS InteriorPoint algorithm ported to TypeScript and Rust",
   base: "/interior-point/",
+  head: [
+    ["meta", { property: "og:type", content: "website" }],
+    ["meta", { property: "og:title", content: "Interior Point" }],
+    [
+      "meta",
+      {
+        property: "og:description",
+        content: "JTS InteriorPoint algorithm ported to TypeScript and Rust",
+      },
+    ],
+    [
+      "meta",
+      {
+        property: "og:image",
+        content: "https://sanak.github.io/interior-point/og-image.png",
+      },
+    ],
+    [
+      "meta",
+      {
+        property: "og:url",
+        content: "https://sanak.github.io/interior-point/",
+      },
+    ],
+    ["meta", { name: "twitter:card", content: "summary_large_image" }],
+    ["meta", { name: "twitter:title", content: "Interior Point" }],
+    [
+      "meta",
+      {
+        name: "twitter:description",
+        content: "JTS InteriorPoint algorithm ported to TypeScript and Rust",
+      },
+    ],
+    [
+      "meta",
+      {
+        name: "twitter:image",
+        content: "https://sanak.github.io/interior-point/og-image.png",
+      },
+    ],
+  ],
   themeConfig: {
     nav: [
       { text: "Getting Started", link: "/" },
