@@ -36,7 +36,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "prepublishOnly": "cp ../LICENSE . && cp ../LICENSE_EDLv1.txt .",
+    "prepack": "cp ../LICENSE . && cp ../LICENSE_EDLv1.txt .",
     "test": "vitest run",
     "test:watch": "vitest"
   },
