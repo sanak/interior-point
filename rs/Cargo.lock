@@ -481,7 +481,7 @@ checksum = "35e6d558e6d4c7b82bc51d9c771e7a927862a161a7d87bf2b0541450e0e20915"
 
 [[package]]
 name = "interior-point"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "criterion",
  "geo",
