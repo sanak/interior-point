@@ -61,7 +61,7 @@ fn split_wkt_geometries(data: &str) -> Vec<String> {
 
 #[test]
 fn test_world_wkt_interior_points() {
-    let wkt_data = fs::read_to_string("../testdata/wkt/world.wkt")
+    let wkt_data = fs::read_to_string("../../testdata/wkt/world.wkt")
         .expect("Failed to read world.wkt — run from rs/ directory or repo root");
 
     let wkt_strings = split_wkt_geometries(&wkt_data);

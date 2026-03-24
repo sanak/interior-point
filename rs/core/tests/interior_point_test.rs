@@ -39,7 +39,7 @@ fn check(desc: &str, result: Option<Coord<f64>>, expected: Option<Coord<f64>>) {
 
 #[test]
 fn test_interior_point_xml_all_cases() {
-    let cases = parse_test_interior_point_xml("../testdata/xml/TestInteriorPoint.xml");
+    let cases = parse_test_interior_point_xml("../../testdata/xml/TestInteriorPoint.xml");
     assert_eq!(cases.len(), 24, "Expected 24 test cases from XML");
 
     for tc in &cases {

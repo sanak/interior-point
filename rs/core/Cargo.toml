@@ -1,0 +1,29 @@
+[package]
+name = "interior-point"
+version.workspace = true
+edition = "2024"
+license.workspace = true
+description = "JTS InteriorPoint algorithm ported to Rust"
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme = "README.md"
+keywords = ["geometry", "interior-point", "representative-point", "polygon", "jts"]
+categories = ["algorithms", "science::geo"]
+include = ["src/**/*", "Cargo.toml", "LICENSE", "LICENSE_EDLv1.txt", "README.md"]
+
+[lib]
+crate-type = ["rlib"]
+
+[dependencies]
+geo-types.workspace = true
+
+[dev-dependencies]
+geo = "0.32"
+wkt = "0.11"
+quick-xml = "0.37"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "interior_point_bench"
+harness = false

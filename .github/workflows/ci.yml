@@ -34,10 +34,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rs
-      - run: cd rs && cargo test
-      - run: cd rs && cargo clippy -- -D warnings
-      - run: cd rs && cargo fmt --check
-      - run: cd rs && cargo build
+      - run: cd rs && cargo test --workspace
+      - run: cd rs && cargo clippy --workspace -- -D warnings
+      - run: cd rs && cargo fmt --all --check
+      - run: cd rs && cargo build --workspace
 
   docs:
     name: Build Docs

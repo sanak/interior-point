@@ -7,9 +7,6 @@ mod interior_point_area;
 mod interior_point_line;
 mod interior_point_point;
 
-#[cfg(feature = "wasm")]
-mod wasm;
-
 use geo_types::{Coord, Geometry};
 
 use interior_point_area::interior_point_area;

@@ -56,7 +56,7 @@ fn coord_to_js(coord: geo_types::Coord<f64>) -> JsValue {
 #[wasm_bindgen(js_name = "interiorPoint")]
 pub fn interior_point_wasm(geometry: &JsValue) -> Result<JsValue, JsValue> {
     let geo_geom = js_to_geometry(geometry)?;
-    match crate::interior_point(&geo_geom) {
+    match interior_point::interior_point(&geo_geom) {
         Some(coord) => Ok(coord_to_js(coord)),
         None => Ok(JsValue::NULL),
     }

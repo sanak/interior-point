@@ -486,14 +486,22 @@ dependencies = [
  "criterion",
  "geo",
  "geo-types",
- "geojson",
- "js-sys",
  "quick-xml",
+ "wkt",
+]
+
+[[package]]
+name = "interior-point-wasm"
+version = "0.2.0"
+dependencies = [
+ "geo-types",
+ "geojson",
+ "interior-point",
+ "js-sys",
  "serde",
  "serde-wasm-bindgen",
  "serde_json",
  "wasm-bindgen",
- "wkt",
 ]
 
 [[package]]

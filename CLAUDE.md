@@ -9,7 +9,9 @@ Port of JTS (Java Topology Suite) InteriorPoint algorithm to **TypeScript** and 
 ## Monorepo Structure (pnpm workspace)
 
 - `js/` — TypeScript library (`interior-point`), GeoJSON-native, zero dependencies
-- `rs/` — Rust crate (`interior-point`), uses `geo`/`geo-types` crates
+- `rs/` — Rust workspace
+  - `rs/core/` — Core Rust crate (`interior-point`), uses `geo-types` crates
+  - `rs/wasm/` — WASM bindings crate (`interior-point-wasm`)
 - `docs/` — VitePress documentation (base: `/interior-point/`)
 - `examples/` — Sample apps
 - `testdata/` — Shared test data (XML test fixtures from JTS, WKT files)
@@ -34,13 +36,13 @@ Watch mode: `cd js && npx vitest`
 ### Rust (from repo root)
 
 ```bash
-pnpm test:rs              # cargo test
-cd rs && cargo test -- test_name   # single test
-cd rs && cargo clippy -- -D warnings
-cd rs && cargo fmt --check
+pnpm test:rs              # cargo test --workspace
+cd rs && cargo test -p interior-point -- test_name   # single test
+cd rs && cargo clippy --workspace -- -D warnings
+cd rs && cargo fmt --all --check
 ```
 
-WASM build: `cd rs && wasm-pack build --features wasm`
+WASM build: `cd rs/wasm && wasm-pack build`
 
 ### Both
 
@@ -78,12 +80,12 @@ pub fn interior_point(geometry: &Geometry<f64>) -> Option<Coord<f64>>
 
 Each language implements the same 4 files mirroring JTS:
 
-| Module                                           | Purpose                                   |
-| ------------------------------------------------ | ----------------------------------------- |
-| `interiorPoint` / `lib.rs`                       | Dispatcher — routes by geometry dimension |
-| `interiorPointArea` / `interior_point_area.rs`   | Scanline algorithm for polygons           |
-| `interiorPointLine` / `interior_point_line.rs`   | Nearest vertex to centroid for lines      |
-| `interiorPointPoint` / `interior_point_point.rs` | Nearest point to centroid for points      |
+| Module                                                    | Purpose                                   |
+| --------------------------------------------------------- | ----------------------------------------- |
+| `interiorPoint` / `core/src/lib.rs`                       | Dispatcher — routes by geometry dimension |
+| `interiorPointArea` / `core/src/interior_point_area.rs`   | Scanline algorithm for polygons           |
+| `interiorPointLine` / `core/src/interior_point_line.rs`   | Nearest vertex to centroid for lines      |
+| `interiorPointPoint` / `core/src/interior_point_point.rs` | Nearest point to centroid for points      |
 
 ### Type Mapping (JTS → TS / Rust)
 
@@ -115,7 +117,7 @@ Both languages share the same test structure:
 - All deliverables in **English** (code, comments, docs, commits)
 - Commit messages: English, Conventional Commits format, single line
 - TS style: 2-space indent, double quotes, semicolons, trailing commas, 120 char width (JTS-aligned)
-- Rust style: standard `rustfmt` (edition 2021)
+- Rust style: standard `rustfmt` (core: edition 2024, wasm: edition 2021)
 - Pre-commit hooks: `simple-git-hooks` + `lint-staged` (auto-runs eslint/prettier on TS, rustfmt on Rust)
 
 ## CI
@@ -123,7 +125,7 @@ Both languages share the same test structure:
 GitHub Actions (`.github/workflows/ci.yml`):
 
 - **test-js**: pnpm install → lint → format:check → test:js
-- **test-rs**: cargo test → clippy -D warnings → fmt --check
+- **test-rs**: cargo test --workspace → clippy --workspace -D warnings → fmt --all --check
 - **docs**: VitePress build → GitHub Pages deploy (main branch only)
 
 ## Reference
