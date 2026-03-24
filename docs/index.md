@@ -23,6 +23,14 @@ Add to your `Cargo.toml`:
 ```toml
 [dependencies]
 interior-point = "0.1"
+geo-types = "0.7"
+```
+
+or using `cargo add`:
+
+```sh
+cargo add interior-point
+cargo add geo-types
 ```
 
 ## Usage
@@ -56,7 +64,7 @@ console.log(point);
 
 ```rust
 use interior_point::interior_point;
-use geo::{Polygon, LineString};
+use geo_types::{Polygon, LineString};
 
 let poly = Polygon::new(
     LineString::from(vec![

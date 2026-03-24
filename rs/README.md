@@ -11,6 +11,14 @@ Add to `Cargo.toml`:
 ```toml
 [dependencies]
 interior-point = "0.1"
+geo-types = "0.7"
+```
+
+or using `cargo add`:
+
+```sh
+cargo add interior-point
+cargo add geo-types
 ```
 
 ```rust

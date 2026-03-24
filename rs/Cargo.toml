@@ -16,7 +16,6 @@ include = ["src/**/*", "benches/**/*", "Cargo.toml", "LICENSE", "LICENSE_EDLv1.t
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-geo = "0.29"
 geo-types = "0.7"
 
 [dependencies.wasm-bindgen]
@@ -45,6 +44,7 @@ version = "0.3"
 optional = true
 
 [dev-dependencies]
+geo = "0.32"
 wkt = "0.11"
 quick-xml = "0.37"
 criterion = { version = "0.5", features = ["html_reports"] }

@@ -69,7 +69,7 @@ Computes an interior point of the given geometry, dispatching by dimension.
 
 ```rust
 use interior_point::interior_point;
-use geo::{Geometry, Polygon, LineString};
+use geo_types::{Geometry, Polygon, LineString};
 
 let poly = Polygon::new(
     LineString::from(vec![
@@ -90,7 +90,7 @@ let result = interior_point(&poly.into());
 Returns `None` for empty geometries:
 
 ```rust
-use geo::GeometryCollection;
+use geo_types::GeometryCollection;
 let empty = GeometryCollection::<f64>(vec![]).into();
 assert_eq!(interior_point::interior_point(&empty), None);
 ```
