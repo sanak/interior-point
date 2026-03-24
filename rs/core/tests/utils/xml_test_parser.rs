@@ -1,6 +1,6 @@
 use geo_types::{Coord, Geometry};
-use quick_xml::events::Event;
 use quick_xml::Reader;
+use quick_xml::events::Event;
 use std::fs;
 use std::str::FromStr;
 use wkt::Wkt;

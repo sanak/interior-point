@@ -5,7 +5,7 @@
 
 mod utils;
 
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use interior_point::interior_point;
 use utils::sine_star::{create_sine_star, reduce_precision};
 
