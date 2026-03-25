@@ -8,16 +8,16 @@
     "lint:fix": "eslint --fix .",
     "format": "prettier --write \"**/*.{ts,mts,json,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,mts,json,md,yml,yaml}\"",
-    "build:js": "pnpm --filter interior-point run build",
-    "test:js": "pnpm --filter interior-point run test",
+    "build:js": "pnpm --filter ./js run build",
+    "test:js": "pnpm --filter ./js run test",
     "test:rs": "cd rs && cargo test --workspace",
     "test": "pnpm test:js && pnpm test:rs",
-    "bench:js": "pnpm --filter interior-point exec vitest bench",
+    "bench:js": "pnpm --filter ./js exec vitest bench",
     "bench:rs": "cd rs && cargo bench -p interior-point",
     "bench": "pnpm bench:js && pnpm bench:rs",
-    "docs:dev": "pnpm --filter @interior-point/docs run dev",
-    "docs:build": "pnpm --filter @interior-point/docs run build",
-    "docs:preview": "pnpm --filter @interior-point/docs run preview"
+    "docs:dev": "pnpm --filter ./docs run dev",
+    "docs:build": "pnpm --filter ./docs run build",
+    "docs:preview": "pnpm --filter ./docs run preview"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm exec lint-staged"
