@@ -3,7 +3,7 @@ import { writeFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { parseArgs } from "node:util";
 
-import { REPO_ROOT, readPin, sha256, writePin } from "./jts-pin.mjs";
+import { REPO_ROOT, javaFiles, readPin, sha256, writePin } from "./jts-pin.mjs";
 import { findEnclosingMember, scanJavaDir } from "./jts-java-scan.mjs";
 import { parseAnchorTarget, runAnchors, scanPortAnchors } from "./jts-anchors.mjs";
 import { checkDrift, fetchAllUpstream, unifiedDiff } from "./jts-upstream.mjs";
@@ -139,7 +139,8 @@ function cmdLocate(rest, io) {
     return 1;
   }
   io.out(found.member.signature);
-  io.out(`  upstream/jts/algorithm/${found.member.file}:${found.member.startLine}-${found.member.endLine}`);
+  const localPath = javaFiles(readPin(REPO_ROOT)).get(found.member.file);
+  io.out(`  ${localPath}:${found.member.startLine}-${found.member.endLine}`);
   if (found.counterparts.length === 0) io.out("  (no ported counterpart)");
   for (const counterpart of found.counterparts) io.out(`  ${counterpart.path}:${counterpart.line}`);
   return 0;

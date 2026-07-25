@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** Absolute path to the repository root — this file lives one level below it. */
@@ -19,6 +19,20 @@ export function readPin(root = REPO_ROOT) {
 /** Two-space indentation with a trailing newline, so `prettier --check` stays green. */
 export function writePin(pin, root = REPO_ROOT) {
   writeFileSync(join(root, PIN_PATH), `${JSON.stringify(pin, null, 2)}\n`);
+}
+
+/**
+ * Vendored Java sources, keyed by basename. Anchors name a bare `File.java`,
+ * so this is how an anchor target resolves to a path on disk — and it means
+ * the scanned set is exactly the pinned set.
+ */
+export function javaFiles(pin) {
+  const map = new Map();
+  for (const file of pin.files) {
+    if (!file.localPath.endsWith(".java")) continue;
+    map.set(basename(file.localPath), file.localPath);
+  }
+  return map;
 }
 
 export function verifyVendored(pin, root = REPO_ROOT) {

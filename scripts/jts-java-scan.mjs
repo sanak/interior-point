@@ -1,7 +1,8 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const ALGORITHM_DIR = "upstream/jts/algorithm";
+import { javaFiles, readPin } from "./jts-pin.mjs";
+
 const MODIFIERS = new Set(["public", "private", "protected", "static", "final", "abstract", "synchronized"]);
 const CLASS_HEADER = /(?:^|\s)(?:class|interface|enum)\s+(\w+)/;
 
@@ -210,13 +211,18 @@ export function scanMembers(src, fileName) {
   return members;
 }
 
+/**
+ * Every member of every vendored Java file, in basename order. Driven by
+ * `pin.json` rather than a fixed directory, so a file cannot be vendored and
+ * silently left out of the anchor coverage check — and so vendored sources
+ * outside `algorithm/` (`math/DD.java`) are scanned too.
+ */
 export function scanJavaDir(root) {
-  const dir = join(root, ALGORITHM_DIR);
-  const files = readdirSync(dir)
-    .filter((f) => f.endsWith(".java"))
-    .sort();
+  const paths = [...javaFiles(readPin(root)).entries()].sort(([a], [b]) => a.localeCompare(b));
   const members = [];
-  for (const file of files) members.push(...scanMembers(readFileSync(join(dir, file), "utf8"), file));
+  for (const [file, localPath] of paths) {
+    members.push(...scanMembers(readFileSync(join(root, localPath), "utf8"), file));
+  }
   return members;
 }
 

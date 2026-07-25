@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
-import { REPO_ROOT, readPin } from "./jts-pin.mjs";
+import { REPO_ROOT, javaFiles, readPin } from "./jts-pin.mjs";
 import { scanJavaDir } from "./jts-java-scan.mjs";
 
 export const PORT_DIRS = ["js/src", "js/test", "rs/core/src", "rs/core/tests", "rs/core/benches"];
@@ -67,12 +67,13 @@ function isOverloaded(members, file, memberName) {
 
 export function checkAnchorsToJava(anchors, root = REPO_ROOT) {
   const members = scanJavaDir(root);
+  const vendored = javaFiles(readPin(root));
   const violations = [];
   for (const anchor of anchors) {
     if (anchor.kind !== "jts") continue;
     const parsed = parseAnchorTarget(anchor.target);
-    const javaPath = join(root, "upstream/jts/algorithm", parsed.file);
-    if (!existsSync(javaPath)) {
+    const localPath = vendored.get(parsed.file);
+    if (localPath === undefined) {
       violations.push({
         kind: "unknown-java-file",
         message: `${anchor.path}:${anchor.line}: @jts ${anchor.target} names ${parsed.file}, which is not vendored`,
@@ -81,6 +82,7 @@ export function checkAnchorsToJava(anchors, root = REPO_ROOT) {
       });
       continue;
     }
+    const javaPath = join(root, localPath);
     if (parsed.memberName === null) continue;
     // Strict direction: the Java source must literally contain `<member>(`.
     if (!readFileSync(javaPath, "utf8").includes(`${parsed.memberName}(`)) {

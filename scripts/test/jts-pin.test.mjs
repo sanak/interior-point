@@ -4,7 +4,7 @@ import { join } from "node:path";
 import assert from "node:assert/strict";
 import { after, describe, it } from "node:test";
 
-import { PIN_PATH, REPO_ROOT, readPin, sha256, verifyVendored, writePin } from "../jts-pin.mjs";
+import { PIN_PATH, REPO_ROOT, javaFiles, readPin, sha256, verifyVendored, writePin } from "../jts-pin.mjs";
 
 const temps = [];
 function tempRoot() {
@@ -33,6 +33,33 @@ describe("readPin", () => {
     assert.equal(pin.nearestTag, "1.20.0");
     assert.equal(pin.files.length, 8);
     assert.deepEqual(pin.anchorIgnore, []);
+  });
+});
+
+describe("javaFiles", () => {
+  it("maps vendored java basenames to their local paths", () => {
+    const pin = {
+      files: [
+        { localPath: "upstream/jts/algorithm/Centroid.java" },
+        { localPath: "upstream/jts/math/DD.java" },
+        { localPath: "upstream/jts/resources/testdata/world.wkt" },
+      ],
+    };
+    const map = javaFiles(pin);
+    assert.equal(map.get("Centroid.java"), "upstream/jts/algorithm/Centroid.java");
+    assert.equal(map.get("DD.java"), "upstream/jts/math/DD.java");
+    assert.equal(map.has("world.wkt"), false);
+  });
+
+  it("covers every java file the repository pins", () => {
+    const map = javaFiles(readPin());
+    assert.deepEqual(
+      [...map.keys()].sort(),
+      readPin()
+        .files.filter((f) => f.localPath.endsWith(".java"))
+        .map((f) => f.localPath.split("/").at(-1))
+        .sort(),
+    );
   });
 });
 

@@ -256,6 +256,11 @@ describe("locate", () => {
       mkdirSync(join(root, "rs/core/src"), { recursive: true });
       const java = "upstream/jts/algorithm/InteriorPointArea.java";
       writeFileSync(join(root, java), readFileSync(join(REPO_ROOT, java)));
+      // The Java scan is driven by pin.json, so the fixture has to pin its one file.
+      writeFileSync(
+        join(root, "upstream/jts/pin.json"),
+        JSON.stringify({ files: [{ upstreamPath: java, localPath: java, sha256: "" }], anchorIgnore: [] }, null, 2),
+      );
       writeFileSync(
         join(root, "js/src/interiorPointArea.ts"),
         [
