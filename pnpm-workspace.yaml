@@ -2,3 +2,6 @@ packages:
   - "js"
   - "docs"
   - "examples/*"
+allowBuilds:
+  esbuild: true
+  simple-git-hooks: true
