@@ -165,6 +165,65 @@ describe("checkJavaToAnchors", () => {
     assert.ok(!checkJavaToAnchors(members, [], ignored).some((v) => v.signature === "Centroid#add(Polygon)"));
   });
 
+  it("only requires anchors for portedMembers when the file declares them", () => {
+    const members = [
+      {
+        file: "DD.java",
+        className: "DD",
+        memberName: "signum",
+        paramTypes: [],
+        signature: "DD#signum()",
+        startLine: 1,
+      },
+      { file: "DD.java", className: "DD", memberName: "sqrt", paramTypes: [], signature: "DD#sqrt()", startLine: 2 },
+    ];
+    const anchors = [{ kind: "jts", target: "DD#signum()", path: "js/src/dd.ts", line: 5 }];
+    const ported = new Map([["DD.java", new Set(["DD#signum()"])]]);
+    assert.deepEqual(checkJavaToAnchors(members, anchors, [], ported), []);
+  });
+
+  it("still requires every member of a file that declares no portedMembers", () => {
+    const members = [
+      {
+        file: "DD.java",
+        className: "DD",
+        memberName: "signum",
+        paramTypes: [],
+        signature: "DD#signum()",
+        startLine: 1,
+      },
+      { file: "DD.java", className: "DD", memberName: "sqrt", paramTypes: [], signature: "DD#sqrt()", startLine: 2 },
+    ];
+    const anchors = [{ kind: "jts", target: "DD#signum()", path: "js/src/dd.ts", line: 5 }];
+    const violations = checkJavaToAnchors(members, anchors, [], new Map());
+    assert.equal(violations.length, 1);
+    assert.equal(violations[0].signature, "DD#sqrt()");
+  });
+
+  it("reports a portedMember that has no anchor", () => {
+    const members = [
+      {
+        file: "DD.java",
+        className: "DD",
+        memberName: "signum",
+        paramTypes: [],
+        signature: "DD#signum()",
+        startLine: 1,
+      },
+    ];
+    const ported = new Map([["DD.java", new Set(["DD#signum()"])]]);
+    const violations = checkJavaToAnchors(members, [], [], ported);
+    assert.equal(violations.length, 1);
+    assert.equal(violations[0].signature, "DD#signum()");
+  });
+
+  it("leaves a file without portedMembers fully in scope when another file declares them", () => {
+    // The field is per-file: declaring it on DD.java must not narrow Centroid.java.
+    const ported = new Map([["DD.java", new Set([])]]);
+    const violations = checkJavaToAnchors(members, [], [], ported);
+    assert.equal(violations.length, 52);
+  });
+
   it("does not let a bare anchor cover an overloaded member", () => {
     const anchors = [{ kind: "jts", target: "Centroid#add", path: "js/src/a.ts", line: 1 }];
     const covered = checkJavaToAnchors(members, anchors, []).filter((v) => v.signature.startsWith("Centroid#add("));

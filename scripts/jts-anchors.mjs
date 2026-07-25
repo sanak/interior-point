@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import { basename, join, relative, sep } from "node:path";
 
 import { REPO_ROOT, javaFiles, readPin } from "./jts-pin.mjs";
 import { scanJavaDir } from "./jts-java-scan.mjs";
@@ -114,12 +114,16 @@ function anchorCovers(parsed, member, overloaded) {
   return parsed.paramTypes.join(",") === member.paramTypes.join(",");
 }
 
-export function checkJavaToAnchors(members, anchors, anchorIgnore = []) {
+export function checkJavaToAnchors(members, anchors, anchorIgnore = [], portedMembers = new Map()) {
   const resolving = anchors.filter((a) => RESOLVING_KINDS.has(a.kind)).map((a) => parseAnchorTarget(a.target));
   const ignored = new Set(anchorIgnore);
   const violations = [];
   for (const member of members) {
     if (ignored.has(member.signature)) continue;
+    // A file that declares portedMembers is a deliberate partial port: only the
+    // listed members are in scope. Files without the field require full coverage.
+    const scope = portedMembers.get(member.file);
+    if (scope !== undefined && !scope.has(member.signature)) continue;
     const overloaded = isOverloaded(members, member.file, member.memberName);
     if (resolving.some((parsed) => anchorCovers(parsed, member, overloaded))) continue;
     violations.push({
@@ -134,12 +138,23 @@ export function checkJavaToAnchors(members, anchors, anchorIgnore = []) {
 
 export function runAnchors(root = REPO_ROOT) {
   const pin = readPin(root);
+  const portedMembers = new Map();
+  for (const file of pin.files) {
+    if (file.portedMembers === undefined) continue;
+    portedMembers.set(basename(file.localPath), new Set(file.portedMembers));
+  }
   const members = scanJavaDir(root);
   const anchors = scanPortAnchors(root);
   const strict = checkAnchorsToJava(anchors, root);
-  const heuristic = checkJavaToAnchors(members, anchors, pin.anchorIgnore);
+  const heuristic = checkJavaToAnchors(members, anchors, pin.anchorIgnore, portedMembers);
+  // Counting only in-scope members keeps the reported total meaningful: a partial
+  // port's 63 out-of-scope members are not a coverage denominator.
+  const inScope = members.filter((m) => {
+    const scope = portedMembers.get(m.file);
+    return scope === undefined || scope.has(m.signature);
+  }).length;
   return {
     violations: [...strict, ...heuristic],
-    counts: { anchors: anchors.length, members: members.length, unported: heuristic.length },
+    counts: { anchors: anchors.length, members: inScope, unported: heuristic.length },
   };
 }
