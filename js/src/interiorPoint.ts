@@ -1,58 +1,71 @@
 import type { Geometry } from "geojson";
+
 import type { Coordinate } from "./geometryAdapter";
-import { isGeometryEmpty } from "./geometryAdapter";
+import { dimension, isGeometryEmpty } from "./geometryAdapter";
 import { interiorPointArea } from "./interiorPointArea";
 import { interiorPointLine } from "./interiorPointLine";
 import { interiorPointPoint } from "./interiorPointPoint";
 
 /**
- * Computes an interior point (representative point) of a geometry.
- * Ported from JTS InteriorPoint.java.
+ * Computes a location of an interior point in a {@link Geometry}.
+ * Handles all geometry types.
  *
- * For collections, the interior point is computed for the collection of
- * non-empty elements of highest dimension:
- * - Dimension 2 (Area): Polygon, MultiPolygon → scanline algorithm
- * - Dimension 1 (Line): LineString, MultiLineString → nearest vertex to centroid
- * - Dimension 0 (Point): Point, MultiPoint → nearest point to centroid
- *
- * @param geometry - A GeoJSON Geometry, or null (representing an empty geometry)
- * @returns A coordinate [x, y] inside the geometry, or null if the geometry is empty
+ * @param geom a geometry in which to find an interior point
+ * @return the location of an interior point, or <code>null</code> if the input is empty
+ * @jts InteriorPoint#getInteriorPoint(Geometry)
+ * @jts-deviate module-level name — `getInteriorPoint` would collide with the
+ *   same static factory in the other three modules. This is the
+ *   package's only public entry point, so it also takes `null` for an absent
+ *   geometry, which JTS expresses as an empty Geometry instance.
  */
-export function interiorPoint(geometry: Geometry | null): Coordinate | null {
-  if (geometry === null) return null;
+export function interiorPoint(geom: Geometry | null): Coordinate | null {
+  if (geom === null) return null;
+  if (isGeometryEmpty(geom)) return null;
 
-  const dim = dimensionNonEmpty(geometry);
-  if (dim < 0) return null;
+  let interiorPt: Coordinate | null = null;
+  const dim = dimensionNonEmpty(geom);
+  // this should not happen, but just in case...
+  if (dim < 0) {
+    return null;
+  }
+  if (dim === 0) {
+    interiorPt = interiorPointPoint(geom);
+  } else if (dim === 1) {
+    interiorPt = interiorPointLine(geom);
+  } else {
+    interiorPt = interiorPointArea(geom);
+  }
+  return interiorPt;
+}
 
-  if (dim === 2) return interiorPointArea(geometry);
-  if (dim === 1) return interiorPointLine(geometry);
-  return interiorPointPoint(geometry);
+/** @jts InteriorPoint#dimensionNonEmpty(Geometry) */
+function dimensionNonEmpty(geom: Geometry): number {
+  // JTS builds the filter and applies it; here the filter is the traversal,
+  // so this is a single call.
+  return dimensionNonEmptyFilter(geom);
 }
 
 /**
- * Determines the highest dimension of non-empty components in a geometry.
- * Returns -1 if no non-empty components exist.
+ * @jts InteriorPoint.DimensionNonEmptyFilter#filter(Geometry)
+ * @jts InteriorPoint.DimensionNonEmptyFilter#getDimension()
+ * @jts-deviate GeometryFilter / Geometry.apply() are not part of the adapted
+ *   geometry model, so the filter becomes a recursive traversal with identical
+ *   semantics. The receptacle is preserved: the function keeps the filter's
+ *   name and its body mirrors `filter(Geometry elem)`, returning what
+ *   `getDimension()` would have reported, per the structure rule.
  */
-function dimensionNonEmpty(geometry: Geometry): number {
-  if (isGeometryEmpty(geometry)) return -1;
-
-  switch (geometry.type) {
-    case "Point":
-    case "MultiPoint":
-      return 0;
-    case "LineString":
-    case "MultiLineString":
-      return 1;
-    case "Polygon":
-    case "MultiPolygon":
-      return 2;
-    case "GeometryCollection": {
-      let maxDim = -1;
-      for (const g of geometry.geometries) {
-        const d = dimensionNonEmpty(g);
-        if (d > maxDim) maxDim = d;
-      }
-      return maxDim;
+function dimensionNonEmptyFilter(elem: Geometry): number {
+  let dim = -1;
+  if (elem.type === "GeometryCollection") {
+    for (const g of elem.geometries) {
+      const elemDim = dimensionNonEmptyFilter(g);
+      if (elemDim > dim) dim = elemDim;
     }
+    return dim;
   }
+  if (!isGeometryEmpty(elem)) {
+    const elemDim = dimension(elem);
+    if (elemDim > dim) dim = elemDim;
+  }
+  return dim;
 }

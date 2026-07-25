@@ -6,12 +6,6 @@
 //! `geo_types::Rect<f64>`; both are named canonically by geo-types, so neither
 //! gets an alias here, per the adapter boundary.
 
-// The adapter lands before its callers: `distance` goes live with the `Centroid`
-// port that follows, `dimension` with the `InteriorPoint` retrofit. Without
-// this, `clippy -- -D warnings` fails on both. Narrow or remove this as each
-// caller arrives.
-#![allow(dead_code)]
-
 use geo_types::{Coord, Geometry, Rect};
 
 /// Computes a ring's envelope in a single pass.

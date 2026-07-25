@@ -2,6 +2,8 @@
 //!
 //! Computes an interior point (representative point) of a geometry.
 //! The point is guaranteed to lie inside the geometry for area geometries.
+//!
+//! @jts InteriorPoint
 
 mod centroid;
 mod cg_algorithms_dd;
@@ -14,48 +16,80 @@ mod orientation;
 
 use geo_types::{Coord, Geometry};
 
-use geometry_adapter::is_geometry_empty;
+use geometry_adapter::{dimension, is_geometry_empty};
 use interior_point_area::interior_point_area;
 use interior_point_line::interior_point_line;
 use interior_point_point::interior_point_point;
 
-/// Computes an interior point of the given geometry.
+/// Computes a location of an interior point in a `Geometry`.
+/// Handles all geometry types.
 ///
-/// For different geometry dimensions:
-/// - Area (Polygon/MultiPolygon): uses scanline algorithm
-/// - Line (LineString/MultiLineString): finds vertex closest to centroid
-/// - Point (Point/MultiPoint): finds point closest to centroid
+/// For collections, the interior point is computed for the collection of
+/// non-empty elements of highest dimension:
 ///
-/// For GeometryCollections, uses the highest-dimension component.
+/// - **Dimension 2** (Polygon/MultiPolygon) — the point is in the interior of
+///   the widest scan-line section.
+/// - **Dimension 1** (LineString/MultiLineString) — the point is the interior
+///   vertex closest to the centroid.
+/// - **Dimension 0** (Point/MultiPoint) — the point is the point closest to
+///   the centroid.
 ///
-/// Returns `None` if the geometry is empty.
-pub fn interior_point(geometry: &Geometry<f64>) -> Option<Coord<f64>> {
-    let dim = dimension_non_empty(geometry);
-    if dim < 0 {
+/// Returns the location of an interior point, or `None` if the input is empty.
+///
+/// @jts InteriorPoint#getInteriorPoint(Geometry)
+/// @jts-deviate module-level name — `get_interior_point` would collide with the
+///   same static factory in the other three modules.
+pub fn interior_point(geom: &Geometry<f64>) -> Option<Coord<f64>> {
+    if is_geometry_empty(geom) {
         return None;
     }
 
-    match dim {
-        2 => interior_point_area(geometry),
-        1 => interior_point_line(geometry),
-        _ => interior_point_point(geometry),
+    let interior_pt;
+    let dim = dimension_non_empty(geom);
+    // this should not happen, but just in case...
+    if dim < 0 {
+        return None;
     }
+    if dim == 0 {
+        interior_pt = interior_point_point(geom);
+    } else if dim == 1 {
+        interior_pt = interior_point_line(geom);
+    } else {
+        interior_pt = interior_point_area(geom);
+    }
+    interior_pt
 }
 
-/// Determines the highest dimension of non-empty components in a geometry.
-/// Returns -1 if no non-empty components exist.
-fn dimension_non_empty(geometry: &Geometry<f64>) -> i32 {
-    if is_geometry_empty(geometry) {
-        return -1;
-    }
+/// @jts InteriorPoint#dimensionNonEmpty(Geometry)
+fn dimension_non_empty(geom: &Geometry<f64>) -> i32 {
+    // JTS builds the filter and applies it; here the filter is the traversal,
+    // so this is a single call.
+    dimension_non_empty_filter(geom)
+}
 
-    match geometry {
-        Geometry::Point(_) | Geometry::MultiPoint(_) => 0,
-        Geometry::LineString(_) | Geometry::MultiLineString(_) => 1,
-        Geometry::Polygon(_) | Geometry::MultiPolygon(_) => 2,
-        Geometry::GeometryCollection(gc) => {
-            gc.0.iter().map(dimension_non_empty).max().unwrap_or(-1)
+/// @jts InteriorPoint.DimensionNonEmptyFilter#filter(Geometry)
+/// @jts InteriorPoint.DimensionNonEmptyFilter#getDimension()
+/// @jts-deviate GeometryFilter / Geometry.apply() are not part of the adapted
+///   geometry model, so the filter becomes a recursive traversal with identical
+///   semantics. The receptacle is preserved: the function keeps the filter's
+///   name and its body mirrors `filter(Geometry elem)`, returning what
+///   `getDimension()` would have reported, per the structure rule.
+fn dimension_non_empty_filter(elem: &Geometry<f64>) -> i32 {
+    let mut dim = -1;
+    if let Geometry::GeometryCollection(gc) = elem {
+        for g in &gc.0 {
+            let elem_dim = dimension_non_empty_filter(g);
+            if elem_dim > dim {
+                dim = elem_dim;
+            }
         }
-        _ => -1,
+        return dim;
     }
+    if !is_geometry_empty(elem) {
+        let elem_dim = dimension(elem);
+        if elem_dim > dim {
+            dim = elem_dim;
+        }
+    }
+    dim
 }
