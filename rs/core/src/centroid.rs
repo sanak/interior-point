@@ -249,7 +249,9 @@ pub(crate) fn get_centroid(geom: &Geometry<f64>) -> Option<Coord<f64>> {
 #[cfg(test)]
 mod tests {
     use super::get_centroid;
-    use geo_types::{Geometry, LineString, MultiLineString, MultiPoint};
+    use geo_types::{
+        Coord, Geometry, LineString, MultiLineString, MultiPoint, MultiPolygon, Polygon,
+    };
 
     // The parser lives in the integration-test crate, which a `#[cfg(test)]`
     // module inside `src/` cannot `use`. `#[path] mod` cannot reach it either:
@@ -297,5 +299,91 @@ mod tests {
             get_centroid(&Geometry::MultiPoint(MultiPoint(vec![]))),
             None
         );
+    }
+
+    /// @jts-adapter CentroidTest#TOLERANCE
+    const TOLERANCE: f64 = 1e-10;
+
+    /// The area of a ring, transcribed from JTS `Area.ofRing(Coordinate[])` —
+    /// which is what `Geometry.getArea()` calls. Test-local: no ported source
+    /// module needs `Geometry.getArea()`, so it does not belong in the adapter.
+    ///
+    /// The translation by `x0` is load-bearing, not a micro-optimisation. This
+    /// test's rings are slivers whose coordinates differ only around the 12th
+    /// decimal place, so the textbook shoelace form
+    /// `x[i] * y[i + 1] - x[i + 1] * y[i]` loses every significant digit to
+    /// cancellation: it returns exactly 0 for two of the three rings here and
+    /// overstates the third by eleven orders of magnitude.
+    ///
+    /// @jts-adapter Geometry.getArea()
+    fn ring_area(ring: &[Coord<f64>]) -> f64 {
+        if ring.len() < 3 {
+            return 0.0;
+        }
+        let mut sum = 0.0;
+        let x0 = ring[0].x;
+        for i in 1..ring.len() - 1 {
+            let x = ring[i].x - x0;
+            let y1 = ring[i + 1].y;
+            let y2 = ring[i - 1].y;
+            sum += x * (y2 - y1);
+        }
+        (sum / 2.0).abs()
+    }
+
+    /// @jts CentroidTest#areaWeightedCentroid(Geometry)
+    fn area_weighted_centroid(polys: &[Polygon<f64>]) -> Coord<f64> {
+        let total_area: f64 = polys.iter().map(|p| ring_area(&p.exterior().0)).sum();
+        let mut cx = 0.0;
+        let mut cy = 0.0;
+        for poly in polys {
+            let area_fraction = ring_area(&poly.exterior().0) / total_area;
+            let component_centroid = get_centroid(&Geometry::Polygon(poly.clone())).unwrap();
+            cx += area_fraction * component_centroid.x;
+            cy += area_fraction * component_centroid.y;
+        }
+        Coord { x: cx, y: cy }
+    }
+
+    /// @jts CentroidTest#testCentroidMultiPolygon()
+    #[test]
+    fn computes_a_multipolygon_centroid_as_the_area_weighted_average() {
+        // Verify that the computed centroid of a MultiPolygon is equivalent to
+        // the area-weighted average of its components.
+        let polys = vec![
+            Polygon::new(
+                LineString::from(vec![
+                    (-92.661322, 36.589_949_000_000_03),
+                    (-92.661_321_999_999_93, 36.589_949_000_000_05),
+                    (-92.661_321_999_999_93, 36.589_949_000_000_004),
+                    (-92.661322, 36.589949),
+                    (-92.661322, 36.589_949_000_000_03),
+                ]),
+                vec![],
+            ),
+            Polygon::new(
+                LineString::from(vec![
+                    (-92.655_605_000_000_08, 36.587_088_000_000_05),
+                    (-92.655_604_999_999_92, 36.587_088_000_000_05),
+                    (-92.655_604_999_987_45, 36.587_087_999_992_576),
+                    (-92.655605, 36.587088),
+                    (-92.655_605_000_000_08, 36.587_088_000_000_05),
+                ]),
+                vec![],
+            ),
+            Polygon::new(
+                LineString::from(vec![
+                    (-92.655_124_500_000_65, 36.586_800_000_000_466),
+                    (-92.655_124_499_999_94, 36.586_800_000_000_04),
+                    (-92.655_124_499_986_66, 36.586_799_999_990_5),
+                    (-92.655_124_500_000_65, 36.586_800_000_000_466),
+                ]),
+                vec![],
+            ),
+        ];
+        let expected = area_weighted_centroid(&polys);
+        let actual = get_centroid(&Geometry::MultiPolygon(MultiPolygon(polys.clone()))).unwrap();
+        assert!((actual.x - expected.x).abs() < TOLERANCE);
+        assert!((actual.y - expected.y).abs() < TOLERANCE);
     }
 }
