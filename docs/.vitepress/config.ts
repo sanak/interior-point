@@ -4,6 +4,7 @@ export default defineConfig({
   title: "Interior Point",
   description: "JTS InteriorPoint algorithm ported to TypeScript and Rust",
   base: "/interior-point/",
+  srcDir: "./site",
   head: [
     ["meta", { property: "og:type", content: "website" }],
     ["meta", { property: "og:title", content: "Interior Point" }],

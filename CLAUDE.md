@@ -12,9 +12,13 @@ Port of JTS (Java Topology Suite) InteriorPoint algorithm to **TypeScript** and 
 - `rs/` — Rust workspace
   - `rs/core/` — Core Rust crate (`interior-point`), uses `geo-types` crates
   - `rs/wasm/` — WASM bindings crate (`interior-point-wasm`)
-- `docs/` — VitePress documentation (base: `/interior-point/`)
+- `docs/` — All project documentation. **Only `docs/site/` is published.**
+  - `docs/site/` — VitePress source directory (`srcDir`), deployed to GitHub Pages (base: `/interior-point/`)
+  - `docs/site/public/` — Static assets copied to the site root
 - `examples/` — Sample apps
 - `testdata/` — Shared test data (XML test fixtures from JTS, WKT files)
+
+Anything under `docs/` outside `docs/site/` is invisible to VitePress. To publish a document, move it into `docs/site/`. Do not reach for `srcExclude` — the boundary is the directory.
 
 ## Commands
 
