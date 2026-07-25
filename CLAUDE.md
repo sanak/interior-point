@@ -16,7 +16,8 @@ Port of JTS (Java Topology Suite) InteriorPoint algorithm to **TypeScript** and 
   - `docs/site/` — VitePress source directory (`srcDir`), deployed to GitHub Pages (base: `/interior-point/`)
   - `docs/site/public/` — Static assets copied to the site root
 - `examples/` — Sample apps
-- `testdata/` — Shared test data (XML test fixtures from JTS, WKT files)
+- `upstream/jts/` — Verbatim copies of the tracked JTS sources and test resources, pinned by `upstream/jts/pin.json`. Never edit these files; see `upstream/jts/NOTICE.md`.
+- `testdata/` — Locally generated test fixtures only (upstream fixtures live under `upstream/jts/resources/`)
 
 Anything under `docs/` outside `docs/site/` is invisible to VitePress. To publish a document, move it into `docs/site/`. Do not reach for `srcExclude` — the boundary is the directory.
 
@@ -109,7 +110,7 @@ Each language implements the same 4 files mirroring JTS:
 Both languages share the same test structure:
 
 - `interiorPoint.test.ts` / `interior_point_test.rs` — unit tests for all geometry types
-- `interiorPointWorld.test.ts` / `interior_point_world_test.rs` — integration tests using XML fixtures from `testdata/`
+- `interiorPointWorld.test.ts` / `interior_point_world_test.rs` — integration tests using the `world.wkt` fixture from `upstream/jts/resources/`
 - `interiorPoint.bench.ts` / `benches/` — benchmarks (vitest bench / cargo bench)
 
 ## Development Approach
