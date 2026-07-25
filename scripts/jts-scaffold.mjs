@@ -82,8 +82,14 @@ function isFactoryGetterPair(group) {
  * `selfAdd(double,double)` share a first parameter type — when the first type
  * does not disambiguate, every parameter type is appended in order. The factory/getter rule
  * still exempts a factory/getter pair from suffixing entirely.
+ *
+ * Constructors are outside the overload-suffix rule altogether: both emitters name them
+ * structurally (`constructor` in TypeScript, `new` in Rust) and never consult
+ * this name. DD.java has five `DD` constructors including a nullary one, which
+ * the rule cannot suffix at all.
  */
 export function portedName(member, members) {
+  if (member.isConstructor) return member.memberName;
   // Scoped by class, not just by file: InteriorPointArea.java has three
   // unrelated `process` methods in three classes, and they must stay unsuffixed.
   const overloads = members.filter(

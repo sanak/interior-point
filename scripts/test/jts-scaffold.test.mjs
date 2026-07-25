@@ -86,6 +86,31 @@ describe("portedName", () => {
     for (const m of members) assert.equal(portedName(m, members), "getValue");
   });
 
+  it("leaves a constructor overload set unsuffixed, since the emitters name it structurally", () => {
+    // DD.java declares five DD constructors, one of them nullary — the overload-suffix rule cannot
+    // suffix that, and neither emitter would use the name if it could.
+    const members = [
+      { file: "DD.java", className: "DD", memberName: "DD", paramTypes: [], modifiers: [], isConstructor: true },
+      {
+        file: "DD.java",
+        className: "DD",
+        memberName: "DD",
+        paramTypes: ["double"],
+        modifiers: [],
+        isConstructor: true,
+      },
+      {
+        file: "DD.java",
+        className: "DD",
+        memberName: "DD",
+        paramTypes: ["double", "double"],
+        modifiers: [],
+        isConstructor: true,
+      },
+    ];
+    for (const m of members) assert.equal(portedName(m, members), "DD");
+  });
+
   it("throws for a nullary member inside a real overload set, rather than colliding silently", () => {
     const members = [
       { file: "DD.java", className: "DD", memberName: "sqr", paramTypes: [], modifiers: [] },
