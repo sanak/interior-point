@@ -1,9 +1,11 @@
 #!/usr/bin/env node
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { parseArgs } from "node:util";
 
-import { REPO_ROOT, readPin } from "./jts-pin.mjs";
+import { REPO_ROOT, readPin, sha256, writePin } from "./jts-pin.mjs";
 import { runAnchors } from "./jts-anchors.mjs";
-import { checkDrift, unifiedDiff } from "./jts-upstream.mjs";
+import { checkDrift, fetchAllUpstream, unifiedDiff } from "./jts-upstream.mjs";
 
 export const USAGE = `Usage: node scripts/jts-sync.mjs <subcommand> [options]
 
@@ -62,6 +64,44 @@ async function cmdCheck(rest, io) {
   return 1;
 }
 
+const SHA_RE = /^[0-9a-f]{40}$/;
+const TAG_RE = /^v?\d+\.\d+/;
+
+/**
+ * Fetches everything first, then writes — so a mid-run failure leaves the
+ * working tree exactly as it was.
+ */
+export async function pullUpstream(root, ref, { fetchImpl, today } = {}) {
+  const pin = readPin(root);
+  const upstream = await fetchAllUpstream(pin, ref, fetchImpl ?? fetch);
+  const written = [];
+  for (const file of pin.files) {
+    const bytes = upstream.get(file.upstreamPath);
+    writeFileSync(join(root, file.localPath), bytes);
+    file.sha256 = sha256(bytes);
+    written.push(file.localPath);
+  }
+  // A tag also updates nearestTag; a bare sha carries no tag information, so nearestTag is left alone.
+  pin.commit = ref;
+  if (TAG_RE.test(ref)) pin.nearestTag = ref.replace(/^v/, "");
+  pin.syncedAt = today ?? new Date().toISOString().slice(0, 10);
+  writePin(pin, root);
+  return { written, pin };
+}
+
+async function cmdPull(rest, io) {
+  const { values } = parseArgs({ args: rest, options: { ref: { type: "string" } }, strict: true });
+  if (values.ref === undefined) throw new Error("--ref is required for pull");
+  const { written, pin } = await pullUpstream(REPO_ROOT, values.ref, { fetchImpl: io.fetchImpl });
+  for (const path of written) io.out(`updated ${path}`);
+  io.out(`pin.json now records commit ${pin.commit} (nearestTag ${pin.nearestTag}, syncedAt ${pin.syncedAt})`);
+  if (!SHA_RE.test(pin.commit)) {
+    io.out(`note: ${pin.commit} is not a 40-character sha — set pin.json's commit to the resolved sha by hand`);
+  }
+  io.out("review the result with: git diff upstream/");
+  return 0;
+}
+
 export async function main(argv, io = {}) {
   const out = io.out ?? ((s) => console.log(s));
   const err = io.err ?? ((s) => console.error(s));
@@ -80,6 +120,8 @@ export async function main(argv, io = {}) {
     switch (subcommand) {
       case "check":
         return await cmdCheck(rest, { out, err, fetchImpl: io.fetchImpl });
+      case "pull":
+        return await cmdPull(rest, { out, err, fetchImpl: io.fetchImpl });
       case "anchors":
         if (rest.length > 0) {
           err("jts-sync: anchors takes no arguments");

@@ -97,3 +97,115 @@ describe("check", () => {
     for (const url of urls) assert.match(url, /^https:\/\/raw\.githubusercontent\.com\/locationtech\/jts\/master\//);
   });
 });
+
+describe("pull", () => {
+  it("exits 2 when --ref is missing", async () => {
+    const { code, err } = await run(["pull"]);
+    assert.equal(code, 2);
+    assert.match(err, /--ref is required/);
+  });
+
+  it("overwrites vendored files and rewrites pin.json", async () => {
+    const { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { sha256 } = await import("../jts-pin.mjs");
+    const { pullUpstream } = await import("../jts-sync.mjs");
+
+    const root = mkdtempSync(join(tmpdir(), "jts-sync-"));
+    try {
+      mkdirSync(join(root, "upstream/jts/algorithm"), { recursive: true });
+      writeFileSync(join(root, "upstream/jts/algorithm/A.java"), "old\n");
+      const pin = {
+        upstream: "https://github.com/locationtech/jts",
+        commit: "0000000000000000000000000000000000000000",
+        nearestTag: "1.19.0",
+        syncedAt: "2020-01-01",
+        files: [{ upstreamPath: "u/A.java", localPath: "upstream/jts/algorithm/A.java", sha256: sha256("old\n") }],
+        anchorIgnore: [],
+      };
+      writeFileSync(join(root, "upstream/jts/pin.json"), `${JSON.stringify(pin, null, 2)}\n`);
+
+      const fetchImpl = async () => new Response("new\n", { status: 200 });
+      const result = await pullUpstream(root, "1.20.0", { fetchImpl, today: "2026-07-26" });
+
+      assert.deepEqual(result.written, ["upstream/jts/algorithm/A.java"]);
+      assert.equal(readFileSync(join(root, "upstream/jts/algorithm/A.java"), "utf8"), "new\n");
+      const updated = JSON.parse(readFileSync(join(root, "upstream/jts/pin.json"), "utf8"));
+      assert.equal(updated.files[0].sha256, sha256("new\n"));
+      assert.equal(updated.syncedAt, "2026-07-26");
+      assert.equal(updated.nearestTag, "1.20.0");
+      assert.equal(updated.commit, "1.20.0");
+      assert.deepEqual(updated.anchorIgnore, []);
+      assert.ok(readFileSync(join(root, "upstream/jts/pin.json"), "utf8").endsWith("}\n"));
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("sets commit and leaves nearestTag alone when the ref is a sha", async () => {
+    const { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { sha256 } = await import("../jts-pin.mjs");
+    const { pullUpstream } = await import("../jts-sync.mjs");
+
+    const root = mkdtempSync(join(tmpdir(), "jts-sync-"));
+    try {
+      mkdirSync(join(root, "upstream/jts/algorithm"), { recursive: true });
+      writeFileSync(join(root, "upstream/jts/algorithm/A.java"), "old\n");
+      const sha = "a".repeat(40);
+      const pin = {
+        upstream: "https://github.com/locationtech/jts",
+        commit: "0".repeat(40),
+        nearestTag: "1.19.0",
+        syncedAt: "2020-01-01",
+        files: [{ upstreamPath: "u/A.java", localPath: "upstream/jts/algorithm/A.java", sha256: sha256("old\n") }],
+        anchorIgnore: [],
+      };
+      writeFileSync(join(root, "upstream/jts/pin.json"), `${JSON.stringify(pin, null, 2)}\n`);
+      await pullUpstream(root, sha, {
+        fetchImpl: async () => new Response("new\n", { status: 200 }),
+        today: "2026-07-26",
+      });
+      const updated = JSON.parse(readFileSync(join(root, "upstream/jts/pin.json"), "utf8"));
+      assert.equal(updated.commit, sha);
+      assert.equal(updated.nearestTag, "1.19.0");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("leaves the working tree untouched when a fetch fails", async () => {
+    const { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { sha256 } = await import("../jts-pin.mjs");
+    const { pullUpstream } = await import("../jts-sync.mjs");
+
+    const root = mkdtempSync(join(tmpdir(), "jts-sync-"));
+    try {
+      mkdirSync(join(root, "upstream/jts/algorithm"), { recursive: true });
+      writeFileSync(join(root, "upstream/jts/algorithm/A.java"), "old\n");
+      const pin = {
+        upstream: "https://github.com/locationtech/jts",
+        commit: "0".repeat(40),
+        nearestTag: "1.19.0",
+        syncedAt: "2020-01-01",
+        files: [
+          { upstreamPath: "u/A.java", localPath: "upstream/jts/algorithm/A.java", sha256: sha256("old\n") },
+          { upstreamPath: "u/B.java", localPath: "upstream/jts/algorithm/B.java", sha256: "deadbeef" },
+        ],
+        anchorIgnore: [],
+      };
+      writeFileSync(join(root, "upstream/jts/pin.json"), `${JSON.stringify(pin, null, 2)}\n`);
+      const fetchImpl = async (url) =>
+        url.endsWith("A.java") ? new Response("new\n", { status: 200 }) : new Response("", { status: 404 });
+      await assert.rejects(() => pullUpstream(root, "main", { fetchImpl, today: "2026-07-26" }), /404/);
+      assert.equal(readFileSync(join(root, "upstream/jts/algorithm/A.java"), "utf8"), "old\n");
+      assert.equal(JSON.parse(readFileSync(join(root, "upstream/jts/pin.json"), "utf8")).syncedAt, "2020-01-01");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
