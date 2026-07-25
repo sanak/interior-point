@@ -84,3 +84,17 @@ fn test_multiline_with_empty() {
         Some(Coord { x: 0.0, y: 0.0 }),
     );
 }
+
+#[test]
+fn test_zero_length_lines_asymmetric() {
+    // Zero-length-line centroid defect regression. Confirmed against JTS 1.19.0.
+    let mls = MultiLineString::new(vec![
+        LineString::from(vec![(0.0, 0.0), (0.0, 0.0)]),
+        LineString::from(vec![(10.0, 10.0), (10.0, 10.0)]),
+        LineString::from(vec![(10.0, 10.0), (10.0, 10.0)]),
+    ]);
+    assert_eq!(
+        interior_point(&Geometry::MultiLineString(mls)),
+        Some(Coord { x: 10.0, y: 10.0 })
+    );
+}

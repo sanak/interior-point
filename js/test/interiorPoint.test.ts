@@ -51,4 +51,28 @@ describe("InteriorPoint - extra cases (InteriorPointTest.java)", () => {
     };
     expect(interiorPoint(input)).toEqual([0, 0]);
   });
+
+  it("mL - zero length lines, asymmetric (centroid defect regression)", () => {
+    // Confirmed against JTS 1.19.0: centroid (6.667, 6.667), interior point (10, 10).
+    // The pre-retrofit port returned [0, 0] because it took the first coordinate
+    // of the first line instead of treating zero-length lines as points.
+    const result = interiorPoint({
+      type: "MultiLineString",
+      coordinates: [
+        [
+          [0, 0],
+          [0, 0],
+        ],
+        [
+          [10, 10],
+          [10, 10],
+        ],
+        [
+          [10, 10],
+          [10, 10],
+        ],
+      ],
+    });
+    expect(result).toEqual([10, 10]);
+  });
 });

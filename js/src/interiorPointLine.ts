@@ -1,95 +1,135 @@
-import type { Geometry, Position } from "geojson";
+import type { Geometry } from "geojson";
+
+import { getCentroid } from "./centroid";
+import type { Coordinate } from "./geometryAdapter";
+import { distance, isGeometryEmpty } from "./geometryAdapter";
 
 /**
- * Computes an interior point of a line geometry (LineString/MultiLineString).
+ * Computes a point in the interior of an linear geometry.
+ * <h2>Algorithm</h2>
+ * <ul>
+ * <li>Find an interior vertex which is closest to the centroid of the linestring.
+ * <li>If there is no interior vertex, find the endpoint which is closest to the centroid.
+ * </ul>
  *
- * Algorithm (ported from JTS InteriorPointLine.java):
- * 1. Compute the centroid of all linear components.
- * 2. Find the interior vertex (not an endpoint) closest to the centroid.
- * 3. If no interior vertices exist, fall back to the closest endpoint.
- *
- * @param geometry - A GeoJSON geometry (LineString, MultiLineString, or GeometryCollection containing lines)
- * @returns A position [x, y] on the geometry, or null if the geometry has no linear components
+ * @jts InteriorPointLine
  */
-export function interiorPointLine(geometry: Geometry): Position | null {
-  const lines = collectLineCoords(geometry);
-  if (lines.length === 0) return null;
+export class InteriorPointLine {
+  private centroid: Coordinate | null;
+  private minDistance = Number.MAX_VALUE;
+  private interiorPoint: Coordinate | null = null;
 
-  const centroid = computeLineCentroid(lines);
-
-  // Phase 1: try interior vertices (indices 1..n-2)
-  let best: Position | null = null;
-  let bestDist = Infinity;
-
-  for (const coords of lines) {
-    for (let i = 1; i < coords.length - 1; i++) {
-      const dist = distanceSq(coords[i], centroid);
-      if (dist < bestDist) {
-        bestDist = dist;
-        best = coords[i];
-      }
-    }
+  /** @jts InteriorPointLine#InteriorPointLine(Geometry) */
+  constructor(g: Geometry) {
+    this.centroid = getCentroid(g);
+    this.addInteriorGeometry(g);
+    if (this.interiorPoint === null) this.addEndpointsGeometry(g);
   }
 
-  // Phase 2: fall back to endpoints if no interior vertices found
-  if (best === null) {
-    for (const coords of lines) {
-      for (const p of [coords[0], coords[coords.length - 1]]) {
-        const dist = distanceSq(p, centroid);
-        if (dist < bestDist) {
-          bestDist = dist;
-          best = p;
+  /** @jts InteriorPointLine#getInteriorPoint() */
+  getInteriorPoint(): Coordinate | null {
+    return this.interiorPoint;
+  }
+
+  /**
+   * Tests the interior vertices (if any)
+   * defined by a linear Geometry for the best inside point.
+   * If a Geometry is not of dimension 1 it is not tested.
+   *
+   * @param geom the geometry to add
+   * @jts InteriorPointLine#addInterior(Geometry)
+   */
+  private addInteriorGeometry(geom: Geometry): void {
+    if (isGeometryEmpty(geom)) return;
+
+    switch (geom.type) {
+      case "LineString":
+        this.addInteriorCoordinates(geom.coordinates);
+        break;
+      // JTS's MultiLineString is a GeometryCollection; GeoJSON's is not.
+      case "MultiLineString":
+        for (const c of geom.coordinates) {
+          // Stands in for the `geom.isEmpty()` guard JTS applies to each child
+          // LineString on the way down; flattening the recursion would lose it.
+          if (c.length === 0) continue;
+          this.addInteriorCoordinates(c);
         }
-      }
+        break;
+      case "GeometryCollection":
+        for (const g of geom.geometries) this.addInteriorGeometry(g);
+        break;
+      default:
+        break;
     }
   }
 
-  return best;
-}
+  /** @jts InteriorPointLine#addInterior(Coordinate[]) */
+  private addInteriorCoordinates(pts: Coordinate[]): void {
+    for (let i = 1; i < pts.length - 1; i++) {
+      this.add(pts[i]);
+    }
+  }
 
-/** Recursively collect coordinate arrays from all linear components. */
-function collectLineCoords(geometry: Geometry): Position[][] {
-  switch (geometry.type) {
-    case "LineString":
-      return geometry.coordinates.length > 0 ? [geometry.coordinates] : [];
-    case "MultiLineString":
-      return geometry.coordinates.filter((c) => c.length > 0);
-    case "GeometryCollection":
-      return geometry.geometries.flatMap(collectLineCoords);
-    default:
-      return [];
+  /**
+   * Tests the endpoint vertices
+   * defined by a linear Geometry for the best inside point.
+   * If a Geometry is not of dimension 1 it is not tested.
+   *
+   * @param geom the geometry to add
+   * @jts InteriorPointLine#addEndpoints(Geometry)
+   */
+  private addEndpointsGeometry(geom: Geometry): void {
+    if (isGeometryEmpty(geom)) return;
+
+    switch (geom.type) {
+      case "LineString":
+        this.addEndpointsCoordinates(geom.coordinates);
+        break;
+      // JTS's MultiLineString is a GeometryCollection; GeoJSON's is not.
+      case "MultiLineString":
+        for (const c of geom.coordinates) {
+          // As above: JTS's recursion checks each child LineString for
+          // emptiness. Without this, `pts[0]` below would be undefined.
+          if (c.length === 0) continue;
+          this.addEndpointsCoordinates(c);
+        }
+        break;
+      case "GeometryCollection":
+        for (const g of geom.geometries) this.addEndpointsGeometry(g);
+        break;
+      default:
+        break;
+    }
+  }
+
+  /** @jts InteriorPointLine#addEndpoints(Coordinate[]) */
+  private addEndpointsCoordinates(pts: Coordinate[]): void {
+    this.add(pts[0]);
+    this.add(pts[pts.length - 1]);
+  }
+
+  /** @jts InteriorPointLine#add(Coordinate) */
+  private add(point: Coordinate): void {
+    // `centroid` is null only for an empty input, which returns from the
+    // traversals above before this is reachable.
+    const dist = distance(point, this.centroid as Coordinate);
+    if (dist < this.minDistance) {
+      this.interiorPoint = [...point];
+      this.minDistance = dist;
+    }
   }
 }
 
 /**
- * Compute the length-weighted centroid of line segments.
- * Each segment's midpoint is weighted by its length.
+ * Computes an interior point for the linear components of a Geometry.
+ *
+ * @param geom the geometry to compute
+ * @return the computed interior point, or null if the geometry has no linear components
+ * @jts InteriorPointLine#getInteriorPoint(Geometry)
+ * @jts-deviate module-level name — `getInteriorPoint` would collide with the
+ *   same static factory in the other three modules.
  */
-function computeLineCentroid(lines: Position[][]): Position {
-  let totalLen = 0;
-  let cx = 0;
-  let cy = 0;
-
-  for (const coords of lines) {
-    for (let i = 0; i < coords.length - 1; i++) {
-      const dx = coords[i + 1][0] - coords[i][0];
-      const dy = coords[i + 1][1] - coords[i][1];
-      const len = Math.sqrt(dx * dx + dy * dy);
-      totalLen += len;
-      cx += (len * (coords[i][0] + coords[i + 1][0])) / 2;
-      cy += (len * (coords[i][1] + coords[i + 1][1])) / 2;
-    }
-  }
-
-  if (totalLen === 0) {
-    // Degenerate: all zero-length segments — use first point
-    return lines[0][0];
-  }
-  return [cx / totalLen, cy / totalLen];
-}
-
-function distanceSq(a: Position, b: Position): number {
-  const dx = a[0] - b[0];
-  const dy = a[1] - b[1];
-  return dx * dx + dy * dy;
+export function interiorPointLine(geom: Geometry): Coordinate | null {
+  const intPt = new InteriorPointLine(geom);
+  return intPt.getInteriorPoint();
 }

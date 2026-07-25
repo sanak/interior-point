@@ -1,110 +1,147 @@
-//! Interior point computation for line geometries (LineString/MultiLineString).
+//! Computes a point in the interior of an linear geometry.
 //!
-//! Finds the vertex closest to the centroid.
-//! Ported from JTS InteriorPointLine.java.
+//! # Algorithm
+//!
+//! - Find an interior vertex which is closest to the centroid of the linestring.
+//! - If there is no interior vertex, find the endpoint which is closest to the
+//!   centroid.
+//!
+//! @jts InteriorPointLine
 
-use geo_types::{Coord, Geometry, LineString};
+use geo_types::{Coord, Geometry};
 
-/// Computes an interior point of line geometries within the given geometry.
-///
-/// Algorithm:
-/// 1. Compute the length-weighted centroid of all linear components.
-/// 2. Find the interior vertex (not an endpoint) closest to the centroid.
-/// 3. If no interior vertices exist, fall back to the closest endpoint.
-///
-/// Returns `None` if the geometry contains no line segments.
-pub(crate) fn interior_point_line(geometry: &Geometry<f64>) -> Option<Coord<f64>> {
-    let lines = collect_lines(geometry);
-    if lines.is_empty() {
-        return None;
-    }
+use crate::centroid::get_centroid;
+use crate::geometry_adapter::{distance, is_geometry_empty};
 
-    let centroid = compute_line_centroid(&lines);
+pub(crate) struct InteriorPointLine {
+    centroid: Option<Coord<f64>>,
+    min_distance: f64,
+    interior_point: Option<Coord<f64>>,
+}
 
-    // Phase 1: try interior vertices (indices 1..n-1, exclusive of endpoints)
-    let mut best: Option<Coord<f64>> = None;
-    let mut best_dist = f64::INFINITY;
-
-    for line in &lines {
-        let coords: Vec<Coord<f64>> = line.coords().copied().collect();
-        for coord in coords.iter().skip(1).take(coords.len().saturating_sub(2)) {
-            let dist = distance_sq(*coord, centroid);
-            if dist < best_dist {
-                best_dist = dist;
-                best = Some(*coord);
-            }
+impl InteriorPointLine {
+    /// @jts InteriorPointLine#InteriorPointLine(Geometry)
+    pub(crate) fn new(g: &Geometry<f64>) -> Self {
+        let mut int_pt = Self {
+            centroid: get_centroid(g),
+            min_distance: f64::MAX,
+            interior_point: None,
+        };
+        int_pt.add_interior_geometry(g);
+        if int_pt.interior_point.is_none() {
+            int_pt.add_endpoints_geometry(g);
         }
+        int_pt
     }
 
-    // Phase 2: fall back to endpoints if no interior vertices found
-    if best.is_none() {
-        for line in &lines {
-            let coords: Vec<Coord<f64>> = line.coords().copied().collect();
-            if coords.is_empty() {
-                continue;
-            }
-            for &p in &[coords[0], coords[coords.len() - 1]] {
-                let dist = distance_sq(p, centroid);
-                if dist < best_dist {
-                    best_dist = dist;
-                    best = Some(p);
+    /// @jts InteriorPointLine#getInteriorPoint()
+    pub(crate) fn get_interior_point(&self) -> Option<Coord<f64>> {
+        self.interior_point
+    }
+
+    /// Tests the interior vertices (if any) defined by a linear Geometry for
+    /// the best inside point. If a Geometry is not of dimension 1 it is not
+    /// tested.
+    ///
+    /// @jts InteriorPointLine#addInterior(Geometry)
+    fn add_interior_geometry(&mut self, geom: &Geometry<f64>) {
+        if is_geometry_empty(geom) {
+            return;
+        }
+        match geom {
+            Geometry::LineString(ls) => self.add_interior_coordinates(&ls.0),
+            // JTS's MultiLineString is a GeometryCollection; geo-types' is not.
+            Geometry::MultiLineString(mls) => {
+                for ls in &mls.0 {
+                    // Stands in for the `geom.isEmpty()` guard JTS applies to
+                    // each child LineString on the way down; flattening the
+                    // recursion would lose it.
+                    if ls.0.is_empty() {
+                        continue;
+                    }
+                    self.add_interior_coordinates(&ls.0);
                 }
             }
-        }
-    }
-
-    best
-}
-
-/// Recursively collect all LineStrings from the geometry.
-fn collect_lines(geometry: &Geometry<f64>) -> Vec<&LineString<f64>> {
-    match geometry {
-        Geometry::LineString(ls) => {
-            if ls.0.is_empty() {
-                vec![]
-            } else {
-                vec![ls]
+            Geometry::GeometryCollection(gc) => {
+                for g in &gc.0 {
+                    self.add_interior_geometry(g);
+                }
             }
-        }
-        Geometry::MultiLineString(mls) => mls.0.iter().filter(|ls| !ls.0.is_empty()).collect(),
-        Geometry::GeometryCollection(gc) => gc.0.iter().flat_map(collect_lines).collect(),
-        _ => vec![],
-    }
-}
-
-/// Compute the length-weighted centroid of line segments.
-/// Each segment's midpoint is weighted by its length.
-fn compute_line_centroid(lines: &[&LineString<f64>]) -> Coord<f64> {
-    let mut total_len = 0.0_f64;
-    let mut cx = 0.0_f64;
-    let mut cy = 0.0_f64;
-
-    for line in lines {
-        let coords: Vec<Coord<f64>> = line.coords().copied().collect();
-        for i in 0..coords.len().saturating_sub(1) {
-            let dx = coords[i + 1].x - coords[i].x;
-            let dy = coords[i + 1].y - coords[i].y;
-            let len = (dx * dx + dy * dy).sqrt();
-            total_len += len;
-            cx += len * (coords[i].x + coords[i + 1].x) / 2.0;
-            cy += len * (coords[i].y + coords[i + 1].y) / 2.0;
+            _ => {}
         }
     }
 
-    if total_len == 0.0 {
-        // Degenerate: all zero-length segments — use first point
-        let first_line = lines[0];
-        return first_line.0[0];
+    /// @jts InteriorPointLine#addInterior(Coordinate[])
+    fn add_interior_coordinates(&mut self, pts: &[Coord<f64>]) {
+        // JTS: `for (int i = 1; i < pts.length - 1; i++)`. Written as an
+        // iterator because `clippy::needless_range_loop` rejects the index
+        // form; `saturating_sub` reproduces Java's empty range for len < 2.
+        for &pt in pts.iter().take(pts.len().saturating_sub(1)).skip(1) {
+            self.add(pt);
+        }
     }
 
-    Coord {
-        x: cx / total_len,
-        y: cy / total_len,
+    /// Tests the endpoint vertices defined by a linear Geometry for the best
+    /// inside point. If a Geometry is not of dimension 1 it is not tested.
+    ///
+    /// @jts InteriorPointLine#addEndpoints(Geometry)
+    fn add_endpoints_geometry(&mut self, geom: &Geometry<f64>) {
+        if is_geometry_empty(geom) {
+            return;
+        }
+        match geom {
+            Geometry::LineString(ls) => self.add_endpoints_coordinates(&ls.0),
+            // JTS's MultiLineString is a GeometryCollection; geo-types' is not.
+            Geometry::MultiLineString(mls) => {
+                for ls in &mls.0 {
+                    // As above: JTS's recursion checks each child LineString
+                    // for emptiness. Without this, `pts[0]` below would panic.
+                    if ls.0.is_empty() {
+                        continue;
+                    }
+                    self.add_endpoints_coordinates(&ls.0);
+                }
+            }
+            Geometry::GeometryCollection(gc) => {
+                for g in &gc.0 {
+                    self.add_endpoints_geometry(g);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// @jts InteriorPointLine#addEndpoints(Coordinate[])
+    fn add_endpoints_coordinates(&mut self, pts: &[Coord<f64>]) {
+        self.add(pts[0]);
+        self.add(pts[pts.len() - 1]);
+    }
+
+    /// @jts InteriorPointLine#add(Coordinate)
+    fn add(&mut self, point: Coord<f64>) {
+        // `centroid` is None only for an empty input, which returns from the
+        // traversals above before this is reachable.
+        let dist = distance(
+            point,
+            self.centroid
+                .expect("centroid is set for a non-empty input"),
+        );
+        if dist < self.min_distance {
+            self.interior_point = Some(point);
+            self.min_distance = dist;
+        }
     }
 }
 
-fn distance_sq(a: Coord<f64>, b: Coord<f64>) -> f64 {
-    let dx = a.x - b.x;
-    let dy = a.y - b.y;
-    dx * dx + dy * dy
+/// Computes an interior point for the linear components of a Geometry.
+///
+/// Returns the computed interior point, or `None` if the geometry has no
+/// linear components.
+///
+/// @jts InteriorPointLine#getInteriorPoint(Geometry)
+/// @jts-deviate module-level name — `get_interior_point` would collide with the
+///   same static factory in the other three modules.
+pub(crate) fn interior_point_line(geom: &Geometry<f64>) -> Option<Coord<f64>> {
+    let int_pt = InteriorPointLine::new(geom);
+    int_pt.get_interior_point()
 }

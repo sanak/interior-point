@@ -39,7 +39,12 @@ export class InteriorPointPoint {
       // JTS's MultiPoint is a GeometryCollection and falls through to the
       // collection branch there; GeoJSON's is not, so it is expanded here.
       case "MultiPoint":
-        for (const c of geom.coordinates) this.addCoordinate(c);
+        for (const c of geom.coordinates) {
+          // Stands in for the `geom.isEmpty()` guard JTS applies to each child
+          // Point on the way down; flattening the recursion would lose it.
+          if (c.length === 0) continue;
+          this.addCoordinate(c);
+        }
         break;
       case "GeometryCollection":
         for (const g of geom.geometries) this.addGeometry(g);
