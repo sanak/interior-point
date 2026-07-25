@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { parseArgs } from "node:util";
 
 import { REPO_ROOT, readPin, sha256, writePin } from "./jts-pin.mjs";
-import { runAnchors } from "./jts-anchors.mjs";
+import { findEnclosingMember, scanJavaDir } from "./jts-java-scan.mjs";
+import { parseAnchorTarget, runAnchors, scanPortAnchors } from "./jts-anchors.mjs";
 import { checkDrift, fetchAllUpstream, unifiedDiff } from "./jts-upstream.mjs";
 
 export const USAGE = `Usage: node scripts/jts-sync.mjs <subcommand> [options]
@@ -102,6 +103,47 @@ async function cmdPull(rest, io) {
   return 0;
 }
 
+export function locateMember(root, spec) {
+  const separator = spec.lastIndexOf(":");
+  if (separator === -1) throw new Error(`malformed location "${spec}" — expected <path>:<line>`);
+  const line = Number(spec.slice(separator + 1));
+  if (!Number.isInteger(line) || line < 1) throw new Error(`malformed location "${spec}" — expected <path>:<line>`);
+  const file = basename(spec.slice(0, separator));
+
+  const members = scanJavaDir(root);
+  const member = findEnclosingMember(members, file, line);
+  if (member === null) return null;
+
+  const overloaded = members.filter((m) => m.file === member.file && m.memberName === member.memberName).length > 1;
+  const counterparts = scanPortAnchors(root)
+    .filter((anchor) => anchor.kind === "jts")
+    .filter((anchor) => {
+      const parsed = parseAnchorTarget(anchor.target);
+      if (parsed.file !== member.file || parsed.memberName !== member.memberName) return false;
+      if (parsed.className !== null && parsed.className !== member.className) return false;
+      if (parsed.paramTypes === null) return !overloaded;
+      return parsed.paramTypes.join(",") === member.paramTypes.join(",");
+    })
+    .map((anchor) => ({ path: anchor.path, line: anchor.line }));
+
+  return { member, counterparts };
+}
+
+function cmdLocate(rest, io) {
+  const [spec] = rest;
+  if (spec === undefined) throw new Error("locate needs a location — expected <path>:<line>");
+  const found = locateMember(REPO_ROOT, spec);
+  if (found === null) {
+    io.err(`jts-sync: no member encloses ${spec}`);
+    return 1;
+  }
+  io.out(found.member.signature);
+  io.out(`  upstream/jts/algorithm/${found.member.file}:${found.member.startLine}-${found.member.endLine}`);
+  if (found.counterparts.length === 0) io.out("  (no ported counterpart)");
+  for (const counterpart of found.counterparts) io.out(`  ${counterpart.path}:${counterpart.line}`);
+  return 0;
+}
+
 export async function main(argv, io = {}) {
   const out = io.out ?? ((s) => console.log(s));
   const err = io.err ?? ((s) => console.error(s));
@@ -122,6 +164,8 @@ export async function main(argv, io = {}) {
         return await cmdCheck(rest, { out, err, fetchImpl: io.fetchImpl });
       case "pull":
         return await cmdPull(rest, { out, err, fetchImpl: io.fetchImpl });
+      case "locate":
+        return cmdLocate(rest, { out, err });
       case "anchors":
         if (rest.length > 0) {
           err("jts-sync: anchors takes no arguments");

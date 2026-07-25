@@ -209,3 +209,72 @@ describe("pull", () => {
     }
   });
 });
+
+describe("locate", () => {
+  it("maps InteriorPointArea.java:262 to findBestMidpoint", async () => {
+    const { code, out } = await run(["locate", "upstream/jts/algorithm/InteriorPointArea.java:262"]);
+    assert.equal(code, 0);
+    assert.match(out, /^InteriorPointArea\.InteriorPointPolygon#findBestMidpoint\(List<Double>\)$/m);
+    assert.match(out, /upstream\/jts\/algorithm\/InteriorPointArea\.java:251-/);
+  });
+
+  it("accepts a bare file name", async () => {
+    const { code, out } = await run(["locate", "InteriorPointArea.java:262"]);
+    assert.equal(code, 0);
+    assert.match(out, /findBestMidpoint/);
+  });
+
+  it("reports that no counterpart is ported yet", async () => {
+    const { out } = await run(["locate", "InteriorPointArea.java:262"]);
+    assert.match(out, /no ported counterpart/);
+  });
+
+  it("exits 1 when the line falls outside every member", async () => {
+    const { code, err } = await run(["locate", "InteriorPointArea.java:1"]);
+    assert.equal(code, 1);
+    assert.match(err, /no member encloses/);
+  });
+
+  it("exits 2 on a malformed spec", async () => {
+    const { code, err } = await run(["locate", "InteriorPointArea.java"]);
+    assert.equal(code, 2);
+    assert.match(err, /expected <path>:<line>/);
+  });
+
+  it("finds counterparts through the anchor index", async () => {
+    const { mkdirSync, mkdtempSync, rmSync, writeFileSync } = await import("node:fs");
+    const { readFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { REPO_ROOT } = await import("../jts-pin.mjs");
+    const { locateMember } = await import("../jts-sync.mjs");
+
+    const root = mkdtempSync(join(tmpdir(), "jts-sync-"));
+    try {
+      mkdirSync(join(root, "upstream/jts/algorithm"), { recursive: true });
+      mkdirSync(join(root, "js/src"), { recursive: true });
+      mkdirSync(join(root, "rs/core/src"), { recursive: true });
+      const java = "upstream/jts/algorithm/InteriorPointArea.java";
+      writeFileSync(join(root, java), readFileSync(join(REPO_ROOT, java)));
+      writeFileSync(
+        join(root, "js/src/interiorPointArea.ts"),
+        [
+          "",
+          "/** @jts InteriorPointArea.InteriorPointPolygon#findBestMidpoint(List<Double>) */",
+          "function f() {}",
+        ].join("\n"),
+      );
+      writeFileSync(
+        join(root, "rs/core/src/interior_point_area.rs"),
+        ["/// @jts InteriorPointArea.InteriorPointPolygon#findBestMidpoint(List<Double>)", "fn f() {}"].join("\n"),
+      );
+      const found = locateMember(root, "InteriorPointArea.java:262");
+      assert.deepEqual(found.counterparts, [
+        { path: "js/src/interiorPointArea.ts", line: 2 },
+        { path: "rs/core/src/interior_point_area.rs", line: 1 },
+      ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});
