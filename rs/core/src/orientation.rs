@@ -7,17 +7,19 @@
 //!
 //! @jts Orientation
 
-// See the note in `dd.rs`: this chain stays unreachable from the crate root
-// until the retrofit wires `Centroid` into `InteriorPoint`.
-#![allow(dead_code)]
-
 use geo_types::Coord;
 
 use crate::cg_algorithms_dd::orientation_index_coordinate;
 
+// `CLOCKWISE` and `COLLINEAR` complete the ported constant set but the ported
+// subset of the algorithm only ever compares against `COUNTERCLOCKWISE`. They
+// are anchored members of `Orientation`, so a faithful port keeps them; the
+// allow is on the two constants rather than the file so that any genuinely
+// dead code added later is still caught.
 /// A value that indicates an orientation of clockwise, or a right turn.
 ///
 /// @jts Orientation#CLOCKWISE
+#[allow(dead_code)]
 pub(crate) const CLOCKWISE: i32 = -1;
 
 /// A value that indicates an orientation of counterclockwise, or a left turn.
@@ -28,6 +30,7 @@ pub(crate) const COUNTERCLOCKWISE: i32 = 1;
 /// A value that indicates an orientation of collinear, or no turn.
 ///
 /// @jts Orientation#COLLINEAR
+#[allow(dead_code)]
 pub(crate) const COLLINEAR: i32 = 0;
 
 /// Returns the orientation index of the direction of the point `q` relative to

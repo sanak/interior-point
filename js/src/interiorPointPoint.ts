@@ -1,60 +1,86 @@
-import type { Geometry, Position } from "geojson";
+import type { Geometry } from "geojson";
+
+import { getCentroid } from "./centroid";
+import type { Coordinate } from "./geometryAdapter";
+import { distance, isGeometryEmpty } from "./geometryAdapter";
 
 /**
- * Computes an interior point of a point geometry (Point/MultiPoint).
+ * Computes a point in the interior of an point geometry.
+ * <h2>Algorithm</h2>
+ * Find a point which is closest to the centroid of the geometry.
  *
- * The computed point is the point closest to the centroid of the geometry.
- * Ported from JTS InteriorPointPoint.java.
- *
- * @param geometry - A GeoJSON geometry (Point, MultiPoint, or GeometryCollection containing points)
- * @returns A position [x, y], or null if the geometry has no puntal components
+ * @jts InteriorPointPoint
  */
-export function interiorPointPoint(geometry: Geometry): Position | null {
-  const points = collectPoints(geometry);
-  if (points.length === 0) return null;
+export class InteriorPointPoint {
+  private centroid: Coordinate | null;
+  private minDistance = Number.MAX_VALUE;
+  private interiorPoint: Coordinate | null = null;
 
-  const centroid = computeCentroid(points);
-  return findClosest(points, centroid);
-}
-
-/** Recursively collect all Point coordinates from the geometry. */
-function collectPoints(geometry: Geometry): Position[] {
-  switch (geometry.type) {
-    case "Point":
-      return geometry.coordinates.length > 0 ? [geometry.coordinates] : [];
-    case "MultiPoint":
-      return geometry.coordinates.filter((c) => c.length > 0);
-    case "GeometryCollection":
-      return geometry.geometries.flatMap(collectPoints);
-    default:
-      // Non-point geometry types are ignored
-      return [];
+  /** @jts InteriorPointPoint#InteriorPointPoint(Geometry) */
+  constructor(g: Geometry) {
+    this.centroid = getCentroid(g);
+    this.addGeometry(g);
   }
-}
 
-/** Compute the arithmetic-mean centroid of a set of positions. */
-function computeCentroid(points: Position[]): Position {
-  let sumX = 0;
-  let sumY = 0;
-  for (const p of points) {
-    sumX += p[0];
-    sumY += p[1];
-  }
-  return [sumX / points.length, sumY / points.length];
-}
+  /**
+   * Tests the point(s) defined by a Geometry for the best inside point.
+   * If a Geometry is not of dimension 0 it is not tested.
+   *
+   * @param geom the geometry to add
+   * @jts InteriorPointPoint#add(Geometry)
+   */
+  private addGeometry(geom: Geometry): void {
+    if (isGeometryEmpty(geom)) return;
 
-/** Find the point closest to the target using squared Euclidean distance. */
-function findClosest(points: Position[], target: Position): Position {
-  let best: Position = points[0];
-  let bestDist = Infinity;
-  for (const p of points) {
-    const dx = p[0] - target[0];
-    const dy = p[1] - target[1];
-    const dist = dx * dx + dy * dy;
-    if (dist < bestDist) {
-      bestDist = dist;
-      best = p;
+    switch (geom.type) {
+      case "Point":
+        this.addCoordinate(geom.coordinates);
+        break;
+      // JTS's MultiPoint is a GeometryCollection and falls through to the
+      // collection branch there; GeoJSON's is not, so it is expanded here.
+      case "MultiPoint":
+        for (const c of geom.coordinates) this.addCoordinate(c);
+        break;
+      case "GeometryCollection":
+        for (const g of geom.geometries) this.addGeometry(g);
+        break;
+      default:
+        break;
     }
   }
-  return best;
+
+  /** @jts InteriorPointPoint#add(Coordinate) */
+  private addCoordinate(point: Coordinate): void {
+    // `centroid` is null only for an empty input, which returns from
+    // addGeometry before this is reachable.
+    const dist = distance(point, this.centroid as Coordinate);
+    if (dist < this.minDistance) {
+      this.interiorPoint = [...point];
+      this.minDistance = dist;
+    }
+  }
+
+  /**
+   * Gets the computed interior point.
+   *
+   * @return the computed interior point, or null if the input geometry is empty
+   * @jts InteriorPointPoint#getInteriorPoint()
+   */
+  getInteriorPoint(): Coordinate | null {
+    return this.interiorPoint;
+  }
+}
+
+/**
+ * Computes an interior point for the puntal components of a Geometry.
+ *
+ * @param geom the geometry to compute
+ * @return the computed interior point, or null if the geometry has no puntal components
+ * @jts InteriorPointPoint#getInteriorPoint(Geometry)
+ * @jts-deviate module-level name — `getInteriorPoint` would collide with the
+ *   same static factory in the other three modules.
+ */
+export function interiorPointPoint(geom: Geometry): Coordinate | null {
+  const intPt = new InteriorPointPoint(geom);
+  return intPt.getInteriorPoint();
 }

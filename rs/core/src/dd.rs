@@ -10,14 +10,6 @@
 //! never contracting into a fused multiply-add, which Rust only emits for an
 //! explicit [`f64::mul_add`]. Do not reorder or factor out subexpressions.
 
-// `dead_code` is decided by reachability from the crate root, not by whether a
-// call site exists. `Centroid` now calls into this chain, but nothing reaches
-// `Centroid` itself until the retrofit wires it into `InteriorPoint`, so the whole
-// chain is still unreachable from `pub fn interior_point`. Remove this — and the
-// matching attributes in `cg_algorithms_dd.rs`, `orientation.rs` and
-// `centroid.rs` — as part of the InteriorPoint retrofit, not before.
-#![allow(dead_code)]
-
 /// @jts DD
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct DD {

@@ -14,11 +14,6 @@
 //!
 //! @jts Centroid
 
-// See the note in `dd.rs`: `Centroid` lands here but nothing calls it, by
-// design — the retrofit is what wires it into `InteriorPoint`. Until then only the
-// inline tests reach it, which does not count as a use outside `cfg(test)`.
-#![allow(dead_code)]
-
 use geo_types::{Coord, Geometry, Polygon};
 
 use crate::geometry_adapter::{distance, is_geometry_empty};

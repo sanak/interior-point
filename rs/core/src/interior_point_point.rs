@@ -1,59 +1,94 @@
-//! Interior point computation for point geometries (Point/MultiPoint).
+//! Computes a point in the interior of an point geometry.
 //!
-//! Finds the point closest to the centroid.
-//! Ported from JTS InteriorPointPoint.java.
+//! # Algorithm
+//!
+//! Find a point which is closest to the centroid of the geometry.
+//!
+//! @jts InteriorPointPoint
 
 use geo_types::{Coord, Geometry};
 
-/// Computes an interior point of point geometries within the given geometry.
+use crate::centroid::get_centroid;
+use crate::geometry_adapter::{distance, is_geometry_empty};
+
+pub(crate) struct InteriorPointPoint {
+    centroid: Option<Coord<f64>>,
+    min_distance: f64,
+    interior_point: Option<Coord<f64>>,
+}
+
+impl InteriorPointPoint {
+    /// @jts InteriorPointPoint#InteriorPointPoint(Geometry)
+    pub(crate) fn new(g: &Geometry<f64>) -> Self {
+        let mut int_pt = Self {
+            centroid: get_centroid(g),
+            min_distance: f64::MAX,
+            interior_point: None,
+        };
+        int_pt.add_geometry(g);
+        int_pt
+    }
+
+    /// Tests the point(s) defined by a Geometry for the best inside point.
+    /// If a Geometry is not of dimension 0 it is not tested.
+    ///
+    /// @jts InteriorPointPoint#add(Geometry)
+    fn add_geometry(&mut self, geom: &Geometry<f64>) {
+        if is_geometry_empty(geom) {
+            return;
+        }
+        match geom {
+            Geometry::Point(p) => self.add_coordinate(p.0),
+            // JTS's MultiPoint is a GeometryCollection and falls through to the
+            // collection branch there; geo-types' is not, so it is expanded here.
+            Geometry::MultiPoint(mp) => {
+                for p in &mp.0 {
+                    self.add_coordinate(p.0);
+                }
+            }
+            Geometry::GeometryCollection(gc) => {
+                for g in &gc.0 {
+                    self.add_geometry(g);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    /// @jts InteriorPointPoint#add(Coordinate)
+    fn add_coordinate(&mut self, point: Coord<f64>) {
+        // `centroid` is None only for an empty input, which returns from
+        // `add_geometry` before this is reachable.
+        let dist = distance(
+            point,
+            self.centroid
+                .expect("centroid is set for a non-empty input"),
+        );
+        if dist < self.min_distance {
+            self.interior_point = Some(point);
+            self.min_distance = dist;
+        }
+    }
+
+    /// Gets the computed interior point.
+    ///
+    /// Returns the computed interior point, or `None` if the input geometry is empty.
+    ///
+    /// @jts InteriorPointPoint#getInteriorPoint()
+    pub(crate) fn get_interior_point(&self) -> Option<Coord<f64>> {
+        self.interior_point
+    }
+}
+
+/// Computes an interior point for the puntal components of a Geometry.
 ///
-/// Returns the point closest to the centroid, or `None` if the geometry
-/// contains no points.
-pub(crate) fn interior_point_point(geometry: &Geometry<f64>) -> Option<Coord<f64>> {
-    let points = collect_points(geometry);
-    if points.is_empty() {
-        return None;
-    }
-
-    let centroid = compute_centroid(&points);
-    find_closest(&points, centroid)
-}
-
-/// Recursively collect all Point coordinates from the geometry.
-fn collect_points(geometry: &Geometry<f64>) -> Vec<Coord<f64>> {
-    match geometry {
-        Geometry::Point(p) => vec![p.0],
-        Geometry::MultiPoint(mp) => mp.0.iter().map(|p| p.0).collect(),
-        Geometry::GeometryCollection(gc) => gc.0.iter().flat_map(collect_points).collect(),
-        _ => vec![],
-    }
-}
-
-/// Compute the arithmetic-mean centroid of a set of coordinates.
-fn compute_centroid(points: &[Coord<f64>]) -> Coord<f64> {
-    let n = points.len() as f64;
-    let sum_x: f64 = points.iter().map(|p| p.x).sum();
-    let sum_y: f64 = points.iter().map(|p| p.y).sum();
-    Coord {
-        x: sum_x / n,
-        y: sum_y / n,
-    }
-}
-
-/// Find the point closest to the target using squared Euclidean distance.
-fn find_closest(points: &[Coord<f64>], target: Coord<f64>) -> Option<Coord<f64>> {
-    points
-        .iter()
-        .min_by(|a, b| {
-            let da = distance_sq(**a, target);
-            let db = distance_sq(**b, target);
-            da.partial_cmp(&db).unwrap_or(std::cmp::Ordering::Equal)
-        })
-        .copied()
-}
-
-fn distance_sq(a: Coord<f64>, b: Coord<f64>) -> f64 {
-    let dx = a.x - b.x;
-    let dy = a.y - b.y;
-    dx * dx + dy * dy
+/// Returns the computed interior point, or `None` if the geometry has no
+/// puntal components.
+///
+/// @jts InteriorPointPoint#getInteriorPoint(Geometry)
+/// @jts-deviate module-level name — `get_interior_point` would collide with the
+///   same static factory in the other three modules.
+pub(crate) fn interior_point_point(geom: &Geometry<f64>) -> Option<Coord<f64>> {
+    let int_pt = InteriorPointPoint::new(geom);
+    int_pt.get_interior_point()
 }
