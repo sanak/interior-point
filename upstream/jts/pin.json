@@ -38,6 +38,11 @@
       "upstreamPath": "modules/core/src/test/resources/testdata/world.wkt",
       "localPath": "upstream/jts/resources/testdata/world.wkt",
       "sha256": "ef06d70f25fd14d89e1a4fb815aa7574b152054278c292ebd6195975947f9127"
+    },
+    {
+      "upstreamPath": "modules/tests/src/test/resources/testxml/general/TestCentroid.xml",
+      "localPath": "upstream/jts/resources/testxml/general/TestCentroid.xml",
+      "sha256": "53caef85a3238de66f66c056dc5c0ff1bbdd13a928ad84ff1b13b8c8c8a10652"
     }
   ],
   "anchorIgnore": []
