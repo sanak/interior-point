@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 
 import { REPO_ROOT } from "../jts-pin.mjs";
 import { scanJavaDir } from "../jts-java-scan.mjs";
-import { emitRs, emitTs, overloadSuffix, resolveNames, rsType, toSnake, tsType } from "../jts-scaffold.mjs";
+import { emitRs, emitTs, overloadSuffix, portedName, resolveNames, rsType, toSnake, tsType } from "../jts-scaffold.mjs";
 
 describe("toSnake", () => {
   it("converts camelCase to snake_case", () => {
@@ -26,6 +26,72 @@ describe("overloadSuffix", () => {
 
   it("throws for a nullary member, so the rule's limit is visible rather than silent", () => {
     assert.throws(() => overloadSuffix([]), /nullary/);
+  });
+});
+
+describe("portedName", () => {
+  it("appends every parameter type when the first one does not disambiguate", () => {
+    const members = [
+      { file: "DD.java", className: "DD", memberName: "selfAdd", paramTypes: ["double"], modifiers: [] },
+      { file: "DD.java", className: "DD", memberName: "selfAdd", paramTypes: ["double", "double"], modifiers: [] },
+      { file: "DD.java", className: "DD", memberName: "signum", paramTypes: [], modifiers: [] },
+    ];
+    assert.equal(portedName(members[0], members), "selfAddDouble");
+    assert.equal(portedName(members[1], members), "selfAddDoubleDouble");
+    assert.equal(portedName(members[2], members), "signum");
+  });
+
+  it("does not treat same-named methods of different classes as overloads", () => {
+    // InteriorPointArea.java really does have three unrelated `process` methods.
+    const members = [
+      { file: "A.java", className: "A", memberName: "process", paramTypes: ["Geometry"], modifiers: [] },
+      { file: "A.java", className: "A.Inner", memberName: "process", paramTypes: [], modifiers: [] },
+      { file: "A.java", className: "A.Other", memberName: "process", paramTypes: ["LineString"], modifiers: [] },
+    ];
+    for (const m of members) assert.equal(portedName(m, members), "process");
+  });
+
+  it("leaves the naming table unchanged", () => {
+    const members = [
+      {
+        file: "InteriorPointLine.java",
+        className: "InteriorPointLine",
+        memberName: "addInterior",
+        paramTypes: ["Geometry"],
+        modifiers: [],
+      },
+      {
+        file: "InteriorPointLine.java",
+        className: "InteriorPointLine",
+        memberName: "addInterior",
+        paramTypes: ["Coordinate[]"],
+        modifiers: [],
+      },
+    ];
+    assert.equal(portedName(members[0], members), "addInteriorGeometry");
+    assert.equal(portedName(members[1], members), "addInteriorCoordinates");
+  });
+
+  it("keeps the factory/getter pair unsuffixed", () => {
+    const members = [
+      {
+        file: "DD.java",
+        className: "DD",
+        memberName: "getValue",
+        paramTypes: ["double"],
+        modifiers: ["public", "static"],
+      },
+      { file: "DD.java", className: "DD", memberName: "getValue", paramTypes: ["double"], modifiers: ["public"] },
+    ];
+    for (const m of members) assert.equal(portedName(m, members), "getValue");
+  });
+
+  it("throws for a nullary member inside a real overload set, rather than colliding silently", () => {
+    const members = [
+      { file: "DD.java", className: "DD", memberName: "sqr", paramTypes: [], modifiers: [] },
+      { file: "DD.java", className: "DD", memberName: "sqr", paramTypes: ["double"], modifiers: [] },
+    ];
+    assert.throws(() => portedName(members[0], members), /nullary/);
   });
 });
 

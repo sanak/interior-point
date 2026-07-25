@@ -49,13 +49,19 @@ function pluralise(name) {
   return name.endsWith("s") ? name : `${name}s`;
 }
 
-export function overloadSuffix(paramTypes) {
-  if (paramTypes.length === 0) {
-    throw new Error("cannot derive an overload suffix from a nullary member — a first parameter is required");
-  }
-  const first = paramTypes[0];
-  const base = first.endsWith("[]") ? pluralise(first.slice(0, -2)) : first;
+/** `Coordinate[]` -> `Coordinates`; `double` -> `Double`; `DD` -> `DD`. */
+function typeSuffix(javaType) {
+  const base = javaType.endsWith("[]") ? pluralise(javaType.slice(0, -2)) : javaType;
   return base[0].toUpperCase() + base.slice(1);
+}
+
+function nullaryError() {
+  return new Error("cannot derive an overload suffix from a nullary member — a first parameter is required");
+}
+
+export function overloadSuffix(paramTypes) {
+  if (paramTypes.length === 0) throw nullaryError();
+  return typeSuffix(paramTypes[0]);
 }
 
 /**
@@ -68,20 +74,34 @@ function isFactoryGetterPair(group) {
   return group.filter((m) => m.modifiers.includes("static")).length === 1;
 }
 
+/**
+ * The ported name of a single member, and the only place suffixes are decided.
+ *
+ * The overload-suffix rule: append the PascalCase name of the first parameter's Java type.
+ * Extended 2026-07-26 for DD.java, where `selfAdd(double)` and
+ * `selfAdd(double,double)` share a first parameter type — when the first type
+ * does not disambiguate, every parameter type is appended in order. The factory/getter rule
+ * still exempts a factory/getter pair from suffixing entirely.
+ */
+export function portedName(member, members) {
+  // Scoped by class, not just by file: InteriorPointArea.java has three
+  // unrelated `process` methods in three classes, and they must stay unsuffixed.
+  const overloads = members.filter(
+    (m) => m.file === member.file && m.className === member.className && m.memberName === member.memberName,
+  );
+  if (overloads.length <= 1 || isFactoryGetterPair(overloads)) return member.memberName;
+  if (member.paramTypes.length === 0) throw nullaryError();
+  const firstTypes = overloads.map((m) => m.paramTypes[0] ?? "");
+  const firstDisambiguates = new Set(firstTypes).size === overloads.length;
+  const types = firstDisambiguates ? member.paramTypes.slice(0, 1) : member.paramTypes;
+  return member.memberName + types.map(typeSuffix).join("");
+}
+
 export function resolveNames(members) {
-  const groups = new Map();
-  for (const member of members) {
-    const key = `${member.className}#${member.memberName}`;
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(member);
-  }
   const names = new Map();
-  for (const group of groups.values()) {
-    const suffixed = group.length > 1 && !isFactoryGetterPair(group);
-    for (const member of group) {
-      const base = suffixed ? member.memberName + overloadSuffix(member.paramTypes) : member.memberName;
-      names.set(member, { ts: base, rs: toSnake(base) });
-    }
+  for (const member of members) {
+    const base = portedName(member, members);
+    names.set(member, { ts: base, rs: toSnake(base) });
   }
   return names;
 }
