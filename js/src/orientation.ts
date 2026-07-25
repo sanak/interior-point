@@ -1,4 +1,4 @@
-import type { Position } from "geojson";
+import type { Coordinate } from "./geometryAdapter";
 
 import { orientationIndexCoordinate } from "./cgAlgorithmsDD";
 
@@ -43,19 +43,19 @@ export const COLLINEAR = 0;
  *          0 if q is collinear with p1-p2
  * @jts Orientation#index(Coordinate,Coordinate,Coordinate)
  */
-export function index(p1: Position, p2: Position, q: Position): number {
+export function index(p1: Coordinate, p2: Coordinate, q: Coordinate): number {
   return orientationIndexCoordinate(p1, p2, q);
 }
 
 /**
- * Tests if a ring defined by an array of {@link Position}s is
+ * Tests if a ring defined by an array of {@link Coordinate}s is
  * oriented counter-clockwise.
  *
  * @param ring an array of Coordinates forming a ring (with first and last point identical)
  * @return true if the ring is oriented counter-clockwise.
  * @jts Orientation#isCCW(Coordinate[])
  */
-export function isCCWCoordinates(ring: Position[]): boolean {
+export function isCCWCoordinates(ring: Coordinate[]): boolean {
   // wrap with an XY CoordinateSequence
   return isCCWCoordinateSequence(ring);
 }
@@ -75,7 +75,7 @@ export function isCCWCoordinates(ring: Position[]): boolean {
  *   both overloads take the same coordinate array and the array overload's
  *   CoordinateArraySequence wrap is a no-op.
  */
-export function isCCWCoordinateSequence(ring: Position[]): boolean {
+export function isCCWCoordinateSequence(ring: Coordinate[]): boolean {
   // # of points without closing endpoint
   const nPts = ring.length - 1;
   // return default value if ring is flat
@@ -91,7 +91,7 @@ export function isCCWCoordinateSequence(ring: Position[]): boolean {
    */
   let upHiPt = ring[0];
   let prevY = upHiPt[1];
-  let upLowPt: Position | null = null;
+  let upLowPt: Coordinate | null = null;
   let iUpHi = 0;
   for (let i = 1; i <= nPts; i++) {
     const py = ring[i][1];
@@ -168,6 +168,6 @@ export function isCCWCoordinateSequence(ring: Position[]): boolean {
  * @jts-adapter Coordinate#equals2D(Coordinate) — the geometry model has no
  *   Coordinate class, so 2D equality is a local helper.
  */
-function equals2D(a: Position, b: Position): boolean {
+function equals2D(a: Coordinate, b: Coordinate): boolean {
   return a[0] === b[0] && a[1] === b[1];
 }

@@ -41,4 +41,28 @@ export default tseslint.config(
       },
     },
   },
+  {
+    // `Coordinate` and `Position` are the same structural type, so `tsc` cannot
+    // detect a module that keeps importing `Position`. This rule is the only
+    // enforcement of the unchanged-name rule.
+    files: ["js/src/**/*.ts"],
+    // The three algorithm modules still name `Position`. The InteriorPoint retrofit
+    // rewrites them onto the adapter and removes this exception; until then they
+    // stay byte-identical to `main` so that retrofit's diff is reviewable.
+    ignores: ["js/src/interiorPointArea.ts", "js/src/interiorPointLine.ts", "js/src/interiorPointPoint.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "geojson",
+              importNames: ["Position"],
+              message: "Use Coordinate from ./geometryAdapter (JTS name).",
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

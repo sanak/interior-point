@@ -1,4 +1,6 @@
-import type { Geometry, Position } from "geojson";
+import type { Geometry } from "geojson";
+import type { Coordinate } from "./geometryAdapter";
+import { isGeometryEmpty } from "./geometryAdapter";
 import { interiorPointArea } from "./interiorPointArea";
 import { interiorPointLine } from "./interiorPointLine";
 import { interiorPointPoint } from "./interiorPointPoint";
@@ -14,9 +16,9 @@ import { interiorPointPoint } from "./interiorPointPoint";
  * - Dimension 0 (Point): Point, MultiPoint → nearest point to centroid
  *
  * @param geometry - A GeoJSON Geometry, or null (representing an empty geometry)
- * @returns A position [x, y] inside the geometry, or null if the geometry is empty
+ * @returns A coordinate [x, y] inside the geometry, or null if the geometry is empty
  */
-export function interiorPoint(geometry: Geometry | null): Position | null {
+export function interiorPoint(geometry: Geometry | null): Coordinate | null {
   if (geometry === null) return null;
 
   const dim = dimensionNonEmpty(geometry);
@@ -52,23 +54,5 @@ function dimensionNonEmpty(geometry: Geometry): number {
       }
       return maxDim;
     }
-  }
-}
-
-/** Check if a GeoJSON geometry is empty. */
-function isGeometryEmpty(geometry: Geometry): boolean {
-  switch (geometry.type) {
-    case "Point":
-      return geometry.coordinates.length === 0;
-    case "MultiPoint":
-    case "LineString":
-      return geometry.coordinates.length === 0;
-    case "MultiLineString":
-    case "Polygon":
-      return geometry.coordinates.length === 0;
-    case "MultiPolygon":
-      return geometry.coordinates.length === 0;
-    case "GeometryCollection":
-      return geometry.geometries.length === 0 || geometry.geometries.every(isGeometryEmpty);
   }
 }

@@ -1,4 +1,4 @@
-import type { Position } from "geojson";
+import type { Coordinate } from "./geometryAdapter";
 
 import { DD } from "./dd";
 
@@ -25,7 +25,7 @@ import { DD } from "./dd";
  *         0 if q is collinear with p1-p2
  * @jts CGAlgorithmsDD#orientationIndex(Coordinate,Coordinate,Coordinate)
  */
-export function orientationIndexCoordinate(p1: Position, p2: Position, q: Position): number {
+export function orientationIndexCoordinate(p1: Coordinate, p2: Coordinate, q: Coordinate): number {
   return orientationIndexDouble(p1[0], p1[1], p2[0], p2[1], q[0], q[1]);
 }
 
