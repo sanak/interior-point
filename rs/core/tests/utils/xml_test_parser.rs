@@ -69,8 +69,11 @@ fn parse_expected_point(wkt: &str) -> Option<Coord<f64>> {
     })
 }
 
-/// Parse JTS TestInteriorPoint.xml and return test cases.
-pub fn parse_test_interior_point_xml(path: &str) -> Vec<XmlTestCase> {
+/// Parse a JTS test XML file and return the cases for the named operation.
+///
+/// * `path` — the fixture to read
+/// * `op` — the expected `<op name="…">`; every case must use it
+pub fn parse_xml_test_cases(path: &str, op: &str) -> Vec<XmlTestCase> {
     let xml = fs::read_to_string(path).unwrap_or_else(|e| panic!("Failed to read {path}: {e}"));
     let mut reader = Reader::from_str(&xml);
 
@@ -80,6 +83,7 @@ pub fn parse_test_interior_point_xml(path: &str) -> Vec<XmlTestCase> {
     let mut desc = String::new();
     let mut input_wkt = String::new();
     let mut expected_wkt = String::new();
+    let mut op_name = String::new();
 
     loop {
         match reader.read_event() {
@@ -91,9 +95,20 @@ pub fn parse_test_interior_point_xml(path: &str) -> Vec<XmlTestCase> {
                         desc.clear();
                         input_wkt.clear();
                         expected_wkt.clear();
+                        op_name.clear();
                     }
-                    "desc" | "a" | "op" => {
+                    "desc" | "a" => {
                         if in_case {
+                            current_tag = name;
+                        }
+                    }
+                    "op" => {
+                        if in_case {
+                            for attr in e.attributes().flatten() {
+                                if attr.key.as_ref() == b"name" {
+                                    op_name = String::from_utf8_lossy(&attr.value).to_string();
+                                }
+                            }
                             current_tag = name;
                         }
                     }
@@ -114,6 +129,12 @@ pub fn parse_test_interior_point_xml(path: &str) -> Vec<XmlTestCase> {
             Ok(Event::End(ref e)) => {
                 let name = String::from_utf8_lossy(e.name().as_ref()).to_string();
                 if name == "case" && in_case {
+                    assert_eq!(
+                        op_name,
+                        op,
+                        "{path}: case \"{}\" uses op {op_name}, expected {op}",
+                        desc.trim()
+                    );
                     cases.push(XmlTestCase {
                         desc: desc.trim().to_string(),
                         input: parse_wkt_geometry(&input_wkt),

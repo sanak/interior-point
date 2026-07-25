@@ -8,7 +8,7 @@ mod utils;
 
 use geo_types::{Coord, Geometry, LineString, MultiLineString, Polygon};
 use interior_point::interior_point;
-use utils::xml_test_parser::parse_test_interior_point_xml;
+use utils::xml_test_parser::parse_xml_test_cases;
 
 /// Helper to run a test case: check the result matches the expected coordinate.
 fn check(desc: &str, result: Option<Coord<f64>>, expected: Option<Coord<f64>>) {
@@ -39,8 +39,9 @@ fn check(desc: &str, result: Option<Coord<f64>>, expected: Option<Coord<f64>>) {
 
 #[test]
 fn test_interior_point_xml_all_cases() {
-    let cases = parse_test_interior_point_xml(
+    let cases = parse_xml_test_cases(
         "../../upstream/jts/resources/testxml/general/TestInteriorPoint.xml",
+        "getInteriorPoint",
     );
     assert_eq!(cases.len(), 24, "Expected 24 test cases from XML");
 

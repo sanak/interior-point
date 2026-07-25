@@ -49,9 +49,12 @@ function parseExpectedPoint(wkt: string): Position | null {
 }
 
 /**
- * Parse JTS TestInteriorPoint.xml and return test cases.
+ * Parse a JTS test XML file and return the cases for the named operation.
+ *
+ * @param filePath the fixture to read
+ * @param op the expected `<op name="…">`; every case must use it
  */
-export function parseTestInteriorPointXml(filePath: string): XmlTestCase[] {
+export function parseXmlTestCases(filePath: string, op: string): XmlTestCase[] {
   const xml = readFileSync(filePath, "utf-8");
   const parser = new XMLParser({
     ignoreAttributes: false,
@@ -66,12 +69,16 @@ export function parseTestInteriorPointXml(filePath: string): XmlTestCase[] {
     const desc = c.desc as string;
     const inputWkt = c.a as string;
     const opNode = (c.test as Record<string, unknown>).op as Record<string, unknown>;
-    const op = (opNode["#text"] ?? opNode) as string;
+    const opName = opNode["@_name"] as string;
+    if (opName !== op) {
+      throw new Error(`${filePath}: case "${desc}" uses op ${opName}, expected ${op}`);
+    }
+    const opText = (opNode["#text"] ?? opNode) as string;
 
     return {
       desc,
       input: parseWkt(inputWkt),
-      expected: parseExpectedPoint(op),
+      expected: parseExpectedPoint(opText),
     };
   });
 }

@@ -9,10 +9,10 @@ import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import type { Geometry } from "geojson";
 import { interiorPoint } from "../src/interiorPoint";
-import { parseTestInteriorPointXml } from "./utils/xmlTestParser";
+import { parseXmlTestCases } from "./utils/xmlTestParser";
 
 const xmlPath = resolve(__dirname, "../../upstream/jts/resources/testxml/general/TestInteriorPoint.xml");
-const testCases = parseTestInteriorPointXml(xmlPath);
+const testCases = parseXmlTestCases(xmlPath, "getInteriorPoint");
 
 describe("InteriorPoint - TestInteriorPoint.xml", () => {
   for (const tc of testCases) {
