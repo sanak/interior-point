@@ -5,14 +5,7 @@ import prettier from "eslint-config-prettier";
 
 export default tseslint.config(
   {
-    ignores: [
-      "**/dist/**",
-      "**/pkg/**",
-      "**/node_modules/**",
-      "**/target/**",
-      "docs/.vitepress/cache/**",
-      "tmp/**",
-    ],
+    ignores: ["**/dist/**", "**/pkg/**", "**/node_modules/**", "**/target/**", "docs/.vitepress/cache/**", "tmp/**"],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
@@ -26,9 +19,24 @@ export default tseslint.config(
             "js/vitest.config.ts",
             "js/vite.config.ts",
             "docs/.vitepress/config.ts",
+            "scripts/*.mjs",
+            "scripts/test/*.mjs",
           ],
         },
         tsconfigRootDir: import.meta.dirname,
+      },
+    },
+  },
+  {
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      globals: {
+        Buffer: "readonly",
+        Response: "readonly",
+        URL: "readonly",
+        console: "readonly",
+        fetch: "readonly",
+        process: "readonly",
       },
     },
   },

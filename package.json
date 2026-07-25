@@ -6,12 +6,13 @@
     "prepare": "simple-git-hooks",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
-    "format": "prettier --write \"**/*.{ts,mts,json,md,yml,yaml}\"",
-    "format:check": "prettier --check \"**/*.{ts,mts,json,md,yml,yaml}\"",
+    "format": "prettier --write \"**/*.{ts,mts,mjs,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,mts,mjs,json,md,yml,yaml}\"",
     "build:js": "pnpm --filter ./js run build",
+    "test:scripts": "node --test \"scripts/test/*.test.mjs\"",
     "test:js": "pnpm --filter ./js run test",
     "test:rs": "cd rs && cargo test --workspace",
-    "test": "pnpm test:js && pnpm test:rs",
+    "test": "pnpm test:scripts && pnpm test:js && pnpm test:rs",
     "bench:js": "pnpm --filter ./js exec vitest bench",
     "bench:rs": "cd rs && cargo bench -p interior-point",
     "bench": "pnpm bench:js && pnpm bench:rs",
@@ -23,7 +24,7 @@
     "pre-commit": "pnpm exec lint-staged"
   },
   "lint-staged": {
-    "*.{ts,tsx,mts}": [
+    "*.{ts,tsx,mts,mjs}": [
       "eslint --fix",
       "prettier --write"
     ],
