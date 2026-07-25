@@ -1,0 +1,65 @@
+name: JTS Drift
+
+on:
+  schedule:
+    # Mondays, 03:00 UTC
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Upstream ref to compare the vendored files against
+        required: false
+        default: master
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    name: Check upstream drift
+    runs-on: ubuntu-latest
+    env:
+      REF: ${{ inputs.ref || 'master' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Compare vendored JTS files against upstream
+        id: check
+        run: |
+          set +e
+          node scripts/jts-sync.mjs check --ref "$REF" --diff > drift.md
+          status=$?
+          set -e
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          cat drift.md
+          if [ "$status" -ge 2 ]; then
+            echo "::error::jts-sync check failed operationally (exit $status)"
+            exit "$status"
+          fi
+
+      - name: Open or update the drift issue
+        if: steps.check.outputs.status == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create jts-drift --color B60205 --description "Vendored JTS sources differ from upstream" --force
+          {
+            echo "\`node scripts/jts-sync.mjs check --ref $REF\` reported drift."
+            echo
+            echo "- ref: \`$REF\`"
+            echo "- run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo
+            cat drift.md
+            echo
+            echo "To adopt it: \`node scripts/jts-sync.mjs pull --ref $REF\`, then \`git diff upstream/\` is the work order."
+          } > issue.md
+          existing=$(gh issue list --label jts-drift --state open --limit 1 --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body-file issue.md
+          else
+            gh issue create --title "JTS upstream drift detected ($REF)" --label jts-drift --body-file issue.md
+          fi
