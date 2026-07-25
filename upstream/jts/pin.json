@@ -1,0 +1,34 @@
+{
+  "upstream": "https://github.com/locationtech/jts",
+  "commit": "123a182e6e5a9cc8caed8ff037e4f824a5ce74ee",
+  "nearestTag": "1.20.0",
+  "syncedAt": "2026-07-25",
+  "files": [
+    {
+      "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/InteriorPoint.java",
+      "localPath": "upstream/jts/algorithm/InteriorPoint.java",
+      "sha256": "08dd262246463397f7709b7dfb1ef05891d34e133b4ebf57ca816d9029401389"
+    },
+    {
+      "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/InteriorPointArea.java",
+      "localPath": "upstream/jts/algorithm/InteriorPointArea.java",
+      "sha256": "76d7aeff1f5386f9bf0d491997d56f2a127c1437b127b83ae7b2f4dbb3f1fd8b"
+    },
+    {
+      "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/InteriorPointLine.java",
+      "localPath": "upstream/jts/algorithm/InteriorPointLine.java",
+      "sha256": "e8acad75063955215f64978c5eb0fad0741fb0493890cdb91ba922ba3e1d2ce8"
+    },
+    {
+      "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/InteriorPointPoint.java",
+      "localPath": "upstream/jts/algorithm/InteriorPointPoint.java",
+      "sha256": "c8e73c94ff6e61d7ac2004c0a9fd779ad72cbcf4be2d60dafe3fd9a756342697"
+    },
+    {
+      "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/Centroid.java",
+      "localPath": "upstream/jts/algorithm/Centroid.java",
+      "sha256": "0d944641dbfb240f0971f4174cf0e7c94a376ff376480e3b7b38c0d1f4c942cc"
+    }
+  ],
+  "anchorIgnore": []
+}
