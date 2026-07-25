@@ -89,9 +89,18 @@ Following an upstream change:
 5. `node scripts/jts-sync.mjs anchors`
 
 `.github/workflows/jts-drift.yml` runs `check` weekly and opens or updates an issue
-labelled `jts-drift`. `anchors` is not yet wired into `ci.yml`: no `@jts` anchor exists
-in the ports today, so all 52 vendored Java methods would report as unported. It joins
-CI with the anchor retrofit.
+labelled `jts-drift`. `anchors` is not yet wired into `ci.yml`: the robust predicate stack
+(`Orientation`, `CGAlgorithmsDD`, `DD`) is anchored, but the five original files are not, so
+`anchors` still reports 52 of 69 in-scope members as unported and exits 1. It joins CI with
+the retrofit of those five.
+
+A `pin.json` file entry may declare `portedMembers`, listing the only members required to
+carry a `@jts` anchor — that is how a deliberately partial port (`DD`: 10 of 73 members)
+avoids 63 spurious `@jts-omit` tags. A file entry without the field requires full coverage.
+
+`check` currently reports `upstream/jts/math/DD.java` as DRIFTED: upstream `master` added a
+`hashCode()` after the pinned commit. That is real upstream movement outside the ported
+subset, not a local edit — all 11 pinned files still match their recorded `sha256`.
 
 ## Public API
 
