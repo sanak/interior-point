@@ -11,7 +11,7 @@ import type { Geometry } from "geojson";
 import { interiorPoint } from "../src/interiorPoint";
 import { parseTestInteriorPointXml } from "./utils/xmlTestParser";
 
-const xmlPath = resolve(__dirname, "../../testdata/xml/TestInteriorPoint.xml");
+const xmlPath = resolve(__dirname, "../../upstream/jts/resources/testxml/general/TestInteriorPoint.xml");
 const testCases = parseTestInteriorPointXml(xmlPath);
 
 describe("InteriorPoint - TestInteriorPoint.xml", () => {

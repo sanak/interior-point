@@ -12,7 +12,7 @@ import type { Geometry, Position } from "geojson";
 import { interiorPoint } from "../src/interiorPoint";
 import { parseWktFile } from "./utils/wktParser";
 
-const wktPath = resolve(__dirname, "../../testdata/wkt/world.wkt");
+const wktPath = resolve(__dirname, "../../upstream/jts/resources/testdata/world.wkt");
 const geometries = parseWktFile(wktPath);
 
 /**

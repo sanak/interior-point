@@ -28,6 +28,16 @@
       "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/Centroid.java",
       "localPath": "upstream/jts/algorithm/Centroid.java",
       "sha256": "0d944641dbfb240f0971f4174cf0e7c94a376ff376480e3b7b38c0d1f4c942cc"
+    },
+    {
+      "upstreamPath": "modules/tests/src/test/resources/testxml/general/TestInteriorPoint.xml",
+      "localPath": "upstream/jts/resources/testxml/general/TestInteriorPoint.xml",
+      "sha256": "109e5eb79e3a8d94465732f959cc7803060e21d59e6da429520b08026905dfa2"
+    },
+    {
+      "upstreamPath": "modules/core/src/test/resources/testdata/world.wkt",
+      "localPath": "upstream/jts/resources/testdata/world.wkt",
+      "sha256": "ef06d70f25fd14d89e1a4fb815aa7574b152054278c292ebd6195975947f9127"
     }
   ],
   "anchorIgnore": []
