@@ -2,7 +2,7 @@
 
 ## TypeScript
 
-Accepts [GeoJSON](https://datatracker.ietf.org/doc/html/rfc7946) geometry objects and returns a `Position` (`[x, y]`) or `null`.
+Accepts [GeoJSON](https://datatracker.ietf.org/doc/html/rfc7946) geometry objects and returns a `Coordinate` (`[x, y]`) or `null`.
 
 ### `interiorPoint(geometry)`
 
@@ -17,7 +17,7 @@ Computes an interior point of the given geometry, dispatching to the appropriate
 
 - `geometry: Geometry | null` — A GeoJSON Geometry object, or `null`
 
-**Returns:** `Position | null` — `[x, y]` coordinates inside the geometry, or `null` if empty
+**Returns:** `Coordinate | null` — `[x, y]` coordinates inside the geometry, or `null` if empty
 
 ```typescript
 import { interiorPoint } from "interior-point";
@@ -48,10 +48,14 @@ interiorPoint({ type: "GeometryCollection", geometries: [] }); // => null
 
 ### Type Reference
 
-| Type       | Definition                               |
-| ---------- | ---------------------------------------- |
-| `Geometry` | GeoJSON `Geometry` from `@types/geojson` |
-| `Position` | `[number, number]` (GeoJSON Position)    |
+| Type         | Definition                                  |
+| ------------ | ------------------------------------------- |
+| `Geometry`   | GeoJSON `Geometry` from `@types/geojson`    |
+| `Coordinate` | `number[]` (an alias of GeoJSON `Position`) |
+
+`Coordinate` carries JTS's name for the type and is re-exported from the package
+root. It is a plain alias of GeoJSON's `Position`, so existing code that annotates
+results as `Position` keeps compiling unchanged.
 
 ---
 
