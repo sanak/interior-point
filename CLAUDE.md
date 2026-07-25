@@ -52,7 +52,7 @@ WASM build: `cd rs/wasm && wasm-pack build`
 ### Both
 
 ```bash
-pnpm test                 # runs test:js && test:rs
+pnpm test                 # runs test:scripts && test:js && test:rs
 pnpm bench                # runs bench:js && bench:rs
 ```
 
@@ -62,6 +62,36 @@ pnpm bench                # runs bench:js && bench:rs
 pnpm docs:dev             # dev server
 pnpm docs:build           # production build
 ```
+
+### Upstream JTS sync
+
+`scripts/jts-sync.mjs` keeps `upstream/jts/` honest. Node only, no dependencies.
+
+```bash
+node scripts/jts-sync.mjs check [--ref master] [--diff]  # verify hashes, compare against upstream
+node scripts/jts-sync.mjs pull --ref <tag|sha>           # refresh upstream/jts/ and pin.json
+node scripts/jts-sync.mjs anchors                        # check @jts anchor integrity
+node scripts/jts-sync.mjs locate <file>:<line>           # Java line -> ported counterpart
+node scripts/jts-sync.mjs scaffold --lang ts|rs          # anchored skeletons from the Java
+pnpm test:scripts                                        # unit tests for the above
+```
+
+Exit codes: `0` clean, `1` findings, `2` operational failure.
+
+`--ref` defaults to `master`: that is upstream's default branch name, not `main`.
+
+Following an upstream change:
+
+1. `node scripts/jts-sync.mjs pull --ref <tag|sha>`
+2. `git diff upstream/` — this diff is the work order
+3. apply each hunk to the anchored counterpart in `js/src` and `rs/core/src`
+4. `pnpm test && pnpm bench`
+5. `node scripts/jts-sync.mjs anchors`
+
+`.github/workflows/jts-drift.yml` runs `check` weekly and opens or updates an issue
+labelled `jts-drift`. `anchors` is not yet wired into `ci.yml`: no `@jts` anchor exists
+in the ports today, so all 52 vendored Java methods would report as unported. It joins
+CI with the anchor retrofit.
 
 ## Public API
 
