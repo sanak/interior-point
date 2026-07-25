@@ -5,6 +5,7 @@
 
 mod cg_algorithms_dd;
 mod dd;
+mod geometry_adapter;
 mod interior_point_area;
 mod interior_point_line;
 mod interior_point_point;
@@ -12,6 +13,7 @@ mod orientation;
 
 use geo_types::{Coord, Geometry};
 
+use geometry_adapter::is_geometry_empty;
 use interior_point_area::interior_point_area;
 use interior_point_line::interior_point_line;
 use interior_point_point::interior_point_point;
@@ -54,23 +56,5 @@ fn dimension_non_empty(geometry: &Geometry<f64>) -> i32 {
             gc.0.iter().map(dimension_non_empty).max().unwrap_or(-1)
         }
         _ => -1,
-    }
-}
-
-/// Check if a geometry is empty.
-fn is_geometry_empty(geometry: &Geometry<f64>) -> bool {
-    match geometry {
-        Geometry::Point(_) => false, // geo-types Point cannot be empty
-        Geometry::MultiPoint(mp) => mp.0.is_empty(),
-        Geometry::LineString(ls) => ls.0.is_empty(),
-        Geometry::MultiLineString(mls) => {
-            mls.0.is_empty() || mls.0.iter().all(|ls| ls.0.is_empty())
-        }
-        Geometry::Polygon(p) => p.exterior().0.is_empty(),
-        Geometry::MultiPolygon(mp) => {
-            mp.0.is_empty() || mp.0.iter().all(|p| p.exterior().0.is_empty())
-        }
-        Geometry::GeometryCollection(gc) => gc.0.is_empty() || gc.0.iter().all(is_geometry_empty),
-        _ => true,
     }
 }
