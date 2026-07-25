@@ -3,6 +3,7 @@
 //! Computes an interior point (representative point) of a geometry.
 //! The point is guaranteed to lie inside the geometry for area geometries.
 
+mod centroid;
 mod cg_algorithms_dd;
 mod dd;
 mod geometry_adapter;

@@ -7,9 +7,8 @@
 //!
 //! @jts CGAlgorithmsDD
 
-// See the note in `dd.rs`: `Centroid` is the first consumer, arriving with
-// the port that follows; until then nothing outside `cfg(test)` reaches this
-// module yet.
+// See the note in `dd.rs`: this chain stays unreachable from the crate root
+// until the retrofit wires `Centroid` into `InteriorPoint`.
 #![allow(dead_code)]
 
 use geo_types::Coord;
