@@ -278,3 +278,38 @@ describe("locate", () => {
     }
   });
 });
+
+describe("scaffold", () => {
+  it("exits 2 without --lang", async () => {
+    const { code, err } = await run(["scaffold"]);
+    assert.equal(code, 2);
+    assert.match(err, /--lang must be ts or rs/);
+  });
+
+  it("exits 2 on an unsupported language", async () => {
+    const { code, err } = await run(["scaffold", "--lang", "java"]);
+    assert.equal(code, 2);
+    assert.match(err, /--lang must be ts or rs/);
+  });
+
+  it("emits TypeScript for one file", async () => {
+    const { code, out } = await run(["scaffold", "--lang", "ts", "--file", "InteriorPointPoint.java"]);
+    assert.equal(code, 0);
+    assert.match(out, /@jts InteriorPointPoint#add\(Coordinate\)/);
+    assert.match(out, /addCoordinate/);
+    assert.ok(!out.includes("Centroid"));
+  });
+
+  it("emits Rust for one file", async () => {
+    const { code, out } = await run(["scaffold", "--lang", "rs", "--file", "Centroid.java"]);
+    assert.equal(code, 0);
+    assert.match(out, /fn add_polygon/);
+    assert.match(out, /todo!\(\)/);
+  });
+
+  it("exits 2 for an unknown file", async () => {
+    const { code, err } = await run(["scaffold", "--lang", "ts", "--file", "Nope.java"]);
+    assert.equal(code, 2);
+    assert.match(err, /no members found in Nope\.java/);
+  });
+});

@@ -7,6 +7,7 @@ import { REPO_ROOT, readPin, sha256, writePin } from "./jts-pin.mjs";
 import { findEnclosingMember, scanJavaDir } from "./jts-java-scan.mjs";
 import { parseAnchorTarget, runAnchors, scanPortAnchors } from "./jts-anchors.mjs";
 import { checkDrift, fetchAllUpstream, unifiedDiff } from "./jts-upstream.mjs";
+import { scaffold } from "./jts-scaffold.mjs";
 
 export const USAGE = `Usage: node scripts/jts-sync.mjs <subcommand> [options]
 
@@ -144,6 +145,17 @@ function cmdLocate(rest, io) {
   return 0;
 }
 
+function cmdScaffold(rest, io) {
+  const { values } = parseArgs({
+    args: rest,
+    options: { lang: { type: "string" }, file: { type: "string" } },
+    strict: true,
+  });
+  if (values.lang !== "ts" && values.lang !== "rs") throw new Error("--lang must be ts or rs");
+  io.out(scaffold(REPO_ROOT, values.lang, values.file));
+  return 0;
+}
+
 export async function main(argv, io = {}) {
   const out = io.out ?? ((s) => console.log(s));
   const err = io.err ?? ((s) => console.error(s));
@@ -166,6 +178,8 @@ export async function main(argv, io = {}) {
         return await cmdPull(rest, { out, err, fetchImpl: io.fetchImpl });
       case "locate":
         return cmdLocate(rest, { out, err });
+      case "scaffold":
+        return cmdScaffold(rest, { out, err });
       case "anchors":
         if (rest.length > 0) {
           err("jts-sync: anchors takes no arguments");
