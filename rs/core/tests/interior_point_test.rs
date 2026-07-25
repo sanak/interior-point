@@ -85,6 +85,46 @@ fn test_multiline_with_empty() {
     );
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// Odd scanline crossings (the even-crossing assertion)
+//
+// JTS asserts `0 == crossings.size() % 2`. A closed ring always produces an
+// even count -- crossing the scan line flips inside/outside, and a closed curve
+// returns to where it started -- so only a ring that is not closed can reach
+// the assertion.
+//
+// No end-to-end input reaches it here. `geo_types::Polygon::new` closes both
+// the exterior and every interior ring, exactly as JTS's LinearRing
+// constructor does, so an unclosed ring is not representable. The TypeScript
+// port has no such guarantee -- a GeoJSON ring is a raw array -- and its own
+// test suite covers the assertion end-to-end. The direct coverage on this side
+// is the unit test of `find_best_midpoint` in `interior_point_area.rs`.
+//
+// Neither TestInteriorPoint.xml (24 cases) nor world.wkt (244 geometries)
+// contains an input that reaches the assertion; both suites pass with it in
+// place.
+// ───────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn test_self_intersecting_closed_ring_does_not_panic() {
+    // A bowtie is invalid too, but it is closed, so the crossing count stays
+    // even. The assertion must not fire here -- it guards parity, not validity.
+    let poly = Polygon::new(
+        LineString::from(vec![
+            (0.0, 0.0),
+            (10.0, 10.0),
+            (10.0, 0.0),
+            (0.0, 10.0),
+            (0.0, 0.0),
+        ]),
+        vec![],
+    );
+    assert_eq!(
+        interior_point(&Geometry::Polygon(poly)),
+        Some(Coord { x: 2.5, y: 5.0 })
+    );
+}
+
 #[test]
 fn test_zero_length_lines_asymmetric() {
     // Zero-length-line centroid defect regression. Confirmed against JTS 1.19.0.

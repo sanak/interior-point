@@ -12,7 +12,51 @@
 // caller arrives.
 #![allow(dead_code)]
 
-use geo_types::{Coord, Geometry};
+use geo_types::{Coord, Geometry, Rect};
+
+/// Computes a ring's envelope in a single pass.
+///
+/// JTS caches this on the `LinearRing` and reads it back in both `scanRing` and
+/// `ScanLineYOrdinateFinder`; computing it once here is what removes the
+/// duplicate exterior-ring scan.
+///
+/// The `geo` crate's `BoundingRect` trait would do this, but `geo` is a
+/// dev-dependency: `geo-types` is the only runtime dependency this crate has,
+/// and the port adds none. `Rect` itself lives in `geo-types`, so the return
+/// type is still the one the adapter boundary names for `Envelope`.
+///
+/// Returns `None` for an empty ring, which has no envelope. JTS returns an
+/// empty `Envelope` there instead; both take the "intersects nothing" path at
+/// every call site, and `Rect` cannot represent an empty extent.
+///
+/// @jts-adapter LinearRing.getEnvelopeInternal()
+pub(crate) fn envelope_internal(ring: &[Coord<f64>]) -> Option<Rect<f64>> {
+    let mut min_x = f64::INFINITY;
+    let mut min_y = f64::INFINITY;
+    let mut max_x = f64::NEG_INFINITY;
+    let mut max_y = f64::NEG_INFINITY;
+    if ring.is_empty() {
+        return None;
+    }
+    for c in ring {
+        if c.x < min_x {
+            min_x = c.x;
+        }
+        if c.x > max_x {
+            max_x = c.x;
+        }
+        if c.y < min_y {
+            min_y = c.y;
+        }
+        if c.y > max_y {
+            max_y = c.y;
+        }
+    }
+    Some(Rect::new(
+        Coord { x: min_x, y: min_y },
+        Coord { x: max_x, y: max_y },
+    ))
+}
 
 /// @jts-adapter Geometry.isEmpty()
 pub(crate) fn is_geometry_empty(geometry: &Geometry<f64>) -> bool {

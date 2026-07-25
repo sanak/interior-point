@@ -1,202 +1,384 @@
-import type { Geometry, Position } from "geojson";
+import type { Geometry, Polygon } from "geojson";
+
+import { assertTrue } from "./assert";
+import type { Coordinate, Envelope } from "./geometryAdapter";
+import { envelopeInternal, isGeometryEmpty } from "./geometryAdapter";
 
 /**
- * Computes an interior point of an area geometry (Polygon/MultiPolygon)
- * using a scanline algorithm ported from JTS InteriorPointArea.java.
+ * Computes a point in the interior of an areal geometry.
+ * The point will lie in the geometry interior in all except degenerate cases.
+ * <h2>Algorithm</h2>
+ * For each constituent polygon:
+ * <ul>
+ * <li>Determine a horizontal scan line on which the interior point will be located.
+ * <li>Compute the sections of the scan line which lie in the interior of the polygon.
+ * <li>Choose the widest interior section and take its midpoint as the interior point.
+ * </ul>
+ * The best interior point is the one with the widest scan line section.
  *
- * The computed point is guaranteed to lie inside the polygon
- * (except for certain degenerate/zero-area cases).
- *
- * @param geometry - A GeoJSON geometry (Polygon, MultiPolygon, or GeometryCollection containing areas)
- * @returns A position [x, y] inside the geometry, or null if the geometry has no areal components
+ * @jts InteriorPointArea
  */
-export function interiorPointArea(geometry: Geometry): Position | null {
-  let interiorPoint: Position | null = null;
-  let maxWidth = -1;
+export class InteriorPointArea {
+  private interiorPoint: Coordinate | null = null;
+  private maxWidth = -1;
 
-  processGeometry(geometry);
-  return interiorPoint;
+  /**
+   * Creates a new interior point finder for an areal geometry.
+   *
+   * @param g an areal geometry
+   * @jts InteriorPointArea#InteriorPointArea(Geometry)
+   */
+  constructor(g: Geometry) {
+    this.process(g);
+  }
 
-  function processGeometry(geom: Geometry): void {
+  /**
+   * Gets the computed interior point.
+   *
+   * @return the coordinate of an interior point, or null if the input geometry is empty
+   * @jts InteriorPointArea#getInteriorPoint()
+   */
+  getInteriorPoint(): Coordinate | null {
+    return this.interiorPoint;
+  }
+
+  /**
+   * Processes a geometry to determine the best interior point for all
+   * component polygons.
+   *
+   * @param geom the geometry to process
+   * @jts InteriorPointArea#process(Geometry)
+   */
+  private process(geom: Geometry): void {
+    if (isGeometryEmpty(geom)) return;
+
     switch (geom.type) {
       case "Polygon":
-        processPolygon(geom.coordinates);
+        this.processPolygon(geom);
         break;
+      // JTS's MultiPolygon is a GeometryCollection and falls through to the
+      // collection branch there; GeoJSON's is not, so it is expanded here.
       case "MultiPolygon":
-        for (const polyCoords of geom.coordinates) {
-          processPolygon(polyCoords);
+        for (const coordinates of geom.coordinates) {
+          this.processPolygon({ type: "Polygon", coordinates });
         }
         break;
       case "GeometryCollection":
-        for (const g of geom.geometries) {
-          processGeometry(g);
-        }
+        for (const g of geom.geometries) this.process(g);
+        break;
+      default:
         break;
     }
   }
 
-  function processPolygon(rings: Position[][]): void {
-    if (rings.length === 0 || rings[0].length === 0) return;
-
-    const exteriorRing = rings[0];
-    const interiorRings = rings.slice(1);
-
-    // Default interior point for zero-area polygons
-    const defaultPoint: Position = [exteriorRing[0][0], exteriorRing[0][1]];
-
-    const scanY = findScanLineY(exteriorRing, interiorRings);
-    const crossings: number[] = [];
-
-    scanRing(exteriorRing, scanY, crossings);
-    for (const hole of interiorRings) {
-      scanRing(hole, scanY, crossings);
-    }
-
-    // Find best midpoint from crossings
-    if (crossings.length === 0) {
-      // Zero-area polygon — use default point (first coordinate)
-      if (maxWidth < 0) {
-        maxWidth = 0;
-        interiorPoint = defaultPoint;
-      }
-      return;
-    }
-
-    crossings.sort((a, b) => a - b);
-
-    let bestWidth = 0;
-    let bestPoint: Position = defaultPoint;
-
-    for (let i = 0; i < crossings.length - 1; i += 2) {
-      const x1 = crossings[i];
-      const x2 = crossings[i + 1];
-      const width = x2 - x1;
-      if (width > bestWidth) {
-        bestWidth = width;
-        bestPoint = [(x1 + x2) / 2, scanY];
-      }
-    }
-
-    if (bestWidth > maxWidth) {
-      maxWidth = bestWidth;
-      interiorPoint = bestPoint;
+  /**
+   * Computes an interior point of a component Polygon and updates the current
+   * best interior point if appropriate.
+   *
+   * @param polygon the polygon to process
+   * @jts InteriorPointArea#processPolygon(Polygon)
+   */
+  private processPolygon(polygon: Polygon): void {
+    const intPtPoly = new InteriorPointPolygon(polygon);
+    intPtPoly.process();
+    const width = intPtPoly.getWidth();
+    if (width > this.maxWidth) {
+      this.maxWidth = width;
+      this.interiorPoint = intPtPoly.getInteriorPoint();
     }
   }
 }
 
-/**
- * Scan a ring's edges for intersections with a horizontal line at the given Y.
- */
-function scanRing(ring: Position[], scanY: number, crossings: number[]): void {
-  // Skip rings whose Y-extent doesn't include scanY
-  if (!ringIntersectsY(ring, scanY)) return;
-
-  for (let i = 1; i < ring.length; i++) {
-    const p0 = ring[i - 1];
-    const p1 = ring[i];
-    addEdgeCrossing(p0, p1, scanY, crossings);
-  }
-}
-
-function addEdgeCrossing(p0: Position, p1: Position, scanY: number, crossings: number[]): void {
-  // Skip non-crossing segments
-  if (!segmentIntersectsY(p0, p1, scanY)) return;
-  if (!isEdgeCrossingCounted(p0, p1, scanY)) return;
-
-  crossings.push(intersectionX(p0, p1, scanY));
+/** @jts InteriorPointArea#avg(double,double) */
+function avg(a: number, b: number): number {
+  return (a + b) / 2.0;
 }
 
 /**
- * Determines if an edge crossing contributes to the crossing count.
- * Implements consistent topology rules to ensure correct inside/outside detection.
- */
-function isEdgeCrossingCounted(p0: Position, p1: Position, scanY: number): boolean {
-  const y0 = p0[1];
-  const y1 = p1[1];
-  // Skip horizontal lines
-  if (y0 === y1) return false;
-  // Downward segment does not include start point
-  if (y0 === scanY && y1 < scanY) return false;
-  // Upward segment does not include endpoint
-  if (y1 === scanY && y0 < scanY) return false;
-  return true;
-}
-
-/**
- * Compute the X-coordinate where a segment crosses a horizontal line at Y.
- */
-function intersectionX(p0: Position, p1: Position, y: number): number {
-  const x0 = p0[0];
-  const x1 = p1[0];
-  if (x0 === x1) return x0;
-
-  const segDX = x1 - x0;
-  const segDY = p1[1] - p0[1];
-  const m = segDY / segDX;
-  return x0 + (y - p0[1]) / m;
-}
-
-/** Tests if a ring's Y-extent includes the given Y. */
-function ringIntersectsY(ring: Position[], y: number): boolean {
-  let minY = Infinity;
-  let maxY = -Infinity;
-  for (const p of ring) {
-    if (p[1] < minY) minY = p[1];
-    if (p[1] > maxY) maxY = p[1];
-  }
-  return y >= minY && y <= maxY;
-}
-
-/** Tests if a segment's Y-extent includes the given Y. */
-function segmentIntersectsY(p0: Position, p1: Position, y: number): boolean {
-  if (p0[1] > y && p1[1] > y) return false;
-  if (p0[1] < y && p1[1] < y) return false;
-  return true;
-}
-
-// ---------------------------------------------------------------------------
-// ScanLineYOrdinateFinder
-// ---------------------------------------------------------------------------
-
-/**
- * Finds a Y-ordinate for the scan line that bisects the polygon's Y-extent
- * while avoiding all vertex Y-coordinates.
+ * Computes an interior point for the polygonal components of a Geometry.
  *
- * Algorithm: start with the center of the bounding box Y-extent, then
- * narrow the interval [loY, hiY] to the closest vertex below and above
- * the center. Return the midpoint of that interval.
+ * @param geom the geometry to compute
+ * @return the computed interior point, or null if the geometry has no polygonal components
+ * @jts InteriorPointArea#getInteriorPoint(Geometry)
+ * @jts-deviate module-level name — `getInteriorPoint` would collide with the
+ *   same static factory in the other three modules.
  */
-function findScanLineY(exteriorRing: Position[], interiorRings: Position[][]): number {
-  let minY = Infinity;
-  let maxY = -Infinity;
+export function interiorPointArea(geom: Geometry): Coordinate | null {
+  const intPt = new InteriorPointArea(geom);
+  return intPt.getInteriorPoint();
+}
 
-  for (const p of exteriorRing) {
-    if (p[1] < minY) minY = p[1];
-    if (p[1] > maxY) maxY = p[1];
+/**
+ * Computes an interior point in a single {@link Polygon},
+ * as well as the width of the scan-line section it occurs in
+ * to allow choosing the widest section occurrence.
+ *
+ * @jts InteriorPointArea.InteriorPointPolygon
+ */
+export class InteriorPointPolygon {
+  private polygon: Polygon;
+  private interiorPointY: number;
+  private interiorSectionWidth = 0.0;
+  private interiorPoint: Coordinate | null = null;
+
+  /**
+   * Creates a new InteriorPointPolygon instance.
+   *
+   * @param polygon the polygon to test
+   * @jts InteriorPointArea.InteriorPointPolygon#InteriorPointPolygon(Polygon)
+   */
+  constructor(polygon: Polygon) {
+    this.polygon = polygon;
+    this.interiorPointY = getScanLineY(polygon);
   }
 
-  const centreY = (minY + maxY) / 2;
-
-  // Initialize interval to full extent
-  let loY = minY;
-  let hiY = maxY;
-
-  // Narrow interval by scanning all vertices
-  updateInterval(exteriorRing, centreY);
-  for (const ring of interiorRings) {
-    updateInterval(ring, centreY);
+  /**
+   * Gets the computed interior point.
+   *
+   * @return the interior point coordinate, or null if the input geometry is empty
+   * @jts InteriorPointArea.InteriorPointPolygon#getInteriorPoint()
+   */
+  getInteriorPoint(): Coordinate | null {
+    return this.interiorPoint;
   }
 
-  return (hiY + loY) / 2;
+  /**
+   * Gets the width of the scanline section containing the interior point.
+   * Used to determine the best point to use.
+   *
+   * @return the width
+   * @jts InteriorPointArea.InteriorPointPolygon#getWidth()
+   */
+  getWidth(): number {
+    return this.interiorSectionWidth;
+  }
 
-  function updateInterval(ring: Position[], centre: number): void {
-    for (const p of ring) {
-      const y = p[1];
-      if (y <= centre) {
-        if (y > loY) loY = y;
-      } else {
-        if (y < hiY) hiY = y;
+  /**
+   * Compute the interior point.
+   *
+   * @jts InteriorPointArea.InteriorPointPolygon#process()
+   */
+  process(): void {
+    // This results in returning a null Coordinate
+    if (isGeometryEmpty(this.polygon)) return;
+
+    // set default interior point in case polygon has zero area
+    this.interiorPoint = [...this.polygon.coordinates[0][0]];
+
+    const crossings: number[] = [];
+    this.scanRing(this.polygon.coordinates[0], crossings);
+    for (let i = 1; i < this.polygon.coordinates.length; i++) {
+      this.scanRing(this.polygon.coordinates[i], crossings);
+    }
+    this.findBestMidpoint(crossings);
+  }
+
+  /** @jts InteriorPointArea.InteriorPointPolygon#scanRing(LinearRing,List<Double>) */
+  private scanRing(ring: Coordinate[], crossings: number[]): void {
+    // skip rings which don't cross scan line
+    if (!this.intersectsHorizontalLineEnvelope(envelopeInternal(ring), this.interiorPointY)) return;
+
+    for (let i = 1; i < ring.length; i++) {
+      const ptPrev = ring[i - 1];
+      const pt = ring[i];
+      this.addEdgeCrossing(ptPrev, pt, this.interiorPointY, crossings);
+    }
+  }
+
+  /** @jts InteriorPointArea.InteriorPointPolygon#addEdgeCrossing(Coordinate,Coordinate,double,List<Double>) */
+  private addEdgeCrossing(p0: Coordinate, p1: Coordinate, scanY: number, crossings: number[]): void {
+    // skip non-crossing segments
+    if (!this.intersectsHorizontalLineCoordinate(p0, p1, scanY)) return;
+    if (!this.isEdgeCrossingCounted(p0, p1, scanY)) return;
+
+    // edge intersects scan line, so add a crossing
+    const xInt = this.intersection(p0, p1, scanY);
+    crossings.push(xInt);
+  }
+
+  /**
+   * Finds the midpoint of the widest interior section.
+   * Sets the {@link #interiorPoint} location and the {@link #interiorSectionWidth}.
+   *
+   * @param crossings the list of scan-line crossing X ordinates
+   * @jts InteriorPointArea.InteriorPointPolygon#findBestMidpoint(List<Double>)
+   */
+  private findBestMidpoint(crossings: number[]): void {
+    // zero-area polygons will have no crossings
+    if (crossings.length === 0) return;
+
+    assertTrue(0 === crossings.length % 2, "Interior Point robustness failure: odd number of scanline crossings");
+
+    // JTS sorts with Double::compare; JavaScript's default sort is
+    // lexicographic, so the numeric comparator is mandatory here.
+    crossings.sort((a, b) => a - b);
+    /*
+     * Entries in crossings list are expected to occur in pairs representing a
+     * section of the scan line interior to the polygon (which may be zero-length)
+     */
+    for (let i = 0; i < crossings.length; i += 2) {
+      const x1 = crossings[i];
+      // crossings count must be even so this should be safe
+      const x2 = crossings[i + 1];
+
+      const width = x2 - x1;
+      if (width > this.interiorSectionWidth) {
+        this.interiorSectionWidth = width;
+        const interiorPointX = avg(x1, x2);
+        this.interiorPoint = [interiorPointX, this.interiorPointY];
       }
     }
   }
+
+  /**
+   * Tests if an edge intersection contributes to the crossing count.
+   * Some crossing situations are not counted, to ensure that the list of
+   * crossings captures strict inside/outside topology.
+   *
+   * @param p0 an endpoint of the segment
+   * @param p1 an endpoint of the segment
+   * @param scanY the Y-ordinate of the horizontal line
+   * @return true if the edge crossing is counted
+   * @jts InteriorPointArea.InteriorPointPolygon#isEdgeCrossingCounted(Coordinate,Coordinate,double)
+   */
+  private isEdgeCrossingCounted(p0: Coordinate, p1: Coordinate, scanY: number): boolean {
+    const y0 = p0[1];
+    const y1 = p1[1];
+    // skip horizontal lines
+    if (y0 === y1) return false;
+    // handle cases where vertices lie on scan-line
+    // downward segment does not include start point
+    if (y0 === scanY && y1 < scanY) return false;
+    // upward segment does not include endpoint
+    if (y1 === scanY && y0 < scanY) return false;
+    return true;
+  }
+
+  /**
+   * Computes the intersection of a segment with a horizontal line.
+   * The segment is expected to cross the horizontal line — this condition is
+   * not checked. Computation uses regular double-precision arithmetic.
+   *
+   * @param p0 an endpoint of the segment
+   * @param p1 an endpoint of the segment
+   * @param y the Y-ordinate of the horizontal line
+   * @jts InteriorPointArea.InteriorPointPolygon#intersection(Coordinate,Coordinate,double)
+   */
+  private intersection(p0: Coordinate, p1: Coordinate, y: number): number {
+    const x0 = p0[0];
+    const x1 = p1[0];
+
+    if (x0 === x1) return x0;
+
+    // Assert: segDX is non-zero, due to previous equality test
+    const segDX = x1 - x0;
+    const segDY = p1[1] - p0[1];
+    const m = segDY / segDX;
+    const x = x0 + (y - p0[1]) / m;
+    return x;
+  }
+
+  /**
+   * Tests if an envelope intersects a horizontal line.
+   *
+   * @param env the envelope to test
+   * @param y the Y-ordinate of the horizontal line
+   * @return true if the envelope and line intersect
+   * @jts InteriorPointArea.InteriorPointPolygon#intersectsHorizontalLine(Envelope,double)
+   */
+  private intersectsHorizontalLineEnvelope(env: Envelope, y: number): boolean {
+    if (y < env.minY) return false;
+    if (y > env.maxY) return false;
+    return true;
+  }
+
+  /**
+   * Tests if a line segment intersects a horizontal line.
+   *
+   * @param p0 a segment endpoint
+   * @param p1 a segment endpoint
+   * @param y the Y-ordinate of the horizontal line
+   * @return true if the segment and line intersect
+   * @jts InteriorPointArea.InteriorPointPolygon#intersectsHorizontalLine(Coordinate,Coordinate,double)
+   */
+  private intersectsHorizontalLineCoordinate(p0: Coordinate, p1: Coordinate, y: number): boolean {
+    // both ends above?
+    if (p0[1] > y && p1[1] > y) return false;
+    // both ends below?
+    if (p0[1] < y && p1[1] < y) return false;
+    // segment must intersect line
+    return true;
+  }
+}
+
+/**
+ * Finds a safe scan line Y ordinate by projecting
+ * the polygon segments to the Y axis and finding the
+ * Y-axis interval which contains the centre of the Y extent.
+ * The centre of this interval is returned as the scan line Y-ordinate.
+ * <p>
+ * Note that in the case of (degenerate, invalid) zero-area polygons the
+ * computed Y value may be equal to a vertex Y-ordinate.
+ *
+ * @jts InteriorPointArea.ScanLineYOrdinateFinder
+ */
+export class ScanLineYOrdinateFinder {
+  private poly: Polygon;
+  private centreY: number;
+  private hiY = Number.MAX_VALUE;
+  private loY = -Number.MAX_VALUE;
+
+  /** @jts InteriorPointArea.ScanLineYOrdinateFinder#ScanLineYOrdinateFinder(Polygon) */
+  constructor(poly: Polygon) {
+    this.poly = poly;
+
+    // initialize using extremal values
+    // JTS reads `poly.getEnvelopeInternal()`, which for a Polygon is the
+    // shell's envelope; `coordinates[0]` is that shell.
+    const env = envelopeInternal(poly.coordinates[0]);
+    this.hiY = env.maxY;
+    this.loY = env.minY;
+    this.centreY = avg(this.loY, this.hiY);
+  }
+
+  /** @jts InteriorPointArea.ScanLineYOrdinateFinder#getScanLineY() */
+  getScanLineY(): number {
+    this.process(this.poly.coordinates[0]);
+    for (let i = 1; i < this.poly.coordinates.length; i++) {
+      this.process(this.poly.coordinates[i]);
+    }
+    const scanLineY = avg(this.hiY, this.loY);
+    return scanLineY;
+  }
+
+  /** @jts InteriorPointArea.ScanLineYOrdinateFinder#process(LineString) */
+  private process(line: Coordinate[]): void {
+    for (const pt of line) {
+      const y = pt[1];
+      this.updateInterval(y);
+    }
+  }
+
+  /** @jts InteriorPointArea.ScanLineYOrdinateFinder#updateInterval(double) */
+  private updateInterval(y: number): void {
+    if (y <= this.centreY) {
+      if (y > this.loY) this.loY = y;
+    } else if (y > this.centreY) {
+      if (y < this.hiY) {
+        this.hiY = y;
+      }
+    }
+  }
+}
+
+/**
+ * @jts InteriorPointArea.ScanLineYOrdinateFinder#getScanLineY(Polygon)
+ * @jts-deviate module-level function — the factory/getter rule maps a static factory to a
+ *   module level and the instance getter to a method; in Rust an associated
+ *   function and a method of the same name would collide, so both languages
+ *   place it here for symmetry.
+ */
+function getScanLineY(poly: Polygon): number {
+  const finder = new ScanLineYOrdinateFinder(poly);
+  return finder.getScanLineY();
 }
