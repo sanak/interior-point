@@ -14,6 +14,8 @@ never edited locally and are not compiled or distributed as part of this project
 - `algorithm/InteriorPointLine.java` — Copyright (c) 2016 Vivid Solutions.
 - `algorithm/InteriorPointPoint.java` — Copyright (c) 2016 Vivid Solutions.
 - `algorithm/Centroid.java` — Copyright (c) 2016 Vivid Solutions.
+- `algorithm/CentroidTest.java` — carries no copyright header upstream; covered by
+  the repository-wide license below.
 - `resources/**` — test resources from the same repository and commit.
 
 ## License

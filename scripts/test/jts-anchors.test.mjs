@@ -119,10 +119,14 @@ describe("scanPortAnchors", () => {
   it("records the deviate and adapter tags the ports carry", () => {
     const kinds = scanPortAnchors(REPO_ROOT).reduce((o, a) => ({ ...o, [a.kind]: (o[a.kind] ?? 0) + 1 }), {});
     assert.ok(kinds["jts"] > 0);
-    // selfSubtract's dropped NaN guard, in both languages.
-    assert.equal(kinds["jts-deviate"], 2);
-    // CoordinateSequence in both languages, plus Coordinate#equals2D in TypeScript.
-    assert.equal(kinds["jts-adapter"], 3);
+    // selfSubtract's dropped NaN guard in both languages, plus Rust's CentroidTest
+    // module placement.
+    assert.equal(kinds["jts-deviate"], 3);
+    // The geometry adapters (6 in TypeScript, 3 in Rust — Rust needs no Coordinate
+    // or Envelope alias and gets its ring envelope from geo-types), the Assert
+    // shim's 3, CoordinateSequence in both languages, Coordinate#equals2D in
+    // TypeScript, and CentroidTest's TOLERANCE and getArea() in both.
+    assert.equal(kinds["jts-adapter"], 19);
   });
 });
 
@@ -194,9 +198,9 @@ describe("checkJavaToAnchors", () => {
   const members = scanJavaDir(REPO_ROOT);
 
   // Every member of every vendored file: 52 from the five original files plus
-  // Orientation's 4, CGAlgorithmsDD's 8 and DD's 73. Narrowing to the ported
-  // subset is portedMembers' job, exercised separately below.
-  const ALL_MEMBERS = 137;
+  // Orientation's 4, CGAlgorithmsDD's 8, DD's 73 and CentroidTest's 3. Narrowing
+  // to the ported subset is portedMembers' job, exercised separately below.
+  const ALL_MEMBERS = 140;
 
   it("reports every member as unported when no anchors exist", () => {
     assert.equal(checkJavaToAnchors(members, [], []).length, ALL_MEMBERS);
@@ -294,31 +298,28 @@ describe("checkJavaToAnchors", () => {
 });
 
 describe("runAnchors", () => {
-  // In scope: 52 from the five fully tracked files, plus the 17 members the
-  // three partially ported files declare in portedMembers (3 + 4 + 10). The 17
-  // are anchored, so exactly the original 52 remain unported until the InteriorPoint retrofit.
-  it("reports the repository's current state: 69 in-scope members, 52 unported", () => {
+  // In scope: 52 from the five fully tracked files, plus the 19 members the four
+  // partially ported files declare in portedMembers (Orientation 3, CGAlgorithmsDD
+  // 4, DD 10, CentroidTest 2). Those 19 are anchored, and so are Centroid's 13, so
+  // 52 - 13 = 39 remain unported until the InteriorPoint retrofit covers the other four files.
+  it("reports the repository's current state: 71 in-scope members, 39 unported", () => {
     const { violations, counts } = runAnchors(REPO_ROOT);
-    assert.equal(counts.members, 69);
-    assert.equal(counts.unported, 52);
+    assert.equal(counts.members, 71);
+    assert.equal(counts.unported, 39);
     assert.ok(counts.anchors > 0);
-    assert.equal(violations.length, 52);
+    assert.equal(violations.length, 39);
     assert.ok(
       violations.every((v) => v.kind === "unported"),
       `expected only unported findings, saw ${JSON.stringify([...new Set(violations.map((v) => v.kind))])}`,
     );
   });
 
-  it("reports every unported member from the five originally tracked files and none else", () => {
+  // `Centroid` was in this list until its port landed; all 13 of its members now
+  // carry anchors, so it drops out and only the four retrofitted files remain.
+  it("reports every unported member from the four remaining tracked files and none else", () => {
     const { violations } = runAnchors(REPO_ROOT);
     const files = [...new Set(violations.map((v) => v.signature.split("#")[0].split(".")[0]))].sort();
-    assert.deepEqual(files, [
-      "Centroid",
-      "InteriorPoint",
-      "InteriorPointArea",
-      "InteriorPointLine",
-      "InteriorPointPoint",
-    ]);
+    assert.deepEqual(files, ["InteriorPoint", "InteriorPointArea", "InteriorPointLine", "InteriorPointPoint"]);
   });
 
   it("keeps a partially ported file's out-of-scope members out of the report", () => {

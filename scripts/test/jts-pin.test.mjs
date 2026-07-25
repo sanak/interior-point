@@ -31,7 +31,7 @@ describe("readPin", () => {
     const pin = readPin();
     assert.equal(pin.commit, "123a182e6e5a9cc8caed8ff037e4f824a5ce74ee");
     assert.equal(pin.nearestTag, "1.20.0");
-    assert.equal(pin.files.length, 11);
+    assert.equal(pin.files.length, 12);
     assert.deepEqual(pin.anchorIgnore, []);
   });
 });
@@ -70,7 +70,7 @@ describe("verifyVendored", () => {
       results.filter((r) => r.status !== "ok"),
       [],
     );
-    assert.equal(results.length, 11);
+    assert.equal(results.length, 12);
   });
 
   it("records a ported member subset for each partially ported file", () => {

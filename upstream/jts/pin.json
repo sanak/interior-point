@@ -30,6 +30,12 @@
       "sha256": "0d944641dbfb240f0971f4174cf0e7c94a376ff376480e3b7b38c0d1f4c942cc"
     },
     {
+      "upstreamPath": "modules/core/src/test/java/org/locationtech/jts/algorithm/CentroidTest.java",
+      "localPath": "upstream/jts/algorithm/CentroidTest.java",
+      "sha256": "5b79cd7cf72fe78adc01e2a66757d7ba2437e6e528d61ad2b7add3dda09d4a0a",
+      "portedMembers": ["CentroidTest#areaWeightedCentroid(Geometry)", "CentroidTest#testCentroidMultiPolygon()"]
+    },
+    {
       "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/Orientation.java",
       "localPath": "upstream/jts/algorithm/Orientation.java",
       "sha256": "bdf35ffc5eab43454b651061c4f0f91359fa6154ec30548a359d1ae3482acc4e",

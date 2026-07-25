@@ -32,18 +32,19 @@ describe("usage", () => {
 });
 
 describe("anchors", () => {
-  // Still exits 1: the robust predicate stack is anchored, but the five
-  // originally tracked files are not, so 52 of the 69 in-scope members remain
-  // unported until the InteriorPoint retrofit. That is why `anchors` is not in ci.yml yet.
-  it("exits 1 because the five originally tracked files are still unported", async () => {
+  // Still exits 1: the robust predicate stack and `Centroid` are anchored, but the
+  // four remaining originally tracked files are not, so 39 of the 71 in-scope
+  // members are unported until the InteriorPoint retrofit. That is why `anchors` is not in ci.yml yet.
+  it("exits 1 because the four remaining tracked files are still unported", async () => {
     const { code, out } = await run(["anchors"]);
     assert.equal(code, 1);
-    assert.match(out, /69 method declarations/);
-    assert.match(out, /52 unported/);
+    assert.match(out, /71 method declarations/);
+    assert.match(out, /39 unported/);
     assert.match(out, /InteriorPointArea#getInteriorPoint\(Geometry\)/);
     // The ported subset must not appear as a finding.
     assert.ok(!/DD#selfAdd/.test(out), "DD's ported members are anchored and must not be reported");
     assert.ok(!/Orientation#isCCW/.test(out));
+    assert.ok(!/Centroid#addShell/.test(out), "Centroid is fully anchored and must not be reported");
   });
 
   it("exits 2 when given an argument, since it takes none", async () => {

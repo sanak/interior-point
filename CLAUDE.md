@@ -90,27 +90,35 @@ Following an upstream change:
 
 `.github/workflows/jts-drift.yml` runs `check` weekly and opens or updates an issue
 labelled `jts-drift`. `anchors` is not yet wired into `ci.yml`: the robust predicate stack
-(`Orientation`, `CGAlgorithmsDD`, `DD`) is anchored, but the five original files are not, so
-`anchors` still reports 52 of 69 in-scope members as unported and exits 1. It joins CI with
-the retrofit of those five.
+(`Orientation`, `CGAlgorithmsDD`, `DD`) and `Centroid` are anchored, but the four
+`InteriorPoint*` files are not, so `anchors` still reports 39 of 71 in-scope members as
+unported and exits 1. It joins CI with the retrofit of those four.
 
 A `pin.json` file entry may declare `portedMembers`, listing the only members required to
 carry a `@jts` anchor — that is how a deliberately partial port (`DD`: 10 of 73 members)
 avoids 63 spurious `@jts-omit` tags. A file entry without the field requires full coverage.
 
+Ported JTS _tests_ are pinned the same way: `CentroidTest.java` is vendored with a
+two-member `portedMembers`, because an `@jts` anchor must name a vendored file and the
+ported test methods carry anchors like any other port.
+
 `check` currently reports `upstream/jts/math/DD.java` as DRIFTED: upstream `master` added a
 `hashCode()` after the pinned commit. That is real upstream movement outside the ported
-subset, not a local edit — all 11 pinned files still match their recorded `sha256`.
+subset, not a local edit — all 12 pinned files still match their recorded `sha256`.
 
 ## Public API
 
 ### TypeScript
 
 ```ts
-interiorPoint(geometry: Geometry | null): Position | null
+interiorPoint(geometry: Geometry | null): Coordinate | null
 ```
 
-Single dispatcher function exported from `js/src/index.ts`.
+Single dispatcher function exported from `js/src/index.ts`, alongside the `Coordinate` type.
+`Coordinate` is `js/src/geometryAdapter.ts`'s alias of GeoJSON's `Position` and carries JTS's
+name for it; an ESLint rule bans importing `Position` inside `js/src/**` so the adapter stays
+the single place the GeoJSON name appears. The three `interiorPoint*` modules are exempt
+until they are retrofitted onto the adapter.
 
 ### Rust
 
@@ -131,12 +139,34 @@ Each language implements the same 4 files mirroring JTS:
 | `interiorPointLine` / `core/src/interior_point_line.rs`   | Nearest vertex to centroid for lines      |
 | `interiorPointPoint` / `core/src/interior_point_point.rs` | Nearest point to centroid for points      |
 
+### Supporting Ports
+
+Ported from JTS but not yet reachable from the dispatcher — the `interiorPoint*` retrofit
+wires them up. Both languages carry the same set:
+
+| Module                                            | Purpose                                                  |
+| ------------------------------------------------- | -------------------------------------------------------- |
+| `centroid` / `core/src/centroid.rs`               | `Centroid` — weighted centroid for any dimension         |
+| `orientation` / `core/src/orientation.rs`         | `Orientation.isCCW` and `index`                          |
+| `cgAlgorithmsDD` / `core/src/cg_algorithms_dd.rs` | Robust orientation predicate via double-double           |
+| `dd` / `core/src/dd.rs`                           | The `DD` extended-precision subset those predicates need |
+
+Because Rust decides `dead_code` by reachability from the crate root, all four carry a
+file-level `#![allow(dead_code)]` until the retrofit lands. Each attribute's comment names
+what removes it.
+
+### Adapter Boundary
+
+`js/src/geometryAdapter.ts` and `rs/core/src/geometry_adapter.rs` are the only places a
+geometry-model helper may be defined; nothing else in `js/src` or `rs/core/src` may add one.
+`js/src/assert.ts` shims JTS's `Assert`; Rust maps it onto `assert!` directly.
+
 ### Type Mapping (JTS → TS / Rust)
 
-- `Coordinate` → `Position` ([number, number]) / `Coord<f64>`
+- `Coordinate` → `Coordinate` (`geometryAdapter`'s alias of GeoJSON `Position`, i.e. `number[]`) / `Coord<f64>`
 - `Geometry` → `GeoJSON.Geometry` / `geo::Geometry<f64>`
 - `Polygon` → `GeoJSON.Polygon` / `geo::Polygon<f64>`
-- `Envelope` → inline bbox computation (no named type) / `geo::Rect<f64>`
+- `Envelope` → `geometryAdapter`'s `Envelope` record / `geo::Rect<f64>`
 
 ### Scanline Algorithm (Area)
 
@@ -151,6 +181,12 @@ Both languages share the same test structure:
 - `interiorPoint.test.ts` / `interior_point_test.rs` — unit tests for all geometry types
 - `interiorPointWorld.test.ts` / `interior_point_world_test.rs` — integration tests using the `world.wkt` fixture from `upstream/jts/resources/`
 - `interiorPoint.bench.ts` / `benches/` — benchmarks (vitest bench / cargo bench)
+
+`Centroid` is the exception: it is crate-internal in Rust, so `rs/core/tests/` cannot reach
+it and its `TestCentroid.xml` test lives in a `#[cfg(test)] mod tests` inside `centroid.rs`,
+recorded with `@jts-deviate`. That module reaches the shared XML parser with
+`include!("../tests/utils/xml_test_parser.rs")` — `#[path] mod` cannot, because its base
+directory would be the non-existent `core/src/centroid/`.
 
 ## Development Approach
 
