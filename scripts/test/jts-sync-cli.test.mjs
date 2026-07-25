@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { main } from "../jts-sync.mjs";
+import { DEFAULT_REF, main } from "../jts-sync.mjs";
 
 /** Runs the CLI in-process and captures its output. */
 export async function run(argv) {
@@ -44,5 +44,56 @@ describe("anchors", () => {
     const { code, err } = await run(["anchors", "--ref", "main"]);
     assert.equal(code, 2);
     assert.match(err, /anchors takes no arguments/);
+  });
+});
+
+describe("check", () => {
+  const okFetch = async () => new Response("", { status: 500 });
+
+  it("exits 2 when upstream cannot be fetched", async () => {
+    const out = [];
+    const err = [];
+    const code = await main(["check", "--ref", "main"], {
+      out: (s) => out.push(s),
+      err: (s) => err.push(s),
+      fetchImpl: okFetch,
+    });
+    assert.equal(code, 2);
+    assert.match(err.join("\n"), /500/);
+  });
+
+  it("exits 0 and says so when nothing has drifted", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const { REPO_ROOT, readPin } = await import("../jts-pin.mjs");
+    const pin = readPin();
+    const fetchImpl = async (url) => {
+      const file = pin.files.find((f) => url.endsWith(`/${f.upstreamPath}`));
+      return new Response(readFileSync(join(REPO_ROOT, file.localPath)), { status: 200 });
+    };
+    const out = [];
+    const code = await main(["check", "--ref", pin.commit], { out: (s) => out.push(s), err: () => {}, fetchImpl });
+    assert.equal(code, 0);
+    assert.match(out.join("\n"), /no drift/);
+  });
+
+  it("exits 2 on an unknown option", async () => {
+    const { code, err } = await run(["check", "--bogus"]);
+    assert.equal(code, 2);
+    assert.match(err, /jts-sync: /);
+  });
+
+  // locationtech/jts has no `main` branch, so defaulting to it would make every
+  // bare `check` — and the weekly workflow — exit 2 instead of reporting drift.
+  it("defaults --ref to master, upstream's actual default branch", async () => {
+    const urls = [];
+    const fetchImpl = async (url) => {
+      urls.push(url);
+      return new Response("", { status: 200 });
+    };
+    await main(["check"], { out: () => {}, err: () => {}, fetchImpl });
+    assert.equal(DEFAULT_REF, "master");
+    assert.ok(urls.length > 0);
+    for (const url of urls) assert.match(url, /^https:\/\/raw\.githubusercontent\.com\/locationtech\/jts\/master\//);
   });
 });
