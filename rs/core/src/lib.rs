@@ -3,9 +3,12 @@
 //! Computes an interior point (representative point) of a geometry.
 //! The point is guaranteed to lie inside the geometry for area geometries.
 
+mod cg_algorithms_dd;
+mod dd;
 mod interior_point_area;
 mod interior_point_line;
 mod interior_point_point;
+mod orientation;
 
 use geo_types::{Coord, Geometry};
 

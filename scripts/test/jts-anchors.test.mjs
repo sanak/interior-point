@@ -97,8 +97,32 @@ describe("scanPortAnchors", () => {
     assert.deepEqual(scanPortAnchors(fixtureRoot({})), []);
   });
 
-  it("finds zero anchors in the repository today", () => {
-    assert.deepEqual(scanPortAnchors(REPO_ROOT), []);
+  it("finds the robust predicate stack's anchors in both ports", () => {
+    // The five original modules carry no anchors yet; the three ported here do,
+    // in both languages. Asserted by path rather than by total, so adding an
+    // anchor to a new module does not break this test.
+    const byPath = new Map();
+    for (const a of scanPortAnchors(REPO_ROOT)) byPath.set(a.path, (byPath.get(a.path) ?? 0) + 1);
+    for (const path of [
+      "js/src/dd.ts",
+      "js/src/cgAlgorithmsDD.ts",
+      "js/src/orientation.ts",
+      "rs/core/src/dd.rs",
+      "rs/core/src/cg_algorithms_dd.rs",
+      "rs/core/src/orientation.rs",
+    ]) {
+      assert.ok((byPath.get(path) ?? 0) > 0, `${path} should carry @jts anchors`);
+    }
+    assert.equal(byPath.get("js/src/interiorPointArea.ts"), undefined, "the original modules are not anchored yet");
+  });
+
+  it("records the deviate and adapter tags the ports carry", () => {
+    const kinds = scanPortAnchors(REPO_ROOT).reduce((o, a) => ({ ...o, [a.kind]: (o[a.kind] ?? 0) + 1 }), {});
+    assert.ok(kinds["jts"] > 0);
+    // selfSubtract's dropped NaN guard, in both languages.
+    assert.equal(kinds["jts-deviate"], 2);
+    // CoordinateSequence in both languages, plus Coordinate#equals2D in TypeScript.
+    assert.equal(kinds["jts-adapter"], 3);
   });
 });
 
@@ -123,6 +147,23 @@ describe("checkAnchorsToJava", () => {
     const violations = checkAnchorsToJava(anchors, REPO_ROOT);
     assert.equal(violations.length, 1);
     assert.equal(violations[0].kind, "unknown-java-file");
+  });
+
+  it("accepts an anchor naming a constant, which carries no parameter list", () => {
+    // scanJavaDir only finds methods, so a `name(` probe cannot see these.
+    const anchors = [
+      { kind: "jts", target: "DD#SPLIT", path: "js/src/dd.ts", line: 1 },
+      { kind: "jts", target: "Orientation#CLOCKWISE", path: "js/src/orientation.ts", line: 2 },
+      { kind: "jts", target: "CGAlgorithmsDD#DP_SAFE_EPSILON", path: "js/src/cgAlgorithmsDD.ts", line: 3 },
+    ];
+    assert.deepEqual(checkAnchorsToJava(anchors, REPO_ROOT), []);
+  });
+
+  it("still rejects an anchor naming neither a method nor a field", () => {
+    const anchors = [{ kind: "jts", target: "DD#NO_SUCH_CONSTANT", path: "js/src/dd.ts", line: 1 }];
+    const violations = checkAnchorsToJava(anchors, REPO_ROOT);
+    assert.equal(violations.length, 1);
+    assert.equal(violations[0].kind, "unknown-member");
   });
 
   it("rejects an anchor naming a member the Java file does not contain", () => {
@@ -253,19 +294,41 @@ describe("checkJavaToAnchors", () => {
 });
 
 describe("runAnchors", () => {
-  // 52 from the five fully tracked files, plus the 17 members the three
-  // partially ported files declare in portedMembers (3 + 4 + 10).
-  it("reports the repository's current state: 0 anchors, 69 in-scope members, 69 unported", () => {
+  // In scope: 52 from the five fully tracked files, plus the 17 members the
+  // three partially ported files declare in portedMembers (3 + 4 + 10). The 17
+  // are anchored, so exactly the original 52 remain unported until the InteriorPoint retrofit.
+  it("reports the repository's current state: 69 in-scope members, 52 unported", () => {
     const { violations, counts } = runAnchors(REPO_ROOT);
-    assert.deepEqual(counts, { anchors: 0, members: 69, unported: 69 });
-    assert.equal(violations.length, 69);
-    assert.ok(violations.every((v) => v.kind === "unported"));
+    assert.equal(counts.members, 69);
+    assert.equal(counts.unported, 52);
+    assert.ok(counts.anchors > 0);
+    assert.equal(violations.length, 52);
+    assert.ok(
+      violations.every((v) => v.kind === "unported"),
+      `expected only unported findings, saw ${JSON.stringify([...new Set(violations.map((v) => v.kind))])}`,
+    );
+  });
+
+  it("reports every unported member from the five originally tracked files and none else", () => {
+    const { violations } = runAnchors(REPO_ROOT);
+    const files = [...new Set(violations.map((v) => v.signature.split("#")[0].split(".")[0]))].sort();
+    assert.deepEqual(files, [
+      "Centroid",
+      "InteriorPoint",
+      "InteriorPointArea",
+      "InteriorPointLine",
+      "InteriorPointPoint",
+    ]);
   });
 
   it("keeps a partially ported file's out-of-scope members out of the report", () => {
     const { violations } = runAnchors(REPO_ROOT);
-    const dd = violations.filter((v) => v.signature.startsWith("DD#"));
-    assert.equal(dd.length, 10, "only DD's ten portedMembers are in scope, not all 73");
+    // DD's ten portedMembers are all anchored, and its other 63 are out of scope,
+    // so DD contributes nothing either way.
+    assert.deepEqual(
+      violations.filter((v) => v.signature.startsWith("DD#")),
+      [],
+    );
     assert.ok(!violations.some((v) => v.signature === "DD#sqrt()"));
   });
 });

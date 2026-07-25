@@ -65,6 +65,17 @@ function isOverloaded(members, file, memberName) {
   return members.filter((m) => m.file === file && m.memberName === memberName).length > 1;
 }
 
+/**
+ * True when the Java source declares a field of this name. `scanJavaDir` only
+ * finds methods, and a constant such as `DD#SPLIT` or `Orientation#CLOCKWISE`
+ * carries no parameter list, so a method-shaped `name(` probe cannot see it.
+ * Anchoring a constant is worth supporting: `SPLIT = 2^27+1` is exactly the kind
+ * of magic number whose provenance the anchors exist to record.
+ */
+function declaresField(source, memberName) {
+  return new RegExp(`\\b${memberName}\\s*=`).test(source);
+}
+
 export function checkAnchorsToJava(anchors, root = REPO_ROOT) {
   const members = scanJavaDir(root);
   const vendored = javaFiles(readPin(root));
@@ -84,8 +95,10 @@ export function checkAnchorsToJava(anchors, root = REPO_ROOT) {
     }
     const javaPath = join(root, localPath);
     if (parsed.memberName === null) continue;
-    // Strict direction: the Java source must literally contain `<member>(`.
-    if (!readFileSync(javaPath, "utf8").includes(`${parsed.memberName}(`)) {
+    // Strict direction: the Java source must literally contain
+    // `<member>(` — or, for a constant, declare a field of that name.
+    const source = readFileSync(javaPath, "utf8");
+    if (!source.includes(`${parsed.memberName}(`) && !declaresField(source, parsed.memberName)) {
       violations.push({
         kind: "unknown-member",
         message: `${anchor.path}:${anchor.line}: @jts ${anchor.target} names no member of ${parsed.file}`,
