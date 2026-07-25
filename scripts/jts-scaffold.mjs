@@ -41,8 +41,18 @@ export function rsType(javaType) {
   return RS_TYPES[javaType] ?? javaType;
 }
 
+/**
+ * An unchanged-name-rule mechanical case conversion. The acronym rule runs first so that a
+ * run of capitals followed by a capitalised word splits between them:
+ * `isCCWCoordinates` -> `is_ccw_coordinates`, not `is_ccwcoordinates`. A trailing
+ * acronym has no following lowercase and is left whole (`selfAddDD` ->
+ * `self_add_dd`).
+ */
 export function toSnake(name) {
-  return name.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
+  return name
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .toLowerCase();
 }
 
 function pluralise(name) {

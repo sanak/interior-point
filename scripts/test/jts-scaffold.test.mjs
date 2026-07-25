@@ -12,6 +12,17 @@ describe("toSnake", () => {
     assert.equal(toSnake("avg"), "avg");
     assert.equal(toSnake("area2"), "area2");
   });
+
+  it("splits an internal acronym from the word that follows it", () => {
+    assert.equal(toSnake("isCCWCoordinates"), "is_ccw_coordinates");
+    assert.equal(toSnake("isCCWCoordinateSequence"), "is_ccw_coordinate_sequence");
+    assert.equal(toSnake("isCCW"), "is_ccw");
+  });
+
+  it("keeps a trailing acronym whole", () => {
+    assert.equal(toSnake("selfMultiplyDD"), "self_multiply_dd");
+    assert.equal(toSnake("selfSubtractDD"), "self_subtract_dd");
+  });
 });
 
 describe("overloadSuffix", () => {
@@ -180,8 +191,16 @@ describe("resolveNames against the naming table", () => {
     for (const member of pair) assert.deepEqual(names.get(member), { ts: "getScanLineY", rs: "get_scan_line_y" });
   });
 
+  const ORIGINAL_FILES = [
+    "InteriorPoint.java",
+    "InteriorPointArea.java",
+    "InteriorPointLine.java",
+    "InteriorPointPoint.java",
+    "Centroid.java",
+  ];
+
   it("suffixes exactly the five overload sets the naming table lists", () => {
-    const suffixed = members.filter((m) => names.get(m).ts !== m.memberName);
+    const suffixed = members.filter((m) => ORIGINAL_FILES.includes(m.file) && names.get(m).ts !== m.memberName);
     assert.deepEqual([...new Set(suffixed.map((m) => `${m.className}#${m.memberName}`))].sort(), [
       "Centroid#add",
       "InteriorPointArea.InteriorPointPolygon#intersectsHorizontalLine",
@@ -192,8 +211,40 @@ describe("resolveNames against the naming table", () => {
     assert.equal(suffixed.length, 10);
   });
 
-  it("assigns a name to every one of the 52 members", () => {
-    assert.equal(names.size, 52);
+  // The names the robust predicate ports actually use, derived rather than chosen.
+  it("derives the ported names of the robust predicate stack", () => {
+    const lookup = (signature) => names.get(members.find((m) => m.signature === signature));
+    assert.deepEqual(lookup("Orientation#isCCW(Coordinate[])"), {
+      ts: "isCCWCoordinates",
+      rs: "is_ccw_coordinates",
+    });
+    assert.deepEqual(lookup("Orientation#isCCW(CoordinateSequence)"), {
+      ts: "isCCWCoordinateSequence",
+      rs: "is_ccw_coordinate_sequence",
+    });
+    assert.deepEqual(lookup("Orientation#index(Coordinate,Coordinate,Coordinate)"), { ts: "index", rs: "index" });
+    assert.deepEqual(lookup("CGAlgorithmsDD#orientationIndex(Coordinate,Coordinate,Coordinate)"), {
+      ts: "orientationIndexCoordinate",
+      rs: "orientation_index_coordinate",
+    });
+    assert.deepEqual(lookup("CGAlgorithmsDD#orientationIndex(double,double,double,double,double,double)"), {
+      ts: "orientationIndexDouble",
+      rs: "orientation_index_double",
+    });
+    // The overload-suffix rule's extension: these two share a first parameter type.
+    assert.deepEqual(lookup("DD#selfAdd(double)"), { ts: "selfAddDouble", rs: "self_add_double" });
+    assert.deepEqual(lookup("DD#selfAdd(double,double)"), {
+      ts: "selfAddDoubleDouble",
+      rs: "self_add_double_double",
+    });
+    assert.deepEqual(lookup("DD#selfMultiply(DD)"), { ts: "selfMultiplyDD", rs: "self_multiply_dd" });
+    assert.deepEqual(lookup("DD#selfSubtract(DD)"), { ts: "selfSubtractDD", rs: "self_subtract_dd" });
+    assert.deepEqual(lookup("DD#valueOf(double)"), { ts: "valueOfDouble", rs: "value_of_double" });
+    assert.deepEqual(lookup("DD#signum()"), { ts: "signum", rs: "signum" });
+  });
+
+  it("assigns a name to every one of the 137 members", () => {
+    assert.equal(names.size, 137);
     for (const member of members) {
       assert.match(names.get(member).ts, /^\w+$/);
       assert.match(names.get(member).rs, /^[a-z0-9_]+$/);

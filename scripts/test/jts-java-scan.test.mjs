@@ -134,17 +134,28 @@ describe("scanMembers", () => {
 describe("scanJavaDir against the vendored JTS sources", () => {
   const members = scanJavaDir(REPO_ROOT);
 
-  it("finds the 52 original in-scope members", () => {
+  it("finds every member of every pinned Java file", () => {
     const perFile = {};
     for (const m of members) perFile[m.file] = (perFile[m.file] ?? 0) + 1;
+    // The first five are the original 52 in-scope members; the last three are the
+    // partially ported robust predicate stack, scanned in full and narrowed to
+    // their ported subsets by pin.json's portedMembers.
     assert.deepEqual(perFile, {
+      "CGAlgorithmsDD.java": 8,
       "Centroid.java": 13,
+      "DD.java": 73,
       "InteriorPoint.java": 4,
       "InteriorPointArea.java": 22,
       "InteriorPointLine.java": 8,
       "InteriorPointPoint.java": 5,
+      "Orientation.java": 4,
     });
-    assert.equal(members.length, 52);
+    assert.equal(members.length, 137);
+  });
+
+  it("scans a vendored file that lives outside algorithm/", () => {
+    // DD.java is org.locationtech.jts.math.DD, so it vendors to upstream/jts/math/.
+    assert.ok(members.some((m) => m.file === "DD.java" && m.signature === "DD#selfAdd(double,double)"));
   });
 
   it("excludes the two methods inside the commented-out block of InteriorPointArea", () => {

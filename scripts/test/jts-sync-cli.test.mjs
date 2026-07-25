@@ -32,11 +32,11 @@ describe("usage", () => {
 });
 
 describe("anchors", () => {
-  it("exits 1 today because all 52 members are unported", async () => {
+  it("exits 1 today because all 69 in-scope members are unported", async () => {
     const { code, out } = await run(["anchors"]);
     assert.equal(code, 1);
-    assert.match(out, /52 method declarations/);
-    assert.match(out, /52 unported/);
+    assert.match(out, /69 method declarations/);
+    assert.match(out, /69 unported/);
     assert.match(out, /InteriorPointArea#getInteriorPoint\(Geometry\)/);
   });
 

@@ -31,7 +31,7 @@ describe("readPin", () => {
     const pin = readPin();
     assert.equal(pin.commit, "123a182e6e5a9cc8caed8ff037e4f824a5ce74ee");
     assert.equal(pin.nearestTag, "1.20.0");
-    assert.equal(pin.files.length, 8);
+    assert.equal(pin.files.length, 11);
     assert.deepEqual(pin.anchorIgnore, []);
   });
 });
@@ -70,7 +70,16 @@ describe("verifyVendored", () => {
       results.filter((r) => r.status !== "ok"),
       [],
     );
-    assert.equal(results.length, 8);
+    assert.equal(results.length, 11);
+  });
+
+  it("records a ported member subset for each partially ported file", () => {
+    const byPath = new Map(readPin().files.map((f) => [f.localPath, f]));
+    assert.equal(byPath.get("upstream/jts/algorithm/Orientation.java").portedMembers.length, 3);
+    assert.equal(byPath.get("upstream/jts/algorithm/CGAlgorithmsDD.java").portedMembers.length, 4);
+    assert.equal(byPath.get("upstream/jts/math/DD.java").portedMembers.length, 10);
+    // The five fully tracked files declare no subset, so every member stays in scope.
+    assert.equal(byPath.get("upstream/jts/algorithm/Centroid.java").portedMembers, undefined);
   });
 
   it("reports a locally edited file as modified", () => {

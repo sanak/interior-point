@@ -30,6 +30,44 @@
       "sha256": "0d944641dbfb240f0971f4174cf0e7c94a376ff376480e3b7b38c0d1f4c942cc"
     },
     {
+      "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/Orientation.java",
+      "localPath": "upstream/jts/algorithm/Orientation.java",
+      "sha256": "bdf35ffc5eab43454b651061c4f0f91359fa6154ec30548a359d1ae3482acc4e",
+      "portedMembers": [
+        "Orientation#isCCW(Coordinate[])",
+        "Orientation#isCCW(CoordinateSequence)",
+        "Orientation#index(Coordinate,Coordinate,Coordinate)"
+      ]
+    },
+    {
+      "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/CGAlgorithmsDD.java",
+      "localPath": "upstream/jts/algorithm/CGAlgorithmsDD.java",
+      "sha256": "a124999a7521b8a1363e5e8000dd9b5b53e45b7cf5ab7cdac04a6fef770638a2",
+      "portedMembers": [
+        "CGAlgorithmsDD#orientationIndex(Coordinate,Coordinate,Coordinate)",
+        "CGAlgorithmsDD#orientationIndex(double,double,double,double,double,double)",
+        "CGAlgorithmsDD#orientationIndexFilter(double,double,double,double,double,double)",
+        "CGAlgorithmsDD#signum(double)"
+      ]
+    },
+    {
+      "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/math/DD.java",
+      "localPath": "upstream/jts/math/DD.java",
+      "sha256": "9e83b99537e7c8e4796a05ba5c06ed47178b5c774b224450578eb43463bb5d39",
+      "portedMembers": [
+        "DD#valueOf(double)",
+        "DD#DD(double)",
+        "DD#init(double)",
+        "DD#init(double,double)",
+        "DD#selfAdd(double)",
+        "DD#selfAdd(double,double)",
+        "DD#selfSubtract(DD)",
+        "DD#selfMultiply(DD)",
+        "DD#selfMultiply(double,double)",
+        "DD#signum()"
+      ]
+    },
+    {
       "upstreamPath": "modules/tests/src/test/resources/testxml/general/TestInteriorPoint.xml",
       "localPath": "upstream/jts/resources/testxml/general/TestInteriorPoint.xml",
       "sha256": "109e5eb79e3a8d94465732f959cc7803060e21d59e6da429520b08026905dfa2"

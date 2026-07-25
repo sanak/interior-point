@@ -111,7 +111,15 @@ describe("checkAnchorsToJava", () => {
   });
 
   it("rejects an anchor naming a file that is not vendored", () => {
-    const anchors = [{ kind: "jts", target: "Orientation#index(Coordinate)", path: "js/src/a.ts", line: 1 }];
+    // RayCrossingCounter is future work, so it is not pinned yet.
+    const anchors = [
+      {
+        kind: "jts",
+        target: "RayCrossingCounter#locatePointInRing(Coordinate,Coordinate[])",
+        path: "js/src/a.ts",
+        line: 1,
+      },
+    ];
     const violations = checkAnchorsToJava(anchors, REPO_ROOT);
     assert.equal(violations.length, 1);
     assert.equal(violations[0].kind, "unknown-java-file");
@@ -144,14 +152,19 @@ describe("checkAnchorsToJava", () => {
 describe("checkJavaToAnchors", () => {
   const members = scanJavaDir(REPO_ROOT);
 
+  // Every member of every vendored file: 52 from the five original files plus
+  // Orientation's 4, CGAlgorithmsDD's 8 and DD's 73. Narrowing to the ported
+  // subset is portedMembers' job, exercised separately below.
+  const ALL_MEMBERS = 137;
+
   it("reports every member as unported when no anchors exist", () => {
-    assert.equal(checkJavaToAnchors(members, [], []).length, 52);
+    assert.equal(checkJavaToAnchors(members, [], []).length, ALL_MEMBERS);
   });
 
   it("clears a member covered by an exact anchor", () => {
     const anchors = [{ kind: "jts", target: "Centroid#add(Polygon)", path: "js/src/a.ts", line: 1 }];
     const violations = checkJavaToAnchors(members, anchors, []);
-    assert.equal(violations.length, 51);
+    assert.equal(violations.length, ALL_MEMBERS - 1);
     assert.ok(!violations.some((v) => v.signature === "Centroid#add(Polygon)"));
   });
 
@@ -221,7 +234,10 @@ describe("checkJavaToAnchors", () => {
     // The field is per-file: declaring it on DD.java must not narrow Centroid.java.
     const ported = new Map([["DD.java", new Set([])]]);
     const violations = checkJavaToAnchors(members, [], [], ported);
-    assert.equal(violations.length, 52);
+    const files = new Set(violations.map((v) => v.signature.split("#")[0]));
+    assert.ok(!files.has("DD"), "DD declares an empty ported subset, so none of its members are in scope");
+    assert.ok(files.has("Centroid"), "Centroid declares no subset, so all of its members stay in scope");
+    assert.equal(violations.length, members.filter((m) => m.file !== "DD.java").length);
   });
 
   it("does not let a bare anchor cover an overloaded member", () => {
@@ -237,10 +253,19 @@ describe("checkJavaToAnchors", () => {
 });
 
 describe("runAnchors", () => {
-  it("reports the repository's current state: 0 anchors, 52 members, 52 unported", () => {
+  // 52 from the five fully tracked files, plus the 17 members the three
+  // partially ported files declare in portedMembers (3 + 4 + 10).
+  it("reports the repository's current state: 0 anchors, 69 in-scope members, 69 unported", () => {
     const { violations, counts } = runAnchors(REPO_ROOT);
-    assert.deepEqual(counts, { anchors: 0, members: 52, unported: 52 });
-    assert.equal(violations.length, 52);
+    assert.deepEqual(counts, { anchors: 0, members: 69, unported: 69 });
+    assert.equal(violations.length, 69);
     assert.ok(violations.every((v) => v.kind === "unported"));
+  });
+
+  it("keeps a partially ported file's out-of-scope members out of the report", () => {
+    const { violations } = runAnchors(REPO_ROOT);
+    const dd = violations.filter((v) => v.signature.startsWith("DD#"));
+    assert.equal(dd.length, 10, "only DD's ten portedMembers are in scope, not all 73");
+    assert.ok(!violations.some((v) => v.signature === "DD#sqrt()"));
   });
 });
