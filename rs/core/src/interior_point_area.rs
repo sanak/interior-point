@@ -112,6 +112,14 @@ pub(crate) fn interior_point_area(geom: &Geometry<f64>) -> Option<Coord<f64>> {
 /// @jts InteriorPointArea.InteriorPointPolygon
 pub(crate) struct InteriorPointPolygon<'a> {
     polygon: &'a Polygon<f64>,
+    /// The shell's envelope, computed once and shared with
+    /// [`ScanLineYOrdinateFinder`] and [`Self::scan_ring`].
+    ///
+    /// @jts-deviate JTS's InteriorPointPolygon has no such field: it reads a
+    ///   cached `getEnvelopeInternal()` from the geometry, so both readers get
+    ///   the value for free. A `geo_types::Polygon` cannot carry that cache, so
+    ///   the value is computed here once and passed down.
+    shell_envelope: Option<Rect<f64>>,
     interior_point_y: f64,
     interior_section_width: f64,
     interior_point: Option<Coord<f64>>,
@@ -122,9 +130,13 @@ impl<'a> InteriorPointPolygon<'a> {
     ///
     /// @jts InteriorPointArea.InteriorPointPolygon#InteriorPointPolygon(Polygon)
     pub(crate) fn new(polygon: &'a Polygon<f64>) -> Self {
+        // JTS reads `poly.getEnvelopeInternal()`, which for a Polygon is the
+        // shell's envelope.
+        let shell_envelope = envelope_internal(&polygon.exterior().0);
         Self {
             polygon,
-            interior_point_y: get_scan_line_y(polygon),
+            shell_envelope,
+            interior_point_y: get_scan_line_y(polygon, shell_envelope),
             interior_section_width: 0.0,
             interior_point: None,
         }
@@ -161,17 +173,24 @@ impl<'a> InteriorPointPolygon<'a> {
         self.interior_point = Some(first);
 
         let mut crossings: Vec<f64> = Vec::new();
-        self.scan_ring(&self.polygon.exterior().0, &mut crossings);
+        self.scan_ring(
+            &self.polygon.exterior().0,
+            self.shell_envelope,
+            &mut crossings,
+        );
         for ring in self.polygon.interiors() {
-            self.scan_ring(&ring.0, &mut crossings);
+            self.scan_ring(&ring.0, envelope_internal(&ring.0), &mut crossings);
         }
         self.find_best_midpoint(&mut crossings);
     }
 
     /// @jts InteriorPointArea.InteriorPointPolygon#scanRing(LinearRing,List<Double>)
-    fn scan_ring(&self, ring: &[Coord<f64>], crossings: &mut Vec<f64>) {
+    /// @jts-deviate extra `env` parameter — JTS reads the ring's cached
+    ///   `getEnvelopeInternal()`. A `geo_types` ring cannot carry that cache, so
+    ///   the caller computes it and passes it in.
+    fn scan_ring(&self, ring: &[Coord<f64>], env: Option<Rect<f64>>, crossings: &mut Vec<f64>) {
         // skip rings which don't cross scan line
-        let Some(env) = envelope_internal(ring) else {
+        let Some(env) = env else {
             // An empty ring has no envelope; JTS's empty Envelope intersects
             // nothing, so this takes the same path as "does not intersect".
             return;
@@ -332,11 +351,13 @@ pub(crate) struct ScanLineYOrdinateFinder<'a> {
 
 impl<'a> ScanLineYOrdinateFinder<'a> {
     /// @jts InteriorPointArea.ScanLineYOrdinateFinder#ScanLineYOrdinateFinder(Polygon)
-    pub(crate) fn new(poly: &'a Polygon<f64>) -> Self {
+    /// @jts-deviate extra `shell_envelope` parameter — JTS reads the cached
+    ///   `poly.getEnvelopeInternal()` here, which `InteriorPointPolygon` has
+    ///   already computed. Passing it in is what keeps the shell from being
+    ///   scanned twice.
+    pub(crate) fn new(poly: &'a Polygon<f64>, shell_envelope: Option<Rect<f64>>) -> Self {
         // initialize using extremal values
-        // JTS reads `poly.getEnvelopeInternal()`, which for a Polygon is the
-        // shell's envelope.
-        let (lo_y, hi_y) = match envelope_internal(&poly.exterior().0) {
+        let (lo_y, hi_y) = match shell_envelope {
             Some(env) => (env.min().y, env.max().y),
             None => (-f64::MAX, f64::MAX),
         };
@@ -386,9 +407,10 @@ impl<'a> ScanLineYOrdinateFinder<'a> {
 /// @jts-deviate module-level function — the factory/getter rule maps a static factory to a
 ///   module level and the instance getter to a method; in Rust an associated
 ///   function and a method of the same name would collide, so both languages
-///   place it here for symmetry.
-fn get_scan_line_y(poly: &Polygon<f64>) -> f64 {
-    let mut finder = ScanLineYOrdinateFinder::new(poly);
+///   place it here for symmetry. The extra `shell_envelope` parameter forwards
+///   the value `InteriorPointPolygon` computed; see the constructor above.
+fn get_scan_line_y(poly: &Polygon<f64>, shell_envelope: Option<Rect<f64>>) -> f64 {
+    let mut finder = ScanLineYOrdinateFinder::new(poly, shell_envelope);
     finder.get_scan_line_y()
 }
 

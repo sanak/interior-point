@@ -10,9 +10,11 @@ use geo_types::{Coord, Geometry, Rect};
 
 /// Computes a ring's envelope in a single pass.
 ///
-/// JTS caches this on the `LinearRing` and reads it back in both `scanRing` and
-/// `ScanLineYOrdinateFinder`; computing it once here is what removes the
-/// duplicate exterior-ring scan.
+/// JTS caches this on the `LinearRing`, so `scan_ring` and
+/// `ScanLineYOrdinateFinder` both read it for free. A `geo_types` ring cannot
+/// carry that cache, so this recomputes on every call and the sharing happens in
+/// the caller instead: `InteriorPointPolygon` computes the shell's envelope once
+/// and passes it to both readers.
 ///
 /// The `geo` crate's `BoundingRect` trait would do this, but `geo` is a
 /// dev-dependency: `geo-types` is the only runtime dependency this crate has,
