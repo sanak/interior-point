@@ -10,6 +10,21 @@
  * Strict INTERIOR is the right comparison: a point on the boundary is not in the
  * interior, so accepting BOUNDARY would accept a result JTS rejects. All 244
  * geometries were measured as strictly interior.
+ *
+ * Why hand-roll point-in-polygon instead of keeping a maintained dependency: this port was
+ * cross-checked against real JTS 1.19.0 over 263,944 probes across all
+ * 8,397 rings of world.wkt (outcome mix 89,390 INTERIOR / 84,792 BOUNDARY / 89,762
+ * EXTERIOR). Both ports' `locate` vs JTS `geomLoc` and both ports'
+ * `locatePointInRing` vs JTS `ringLoc`: 0 mismatches. `geo::Contains` (the Rust
+ * dependency this branch also removed): 0 mismatches. `point-in-polygon-hao` (the
+ * dependency this branch removed from this file): 2 mismatches, both at exact edge
+ * midpoints — geometry 197 (173.705525, 0.03665), where hao returns 0 ("on the
+ * edge") and JTS says INTERIOR, and geometry 221 (98.260525, 0.0090335), where hao
+ * returns 0 and JTS says EXTERIOR. Cause: hao translates every coordinate by the
+ * query point before calling its exact orient2d, and that subtraction is inexact
+ * in IEEE 754, so the translated cross product collapses to exactly -0;
+ * untranslated, the orientations are 3.773e-21 and -6.841e-21 — genuinely
+ * nonzero, so JTS is right.
  */
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";

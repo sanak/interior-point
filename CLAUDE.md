@@ -177,6 +177,14 @@ is what keeps `rs/core/src` free of file-level `#![allow(dead_code)]` while they
 runtime caller. The gate is that `js/src`'s four locator modules are the only modules
 unreachable from `index.ts`; TypeScript cannot enforce that, so it is recorded here.
 
+This stack replaced two third-party point-in-polygon dependencies
+(`point-in-polygon-hao` in TS, `geo`'s `Contains` in Rust). The evidence for that
+removal — 263,944 probes over all 8,397 rings of `world.wkt` against real JTS 1.19.0,
+0 mismatches for both ports and for `geo::Contains`, 2 mismatches for
+`point-in-polygon-hao` traced to an inexact IEEE 754 subtraction in its translated
+`orient2d` call — lives as a comment in both world tests
+(`js/test/interiorPointWorld.test.ts`, `rs/core/src/interior_point_world_test.rs`).
+
 Because the Rust locator is `#[cfg(test)]`, an integration test cannot see it:
 `rs/core/tests/interior_point_world_test.rs` therefore lives at
 `rs/core/src/interior_point_world_test.rs` as a `#[cfg(test)] mod`, recorded with
