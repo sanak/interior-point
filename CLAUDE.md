@@ -43,7 +43,7 @@ Watch mode: `cd js && npx vitest`
 ```bash
 pnpm test:rs              # cargo test --workspace
 cd rs && cargo test -p interior-point -- test_name   # single test
-cd rs && cargo clippy --workspace -- -D warnings
+cd rs && cargo clippy --workspace --all-targets -- -D warnings
 cd rs && cargo fmt --all --check
 ```
 
@@ -286,7 +286,7 @@ world test is unaffected and stays in `js/test/`.
 GitHub Actions (`.github/workflows/ci.yml`):
 
 - **test-js**: pnpm install → lint → format:check → test:js
-- **test-rs**: cargo test --workspace → clippy --workspace -D warnings → fmt --all --check
+- **test-rs**: cargo test --workspace → clippy --workspace --all-targets -D warnings → fmt --all --check
 - **docs**: VitePress build → GitHub Pages deploy (main branch only)
 
 ## Reference
