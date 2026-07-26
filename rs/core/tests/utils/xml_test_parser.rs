@@ -97,20 +97,16 @@ pub fn parse_xml_test_cases(path: &str, op: &str) -> Vec<XmlTestCase> {
                         expected_wkt.clear();
                         op_name.clear();
                     }
-                    "desc" | "a" => {
-                        if in_case {
-                            current_tag = name;
-                        }
+                    "desc" | "a" if in_case => {
+                        current_tag = name;
                     }
-                    "op" => {
-                        if in_case {
-                            for attr in e.attributes().flatten() {
-                                if attr.key.as_ref() == b"name" {
-                                    op_name = String::from_utf8_lossy(&attr.value).to_string();
-                                }
+                    "op" if in_case => {
+                        for attr in e.attributes().flatten() {
+                            if attr.key.as_ref() == b"name" {
+                                op_name = String::from_utf8_lossy(&attr.value).to_string();
                             }
-                            current_tag = name;
                         }
+                        current_tag = name;
                     }
                     _ => {}
                 }
