@@ -277,6 +277,28 @@ mod simple_point_in_area_locator_test {
 
     #[test]
     fn finds_the_containing_member_of_a_multipolygon() {
+        // Mirrors js/test/pointInRing.test.ts's "finds the containing member of
+        // a multipolygon" fixture exactly (two disjoint unit-ish squares), which
+        // is itself verified against real JTS 1.19.0 (SimplePointInAreaLocator,
+        // WKT `MULTIPOLYGON (((0 0, 1 0, 1 1, 0 1, 0 0)), ((5 5, 8 5, 8 8, 5 8,
+        // 5 5)))`): (6,6) -> INTERIOR, (0.5,0.5) -> INTERIOR, (3,3) -> EXTERIOR.
+        // An earlier version of this test reused `with_hole()` as member 1 and
+        // probed points near its hole's corner, which either landed on that
+        // corner (a real JTS BOUNDARY, not the INTERIOR asserted) or — after a
+        // first fix — inside `with_hole()`'s own shell, so member 1 answered
+        // before the loop ever reached member 2. Neither ever exercised
+        // `locate_in_geometry`'s non-first-member branch. This fixture does:
+        // see the per-assertion trace below.
+        let near = Polygon::new(
+            LineString::from(vec![
+                (0.0, 0.0),
+                (1.0, 0.0),
+                (1.0, 1.0),
+                (0.0, 1.0),
+                (0.0, 0.0),
+            ]),
+            vec![],
+        );
         let far = Polygon::new(
             LineString::from(vec![
                 (5.0, 5.0),
@@ -287,15 +309,15 @@ mod simple_point_in_area_locator_test {
             ]),
             vec![],
         );
-        let geom = Geometry::MultiPolygon(MultiPolygon(vec![with_hole(), far]));
-        // (6, 6) is deliberately avoided here: it is exactly the with_hole
-        // ring's hole corner, so real JTS (verified with jts-core-1.19.0)
-        // reports BOUNDARY for it before the loop ever reaches `far` — not a
-        // useful case for "which member contains the point". (7, 7) sits
-        // strictly inside `far` and away from any other member's boundary.
-        assert_eq!(locate(Coord { x: 7.0, y: 7.0 }, &geom), INTERIOR);
-        assert_eq!(locate(Coord { x: 1.0, y: 1.0 }, &geom), INTERIOR);
-        assert_eq!(locate(Coord { x: 4.0, y: 4.0 }, &geom), EXTERIOR);
+        let geom = Geometry::MultiPolygon(MultiPolygon(vec![near, far]));
+        // (6, 6): member 1 (`near`) is EXTERIOR, so the loop proceeds to member 2
+        // (`far`), which is INTERIOR — the non-first-member branch, reached.
+        assert_eq!(locate(Coord { x: 6.0, y: 6.0 }, &geom), INTERIOR);
+        // (0.5, 0.5): member 1 (`near`) alone answers INTERIOR; the loop never
+        // reaches member 2.
+        assert_eq!(locate(Coord { x: 0.5, y: 0.5 }, &geom), INTERIOR);
+        // (3, 3): both members answer EXTERIOR.
+        assert_eq!(locate(Coord { x: 3.0, y: 3.0 }, &geom), EXTERIOR);
     }
 
     #[test]
