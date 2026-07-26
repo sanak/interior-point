@@ -31,7 +31,7 @@ describe("readPin", () => {
     const pin = readPin();
     assert.equal(pin.commit, "123a182e6e5a9cc8caed8ff037e4f824a5ce74ee");
     assert.equal(pin.nearestTag, "1.20.0");
-    assert.equal(pin.files.length, 13);
+    assert.equal(pin.files.length, 20);
     assert.deepEqual(pin.anchorIgnore, []);
   });
 });
@@ -70,7 +70,7 @@ describe("verifyVendored", () => {
       results.filter((r) => r.status !== "ok"),
       [],
     );
-    assert.equal(results.length, 13);
+    assert.equal(results.length, 20);
   });
 
   it("records a ported member subset for each partially ported file", () => {
@@ -80,6 +80,13 @@ describe("verifyVendored", () => {
     assert.equal(byPath.get("upstream/jts/math/DD.java").portedMembers.length, 10);
     // The five fully tracked files declare no subset, so every member stays in scope.
     assert.equal(byPath.get("upstream/jts/algorithm/Centroid.java").portedMembers, undefined);
+    assert.equal(byPath.get("upstream/jts/geom/Location.java").portedMembers.length, 3);
+    assert.equal(byPath.get("upstream/jts/algorithm/RayCrossingCounter.java").portedMembers.length, 7);
+    assert.equal(byPath.get("upstream/jts/algorithm/PointLocation.java").portedMembers.length, 2);
+    assert.equal(byPath.get("upstream/jts/algorithm/locate/SimplePointInAreaLocator.java").portedMembers.length, 6);
+    assert.equal(byPath.get("upstream/jts/algorithm/AbstractPointInRingTest.java").portedMembers.length, 6);
+    assert.equal(byPath.get("upstream/jts/algorithm/RayCrossingCounterTest.java").portedMembers.length, 1);
+    assert.equal(byPath.get("upstream/jts/algorithm/locate/SimplePointInAreaLocatorTest.java").portedMembers.length, 1);
   });
 
   it("reports a locally edited file as modified", () => {

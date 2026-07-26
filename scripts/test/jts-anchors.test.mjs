@@ -154,11 +154,13 @@ describe("checkAnchorsToJava", () => {
   });
 
   it("rejects an anchor naming a file that is not vendored", () => {
-    // RayCrossingCounter is future work, so it is not pinned yet.
+    // IndexedPointInAreaLocator is a deliberate non-goal: the point-in-polygon
+    // port covers SimplePointInAreaLocator only, so this class stays unpinned. It
+    // replaced RayCrossingCounter here, which became a vendored file in this PR.
     const anchors = [
       {
         kind: "jts",
-        target: "RayCrossingCounter#locatePointInRing(Coordinate,Coordinate[])",
+        target: "IndexedPointInAreaLocator#locate(Coordinate)",
         path: "js/src/a.ts",
         line: 1,
       },
@@ -213,10 +215,13 @@ describe("checkJavaToAnchors", () => {
   const members = scanJavaDir(REPO_ROOT);
 
   // Every member of every vendored file: 52 from the five original files plus
-  // Orientation's 4, CGAlgorithmsDD's 8, DD's 73, CentroidTest's 3 and
-  // InteriorPointTest's 8. Narrowing to the ported subset is portedMembers' job,
-  // exercised separately below.
-  const ALL_MEMBERS = 148;
+  // Orientation's 4, CGAlgorithmsDD's 8, DD's 73, CentroidTest's 3,
+  // InteriorPointTest's 8, and the point-in-polygon stack's 36 (Location 1,
+  // PointLocation 5, RayCrossingCounter 8, SimplePointInAreaLocator 8,
+  // AbstractPointInRingTest 7, RayCrossingCounterTest 4,
+  // SimplePointInAreaLocatorTest 3). Narrowing to the ported subset is
+  // portedMembers' job, exercised separately below.
+  const ALL_MEMBERS = 184;
 
   it("reports every member as unported when no anchors exist", () => {
     assert.equal(checkJavaToAnchors(members, [], []).length, ALL_MEMBERS);
@@ -314,17 +319,22 @@ describe("checkJavaToAnchors", () => {
 });
 
 describe("runAnchors", () => {
-  // In scope: 52 from the five fully tracked files, plus the 22 members the five
-  // partially ported files declare in portedMembers (Orientation 3,
-  // CGAlgorithmsDD 4, DD 10, CentroidTest 2, InteriorPointTest 3). Every one of
-  // the 74 is anchored: the retrofit gave the four InteriorPoint* files a named
-  // counterpart per member, so nothing is left unported.
-  it("reports the repository's current state: 74 in-scope members, 0 unported", () => {
+  // In scope: 52 from the five fully tracked files, plus the 45 members the
+  // twelve partially ported files declare in portedMembers (Orientation 3,
+  // CGAlgorithmsDD 4, DD 10, CentroidTest 2, InteriorPointTest 3,
+  // SimplePointInAreaLocator 6, RayCrossingCounter 7, PointLocation 2,
+  // AbstractPointInRingTest 6, RayCrossingCounterTest 1,
+  // SimplePointInAreaLocatorTest 1; Location declares 3 constants, which
+  // scanJavaDir never yields as members and which therefore contribute 0).
+  //
+  // TEMPORARY: 23 of the 97 are the point-in-polygon stack, vendored here but
+  // not yet ported. The port restores this to 0 unported and 0 violations.
+  it("reports the repository's current state: 97 in-scope members, 23 unported", () => {
     const { violations, counts } = runAnchors(REPO_ROOT);
-    assert.equal(counts.members, 74);
-    assert.equal(counts.unported, 0);
+    assert.equal(counts.members, 97);
+    assert.equal(counts.unported, 23);
+    assert.equal(violations.length, 23);
     assert.ok(counts.anchors > 0);
-    assert.equal(violations.length, 0);
   });
 
   it("keeps a partially ported file's out-of-scope members out of the report", () => {

@@ -139,10 +139,14 @@ describe("scanJavaDir against the vendored JTS sources", () => {
     for (const m of members) perFile[m.file] = (perFile[m.file] ?? 0) + 1;
     // Centroid, InteriorPoint, InteriorPointArea, InteriorPointLine and
     // InteriorPointPoint are the original 52 in-scope members. The rest are partially
-    // ported — the robust predicate stack plus the two vendored JTS test classes
-    // — scanned in full and narrowed to their ported subsets by pin.json's
-    // portedMembers.
+    // ported — the robust predicate stack, the point-in-polygon stack, and the
+    // three vendored JTS test classes — scanned in full and narrowed to their
+    // ported subsets by pin.json's portedMembers.
+    //
+    // AbstractPointInRingTest contributes 7, not 8: its abstract runPtInRing
+    // declaration ends in `;` and opens no brace, so scanMembers cannot see it.
     assert.deepEqual(perFile, {
+      "AbstractPointInRingTest.java": 7,
       "CGAlgorithmsDD.java": 8,
       "Centroid.java": 13,
       "CentroidTest.java": 3,
@@ -152,14 +156,30 @@ describe("scanJavaDir against the vendored JTS sources", () => {
       "InteriorPointLine.java": 8,
       "InteriorPointPoint.java": 5,
       "InteriorPointTest.java": 8,
+      "Location.java": 1,
       "Orientation.java": 4,
+      "PointLocation.java": 5,
+      "RayCrossingCounter.java": 8,
+      "RayCrossingCounterTest.java": 4,
+      "SimplePointInAreaLocator.java": 8,
+      "SimplePointInAreaLocatorTest.java": 3,
     });
-    assert.equal(members.length, 148);
+    assert.equal(members.length, 184);
   });
 
   it("scans a vendored file that lives outside algorithm/", () => {
     // DD.java is org.locationtech.jts.math.DD, so it vendors to upstream/jts/math/.
     assert.ok(members.some((m) => m.file === "DD.java" && m.signature === "DD#selfAdd(double,double)"));
+  });
+
+  it("scans vendored files under geom/ and a nested algorithm subpackage", () => {
+    assert.ok(members.some((m) => m.file === "Location.java" && m.signature === "Location#toLocationSymbol(int)"));
+    assert.ok(
+      members.some(
+        (m) =>
+          m.file === "SimplePointInAreaLocator.java" && m.signature === "SimplePointInAreaLocator#locate(Coordinate)",
+      ),
+    );
   });
 
   it("excludes the two methods inside the commented-out block of InteriorPointArea", () => {

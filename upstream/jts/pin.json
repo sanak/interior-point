@@ -2,7 +2,7 @@
   "upstream": "https://github.com/locationtech/jts",
   "commit": "123a182e6e5a9cc8caed8ff037e4f824a5ce74ee",
   "nearestTag": "1.20.0",
-  "syncedAt": "2026-07-25",
+  "syncedAt": "2026-07-26",
   "files": [
     {
       "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/InteriorPoint.java",
@@ -82,6 +82,73 @@
         "DD#selfMultiply(double,double)",
         "DD#signum()"
       ]
+    },
+    {
+      "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/geom/Location.java",
+      "localPath": "upstream/jts/geom/Location.java",
+      "sha256": "fb7b24c63b31e88830f4297cfb35920fa7e49d3852884b35080911c773f4aa94",
+      "portedMembers": ["Location#INTERIOR", "Location#BOUNDARY", "Location#EXTERIOR"]
+    },
+    {
+      "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/RayCrossingCounter.java",
+      "localPath": "upstream/jts/algorithm/RayCrossingCounter.java",
+      "sha256": "ec0def3f6eea2c107666c6e082a0f18986c7de880c14ff63ee58179ea596b5b3",
+      "portedMembers": [
+        "RayCrossingCounter#locatePointInRing(Coordinate,Coordinate[])",
+        "RayCrossingCounter#RayCrossingCounter(Coordinate)",
+        "RayCrossingCounter#countSegment(Coordinate,Coordinate)",
+        "RayCrossingCounter#getCount()",
+        "RayCrossingCounter#isOnSegment()",
+        "RayCrossingCounter#getLocation()",
+        "RayCrossingCounter#isPointInPolygon()"
+      ]
+    },
+    {
+      "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/PointLocation.java",
+      "localPath": "upstream/jts/algorithm/PointLocation.java",
+      "sha256": "a012c94bf80b81072448ca4622199022ac326e67769ab13b6bbb7d61a97bb06d",
+      "portedMembers": [
+        "PointLocation#locateInRing(Coordinate,Coordinate[])",
+        "PointLocation#isInRing(Coordinate,Coordinate[])"
+      ]
+    },
+    {
+      "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/locate/SimplePointInAreaLocator.java",
+      "localPath": "upstream/jts/algorithm/locate/SimplePointInAreaLocator.java",
+      "sha256": "75b596962d99bd7a9a0b506d12d70b887cef1b76e376caa6d0d30c2ed6392e6b",
+      "portedMembers": [
+        "SimplePointInAreaLocator#locate(Coordinate,Geometry)",
+        "SimplePointInAreaLocator#locateInGeometry(Coordinate,Geometry)",
+        "SimplePointInAreaLocator#locatePointInPolygon(Coordinate,Polygon)",
+        "SimplePointInAreaLocator#locatePointInRing(Coordinate,LinearRing)",
+        "SimplePointInAreaLocator#SimplePointInAreaLocator(Geometry)",
+        "SimplePointInAreaLocator#locate(Coordinate)"
+      ]
+    },
+    {
+      "upstreamPath": "modules/core/src/test/java/org/locationtech/jts/algorithm/AbstractPointInRingTest.java",
+      "localPath": "upstream/jts/algorithm/AbstractPointInRingTest.java",
+      "sha256": "f2bf2ad520c9585626d003916c39baf10c74f1ba0916001e3bed875f53eb75a3",
+      "portedMembers": [
+        "AbstractPointInRingTest#testBox()",
+        "AbstractPointInRingTest#testComplexRing()",
+        "AbstractPointInRingTest#testComb()",
+        "AbstractPointInRingTest#testRepeatedPts()",
+        "AbstractPointInRingTest#testRobustStressTriangles()",
+        "AbstractPointInRingTest#testRobustTriangle()"
+      ]
+    },
+    {
+      "upstreamPath": "modules/core/src/test/java/org/locationtech/jts/algorithm/RayCrossingCounterTest.java",
+      "localPath": "upstream/jts/algorithm/RayCrossingCounterTest.java",
+      "sha256": "ff28176659a6fadce1685f57564cc9ce39f10ac3425dc851ecff4aac6bcd3c60",
+      "portedMembers": ["RayCrossingCounterTest#runPtInRing(int,Coordinate,String)"]
+    },
+    {
+      "upstreamPath": "modules/core/src/test/java/org/locationtech/jts/algorithm/locate/SimplePointInAreaLocatorTest.java",
+      "localPath": "upstream/jts/algorithm/locate/SimplePointInAreaLocatorTest.java",
+      "sha256": "b6e8292bce28bf9185d2eb5d34841f34e70ef85170bb06db1fd87a4628c9d14c",
+      "portedMembers": ["SimplePointInAreaLocatorTest#runPtInRing(int,Coordinate,String)"]
     },
     {
       "upstreamPath": "modules/tests/src/test/resources/testxml/general/TestInteriorPoint.xml",
