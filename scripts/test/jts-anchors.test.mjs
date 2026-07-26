@@ -143,8 +143,9 @@ describe("scanPortAnchors", () => {
     // env parameter, and ScanLineYOrdinateFinder's shellEnvelope parameter),
     // plus the locator port's four: SimplePointInAreaLocator#locateInGeometry's
     // GeometryCollectionIterator-to-recursion note and its MultiPolygon note,
-    // in both languages.
-    assert.equal(kinds["jts-deviate"], 26);
+    // in both languages. The world-test port adds one: the Rust world test's placement note
+    // after its move into `rs/core/src/` to reach the gated locator modules.
+    assert.equal(kinds["jts-deviate"], 27);
     // The geometry adapters (6 in TypeScript, 4 in Rust — Rust needs no
     // Coordinate or Envelope alias but does define its own ring envelope, since
     // geo's BoundingRect is a dev-dependency), the Assert shim's 3,

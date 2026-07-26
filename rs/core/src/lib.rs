@@ -20,6 +20,8 @@ mod orientation;
 // `#[cfg(test)]` is what keeps that true without a file-level
 // `#![allow(dead_code)]`, which `CLAUDE.md` bans.
 #[cfg(test)]
+mod interior_point_world_test;
+#[cfg(test)]
 mod location;
 #[cfg(test)]
 mod point_in_ring_test;

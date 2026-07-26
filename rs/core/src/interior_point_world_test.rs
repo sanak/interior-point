@@ -3,15 +3,24 @@
 //! Verifies that for every geometry in world.wkt, the computed interior
 //! point lies within the original geometry. This mirrors JTS
 //! InteriorPointTest.testAll().
+//!
+//! @jts-deviate test placement — this lived in `rs/core/tests/` until the
+//!   point-in-polygon port. An integration test links against the library built
+//!   without `cfg(test)`, so it cannot see the `#[cfg(test)]` locator modules that
+//!   supply the containment predicate. `centroid.rs` holds its TestCentroid.xml
+//!   test inline for the same reason. The TypeScript world test stays in
+//!   `js/test/`, since TypeScript tests can import unexported `js/src` modules
+//!   directly.
 
 use std::fs;
 use std::str::FromStr;
 
-use geo::Contains;
-use geo_types::{Geometry, Point};
+use geo_types::Geometry;
 use wkt::Wkt;
 
-use interior_point::interior_point;
+use crate::interior_point;
+use crate::location::INTERIOR;
+use crate::simple_point_in_area_locator::locate;
 
 /// Parse a WKT string into a geo-types Geometry.
 fn parse_wkt(wkt_str: &str) -> Option<Geometry<f64>> {
@@ -80,16 +89,15 @@ fn test_world_wkt_interior_points() {
         };
 
         let ip = interior_point(&geom);
-        if let Some(coord) = ip {
-            let point = Point::from(coord);
-            if !geom.contains(&point) {
-                failures.push(format!(
-                    "Geometry {}: interior point ({}, {}) not contained in geometry",
-                    i + 1,
-                    coord.x,
-                    coord.y,
-                ));
-            }
+        if let Some(coord) = ip
+            && locate(coord, &geom) != INTERIOR
+        {
+            failures.push(format!(
+                "Geometry {}: interior point ({}, {}) not contained in geometry",
+                i + 1,
+                coord.x,
+                coord.y,
+            ));
         }
         // If ip is None, the geometry is empty — that's acceptable.
 
