@@ -59,6 +59,7 @@ fn split_wkt_geometries(data: &str) -> Vec<String> {
     geometries
 }
 
+/// @jts InteriorPointTest#testAll()
 #[test]
 fn test_world_wkt_interior_points() {
     let wkt_data = fs::read_to_string("../../upstream/jts/resources/testdata/world.wkt")

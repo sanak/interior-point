@@ -1,7 +1,7 @@
 /**
  * Integration tests for interiorPoint() dispatcher.
  *
- * Loads test cases directly from JTS TestInteriorPoint.xml (23 cases from XML)
+ * Loads test cases directly from JTS TestInteriorPoint.xml (24 cases from XML)
  * plus extra cases from InteriorPointTest.java that are not in the XML.
  * Mirrors JTS InteriorPointTest.java: single test file, all via dispatcher.
  */
@@ -15,7 +15,16 @@ import { parseXmlTestCases } from "./utils/xmlTestParser";
 const xmlPath = resolve(__dirname, "../../upstream/jts/resources/testxml/general/TestInteriorPoint.xml");
 const testCases = parseXmlTestCases(xmlPath, "getInteriorPoint");
 
+/**
+ * @jts-adapter GeometryTestCase — JUnit-bound test infrastructure; vitest plus
+ *   the XML parsers fill the role. JTS drives these cases through
+ *   GeometryTestCase's XML runner, which has no counterpart here.
+ */
 describe("InteriorPoint - TestInteriorPoint.xml", () => {
+  it("loads all 24 upstream cases", () => {
+    expect(testCases).toHaveLength(24);
+  });
+
   for (const tc of testCases) {
     it(tc.desc, () => {
       const result = interiorPoint(tc.input);
@@ -25,6 +34,7 @@ describe("InteriorPoint - TestInteriorPoint.xml", () => {
 });
 
 describe("InteriorPoint - extra cases (InteriorPointTest.java)", () => {
+  /** @jts InteriorPointTest#testPolygonZeroArea() */
   it("zero-area polygon", () => {
     const input: Geometry = {
       type: "Polygon",
@@ -40,6 +50,7 @@ describe("InteriorPoint - extra cases (InteriorPointTest.java)", () => {
     expect(interiorPoint(input)).toEqual([10, 10]);
   });
 
+  /** @jts InteriorPointTest#testMultiLineWithEmpty() */
   it("multiline with empty", () => {
     const input: Geometry = {
       type: "MultiLineString",

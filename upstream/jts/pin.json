@@ -36,6 +36,16 @@
       "portedMembers": ["CentroidTest#areaWeightedCentroid(Geometry)", "CentroidTest#testCentroidMultiPolygon()"]
     },
     {
+      "upstreamPath": "modules/core/src/test/java/org/locationtech/jts/algorithm/InteriorPointTest.java",
+      "localPath": "upstream/jts/algorithm/InteriorPointTest.java",
+      "sha256": "d3dc22fd42737f04b4102d9b0f284bde6c7b55770af3ec7cefb38df71da0809b",
+      "portedMembers": [
+        "InteriorPointTest#testPolygonZeroArea()",
+        "InteriorPointTest#testMultiLineWithEmpty()",
+        "InteriorPointTest#testAll()"
+      ]
+    },
+    {
       "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/Orientation.java",
       "localPath": "upstream/jts/algorithm/Orientation.java",
       "sha256": "bdf35ffc5eab43454b651061c4f0f91359fa6154ec30548a359d1ae3482acc4e",

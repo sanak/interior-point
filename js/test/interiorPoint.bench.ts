@@ -3,6 +3,9 @@
  * Port of JTS InteriorPointAreaPerfTest.java.
  *
  * Run with: pnpm bench:js
+ *
+ * @jts-adapter InteriorPointAreaPerfTest — JTS's perf harness is not vendored,
+ *   so this stands in for it; vitest bench replaces its timing loop.
  */
 import { bench, describe } from "vitest";
 import type { Geometry } from "geojson";

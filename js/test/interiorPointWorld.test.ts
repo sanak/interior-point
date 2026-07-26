@@ -16,22 +16,27 @@ const wktPath = resolve(__dirname, "../../upstream/jts/resources/testdata/world.
 const geometries = parseWktFile(wktPath);
 
 /**
- * Check if a point lies inside a geometry (Polygon or MultiPolygon).
- * Uses point-in-polygon-hao (returns true/false/0 where 0 = on edge).
+ * Check if a point lies strictly inside a geometry (Polygon or MultiPolygon).
+ * point-in-polygon-hao returns true (inside), false (outside) or 0 (on edge);
+ * only `true` counts, matching JTS Geometry.contains(Point) and the Rust test.
  *
- * Equivalent to JTS Geometry.contains(Point).
+ * A point on the boundary is not in the interior, so `!== false` -- which this
+ * predicate used before -- would accept a result JTS rejects. All 244
+ * geometries were measured as strictly interior, so nothing relies on the
+ * looser form.
  */
 function containsPoint(geometry: Geometry, point: Position): boolean {
   switch (geometry.type) {
     case "Polygon":
-      return inside(point, geometry.coordinates) !== false;
+      return inside(point, geometry.coordinates) === true;
     case "MultiPolygon":
-      return geometry.coordinates.some((poly) => inside(point, poly) !== false);
+      return geometry.coordinates.some((poly) => inside(point, poly) === true);
     default:
       return false;
   }
 }
 
+/** @jts InteriorPointTest#testAll() */
 describe("InteriorPoint - world.wkt comprehensive test", () => {
   it(`should parse ${geometries.length} geometries from world.wkt`, () => {
     expect(geometries.length).toBeGreaterThan(0);

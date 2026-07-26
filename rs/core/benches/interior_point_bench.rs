@@ -2,6 +2,9 @@
 //! Port of JTS InteriorPointAreaPerfTest.java.
 //!
 //! Run with: pnpm bench:rs (or cd rs && cargo bench)
+//!
+//! @jts-adapter InteriorPointAreaPerfTest — JTS's perf harness is not vendored,
+//!   so this stands in for it; criterion replaces its timing loop.
 
 mod utils;
 

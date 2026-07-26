@@ -139,8 +139,9 @@ describe("scanJavaDir against the vendored JTS sources", () => {
     for (const m of members) perFile[m.file] = (perFile[m.file] ?? 0) + 1;
     // Centroid, InteriorPoint, InteriorPointArea, InteriorPointLine and
     // InteriorPointPoint are the original 52 in-scope members. The rest are partially
-    // ported — the robust predicate stack plus CentroidTest — scanned in full and
-    // narrowed to their ported subsets by pin.json's portedMembers.
+    // ported — the robust predicate stack plus the two vendored JTS test classes
+    // — scanned in full and narrowed to their ported subsets by pin.json's
+    // portedMembers.
     assert.deepEqual(perFile, {
       "CGAlgorithmsDD.java": 8,
       "Centroid.java": 13,
@@ -150,9 +151,10 @@ describe("scanJavaDir against the vendored JTS sources", () => {
       "InteriorPointArea.java": 22,
       "InteriorPointLine.java": 8,
       "InteriorPointPoint.java": 5,
+      "InteriorPointTest.java": 8,
       "Orientation.java": 4,
     });
-    assert.equal(members.length, 140);
+    assert.equal(members.length, 148);
   });
 
   it("scans a vendored file that lives outside algorithm/", () => {

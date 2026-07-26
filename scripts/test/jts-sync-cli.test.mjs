@@ -32,19 +32,15 @@ describe("usage", () => {
 });
 
 describe("anchors", () => {
-  // Still exits 1: the robust predicate stack and `Centroid` are anchored, but the
-  // four remaining originally tracked files are not, so 39 of the 71 in-scope
-  // members are unported until the InteriorPoint retrofit. That is why `anchors` is not in ci.yml yet.
-  it("exits 1 because the four remaining tracked files are still unported", async () => {
+  // Exits 0 since the retrofit: every one of the 74 in-scope members has a
+  // named, anchored counterpart. This is what let `anchors` join ci.yml.
+  it("exits 0 because every in-scope member is anchored", async () => {
     const { code, out } = await run(["anchors"]);
-    assert.equal(code, 1);
-    assert.match(out, /71 method declarations/);
-    assert.match(out, /39 unported/);
-    assert.match(out, /InteriorPointArea#getInteriorPoint\(Geometry\)/);
-    // The ported subset must not appear as a finding.
-    assert.ok(!/DD#selfAdd/.test(out), "DD's ported members are anchored and must not be reported");
-    assert.ok(!/Orientation#isCCW/.test(out));
-    assert.ok(!/Centroid#addShell/.test(out), "Centroid is fully anchored and must not be reported");
+    assert.equal(code, 0);
+    assert.match(out, /74 method declarations/);
+    assert.match(out, /0 unported/);
+    // No member of any tracked file may be reported as a finding.
+    assert.ok(!/has no @jts anchor/.test(out), `expected no findings, got:\n${out}`);
   });
 
   it("exits 2 when given an argument, since it takes none", async () => {
@@ -231,9 +227,14 @@ describe("locate", () => {
     assert.match(out, /findBestMidpoint/);
   });
 
-  it("reports that no counterpart is ported yet", async () => {
+  it("names the ported counterpart in both languages", async () => {
+    // Before the retrofit this reported "no ported counterpart"; findBestMidpoint
+    // now has an anchored landing site in each language, which is the whole point
+    // of `locate`.
     const { out } = await run(["locate", "InteriorPointArea.java:262"]);
-    assert.match(out, /no ported counterpart/);
+    assert.ok(!/no ported counterpart/.test(out), out);
+    assert.match(out, /js\/src\/interiorPointArea\.ts:\d+/);
+    assert.match(out, /rs\/core\/src\/interior_point_area\.rs:\d+/);
   });
 
   it("exits 1 when the line falls outside every member", async () => {

@@ -97,36 +97,49 @@ describe("scanPortAnchors", () => {
     assert.deepEqual(scanPortAnchors(fixtureRoot({})), []);
   });
 
-  it("finds the robust predicate stack's anchors in both ports", () => {
-    // The five original modules carry no anchors yet; the three ported here do,
-    // in both languages. Asserted by path rather than by total, so adding an
-    // anchor to a new module does not break this test.
+  it("finds anchors in every ported module in both languages", () => {
+    // Asserted by path rather than by total, so adding an anchor to a new
+    // module does not break this test.
     const byPath = new Map();
     for (const a of scanPortAnchors(REPO_ROOT)) byPath.set(a.path, (byPath.get(a.path) ?? 0) + 1);
     for (const path of [
       "js/src/dd.ts",
       "js/src/cgAlgorithmsDD.ts",
       "js/src/orientation.ts",
+      "js/src/interiorPoint.ts",
+      "js/src/interiorPointArea.ts",
+      "js/src/interiorPointLine.ts",
+      "js/src/interiorPointPoint.ts",
       "rs/core/src/dd.rs",
       "rs/core/src/cg_algorithms_dd.rs",
       "rs/core/src/orientation.rs",
+      "rs/core/src/lib.rs",
+      "rs/core/src/interior_point_area.rs",
+      "rs/core/src/interior_point_line.rs",
+      "rs/core/src/interior_point_point.rs",
     ]) {
       assert.ok((byPath.get(path) ?? 0) > 0, `${path} should carry @jts anchors`);
     }
-    assert.equal(byPath.get("js/src/interiorPointArea.ts"), undefined, "the original modules are not anchored yet");
   });
 
   it("records the deviate and adapter tags the ports carry", () => {
     const kinds = scanPortAnchors(REPO_ROOT).reduce((o, a) => ({ ...o, [a.kind]: (o[a.kind] ?? 0) + 1 }), {});
     assert.ok(kinds["jts"] > 0);
-    // selfSubtract's dropped NaN guard in both languages, plus Rust's CentroidTest
-    // module placement.
-    assert.equal(kinds["jts-deviate"], 3);
-    // The geometry adapters (6 in TypeScript, 3 in Rust — Rust needs no Coordinate
-    // or Envelope alias and gets its ring envelope from geo-types), the Assert
-    // shim's 3, CoordinateSequence in both languages, Coordinate#equals2D in
-    // TypeScript, and CentroidTest's TOLERANCE and getArea() in both.
-    assert.equal(kinds["jts-adapter"], 19);
+    // selfSubtract's dropped NaN guard in both languages (2), Rust's CentroidTest
+    // module placement (1), the seven factory/getter-rule module-level factories per
+    // language (14 — four getInteriorPoint, ScanLineYOrdinateFinder#getScanLineY,
+    // and DimensionNonEmptyFilter, of which the last is one tag carrying two
+    // anchors), less the two that the factory/getter rule double-counts, plus Rust's
+    // odd-crossings test placement (1).
+    assert.equal(kinds["jts-deviate"], 16);
+    // The geometry adapters (6 in TypeScript, 4 in Rust — Rust needs no
+    // Coordinate or Envelope alias but does define its own ring envelope, since
+    // geo's BoundingRect is a dev-dependency), the Assert shim's 3,
+    // CoordinateSequence in both languages, Coordinate#equals2D in TypeScript,
+    // CentroidTest's TOLERANCE and getArea() in both, and the JUnit-bound test
+    // infrastructure GeometryTestCase and InteriorPointAreaPerfTest stand in
+    // for, in both languages.
+    assert.equal(kinds["jts-adapter"], 24);
   });
 });
 
@@ -198,9 +211,10 @@ describe("checkJavaToAnchors", () => {
   const members = scanJavaDir(REPO_ROOT);
 
   // Every member of every vendored file: 52 from the five original files plus
-  // Orientation's 4, CGAlgorithmsDD's 8, DD's 73 and CentroidTest's 3. Narrowing
-  // to the ported subset is portedMembers' job, exercised separately below.
-  const ALL_MEMBERS = 140;
+  // Orientation's 4, CGAlgorithmsDD's 8, DD's 73, CentroidTest's 3 and
+  // InteriorPointTest's 8. Narrowing to the ported subset is portedMembers' job,
+  // exercised separately below.
+  const ALL_MEMBERS = 148;
 
   it("reports every member as unported when no anchors exist", () => {
     assert.equal(checkJavaToAnchors(members, [], []).length, ALL_MEMBERS);
@@ -298,28 +312,17 @@ describe("checkJavaToAnchors", () => {
 });
 
 describe("runAnchors", () => {
-  // In scope: 52 from the five fully tracked files, plus the 19 members the four
-  // partially ported files declare in portedMembers (Orientation 3, CGAlgorithmsDD
-  // 4, DD 10, CentroidTest 2). Those 19 are anchored, and so are Centroid's 13, so
-  // 52 - 13 = 39 remain unported until the InteriorPoint retrofit covers the other four files.
-  it("reports the repository's current state: 71 in-scope members, 39 unported", () => {
+  // In scope: 52 from the five fully tracked files, plus the 22 members the five
+  // partially ported files declare in portedMembers (Orientation 3,
+  // CGAlgorithmsDD 4, DD 10, CentroidTest 2, InteriorPointTest 3). Every one of
+  // the 74 is anchored: the retrofit gave the four InteriorPoint* files a named
+  // counterpart per member, so nothing is left unported.
+  it("reports the repository's current state: 74 in-scope members, 0 unported", () => {
     const { violations, counts } = runAnchors(REPO_ROOT);
-    assert.equal(counts.members, 71);
-    assert.equal(counts.unported, 39);
+    assert.equal(counts.members, 74);
+    assert.equal(counts.unported, 0);
     assert.ok(counts.anchors > 0);
-    assert.equal(violations.length, 39);
-    assert.ok(
-      violations.every((v) => v.kind === "unported"),
-      `expected only unported findings, saw ${JSON.stringify([...new Set(violations.map((v) => v.kind))])}`,
-    );
-  });
-
-  // `Centroid` was in this list until its port landed; all 13 of its members now
-  // carry anchors, so it drops out and only the four retrofitted files remain.
-  it("reports every unported member from the four remaining tracked files and none else", () => {
-    const { violations } = runAnchors(REPO_ROOT);
-    const files = [...new Set(violations.map((v) => v.signature.split("#")[0].split(".")[0]))].sort();
-    assert.deepEqual(files, ["InteriorPoint", "InteriorPointArea", "InteriorPointLine", "InteriorPointPoint"]);
+    assert.equal(violations.length, 0);
   });
 
   it("keeps a partially ported file's out-of-scope members out of the report", () => {

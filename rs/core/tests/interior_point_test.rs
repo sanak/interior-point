@@ -14,16 +14,10 @@ use utils::xml_test_parser::parse_xml_test_cases;
 fn check(desc: &str, result: Option<Coord<f64>>, expected: Option<Coord<f64>>) {
     match (result, expected) {
         (None, None) => {} // both empty — pass
-        (Some(r), Some(e)) => {
-            assert!(
-                (r.x - e.x).abs() < 1e-10 && (r.y - e.y).abs() < 1e-10,
-                "{desc}: expected ({}, {}), got ({}, {})",
-                e.x,
-                e.y,
-                r.x,
-                r.y,
-            );
-        }
+        // Exact, not within a tolerance: both languages evaluate the same IEEE
+        // 754 operations in the same order, so equality is expected and a
+        // failure is information worth having. That is the exact-comparison rule.
+        (Some(r), Some(e)) => assert!(r == e, "{desc}: expected {e:?}, got {r:?}"),
         (None, Some(e)) => {
             panic!("{desc}: expected ({}, {}), got None", e.x, e.y);
         }
@@ -37,6 +31,9 @@ fn check(desc: &str, result: Option<Coord<f64>>, expected: Option<Coord<f64>>) {
 // XML test cases — all via interior_point() dispatcher
 // ───────────────────────────────────────────────────────────────────────────
 
+/// @jts-adapter GeometryTestCase — JUnit-bound test infrastructure; `cargo test`
+///   plus the XML parser fill the role. JTS drives these cases through
+///   GeometryTestCase's XML runner, which has no counterpart here.
 #[test]
 fn test_interior_point_xml_all_cases() {
     let cases = parse_xml_test_cases(
@@ -58,6 +55,7 @@ fn test_interior_point_xml_all_cases() {
 // Extra tests from InteriorPointTest.java (not in XML)
 // ───────────────────────────────────────────────────────────────────────────
 
+/// @jts InteriorPointTest#testPolygonZeroArea()
 #[test]
 fn test_polygon_zero_area() {
     let poly = Polygon::new(
@@ -73,6 +71,7 @@ fn test_polygon_zero_area() {
     );
 }
 
+/// @jts InteriorPointTest#testMultiLineWithEmpty()
 #[test]
 fn test_multiline_with_empty() {
     let ml = MultiLineString::new(vec![LineString::from(vec![(0.0, 0.0), (1.0, 1.0)])]);
