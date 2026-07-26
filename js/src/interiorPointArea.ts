@@ -117,6 +117,16 @@ export function interiorPointArea(geom: Geometry): Coordinate | null {
  */
 export class InteriorPointPolygon {
   private polygon: Polygon;
+  /**
+   * The shell's envelope, computed once and shared with
+   * {@link ScanLineYOrdinateFinder} and {@link InteriorPointPolygon#scanRing}.
+   *
+   * @jts-deviate JTS's InteriorPointPolygon has no such field: it reads a cached
+   *   `getEnvelopeInternal()` from the geometry, so both readers get the value
+   *   for free. A GeoJSON Polygon cannot carry that cache, so the value is
+   *   computed here once and passed down.
+   */
+  private shellEnvelope: Envelope;
   private interiorPointY: number;
   private interiorSectionWidth = 0.0;
   private interiorPoint: Coordinate | null = null;
@@ -129,7 +139,10 @@ export class InteriorPointPolygon {
    */
   constructor(polygon: Polygon) {
     this.polygon = polygon;
-    this.interiorPointY = getScanLineY(polygon);
+    // JTS reads `poly.getEnvelopeInternal()`, which for a Polygon is the
+    // shell's envelope; `coordinates[0]` is that shell.
+    this.shellEnvelope = envelopeInternal(polygon.coordinates[0]);
+    this.interiorPointY = getScanLineY(polygon, this.shellEnvelope);
   }
 
   /**
@@ -166,17 +179,23 @@ export class InteriorPointPolygon {
     this.interiorPoint = [...this.polygon.coordinates[0][0]];
 
     const crossings: number[] = [];
-    this.scanRing(this.polygon.coordinates[0], crossings);
-    for (let i = 1; i < this.polygon.coordinates.length; i++) {
-      this.scanRing(this.polygon.coordinates[i], crossings);
+    const rings = this.polygon.coordinates;
+    this.scanRing(rings[0], this.shellEnvelope, crossings);
+    for (let i = 1; i < rings.length; i++) {
+      this.scanRing(rings[i], envelopeInternal(rings[i]), crossings);
     }
     this.findBestMidpoint(crossings);
   }
 
-  /** @jts InteriorPointArea.InteriorPointPolygon#scanRing(LinearRing,List<Double>) */
-  private scanRing(ring: Coordinate[], crossings: number[]): void {
+  /**
+   * @jts InteriorPointArea.InteriorPointPolygon#scanRing(LinearRing,List<Double>)
+   * @jts-deviate extra `env` parameter — JTS reads the ring's cached
+   *   `getEnvelopeInternal()`. A GeoJSON ring is a bare coordinate array and
+   *   cannot carry that cache, so the caller computes it and passes it in.
+   */
+  private scanRing(ring: Coordinate[], env: Envelope, crossings: number[]): void {
     // skip rings which don't cross scan line
-    if (!this.intersectsHorizontalLineEnvelope(envelopeInternal(ring), this.interiorPointY)) return;
+    if (!this.intersectsHorizontalLineEnvelope(env, this.interiorPointY)) return;
 
     for (let i = 1; i < ring.length; i++) {
       const ptPrev = ring[i - 1];
@@ -328,16 +347,19 @@ export class ScanLineYOrdinateFinder {
   private hiY = Number.MAX_VALUE;
   private loY = -Number.MAX_VALUE;
 
-  /** @jts InteriorPointArea.ScanLineYOrdinateFinder#ScanLineYOrdinateFinder(Polygon) */
-  constructor(poly: Polygon) {
+  /**
+   * @jts InteriorPointArea.ScanLineYOrdinateFinder#ScanLineYOrdinateFinder(Polygon)
+   * @jts-deviate extra `shellEnvelope` parameter — JTS reads the cached
+   *   `poly.getEnvelopeInternal()` here, which `InteriorPointPolygon` has
+   *   already computed. Passing it in is what keeps the shell from being
+   *   scanned twice.
+   */
+  constructor(poly: Polygon, shellEnvelope: Envelope) {
     this.poly = poly;
 
     // initialize using extremal values
-    // JTS reads `poly.getEnvelopeInternal()`, which for a Polygon is the
-    // shell's envelope; `coordinates[0]` is that shell.
-    const env = envelopeInternal(poly.coordinates[0]);
-    this.hiY = env.maxY;
-    this.loY = env.minY;
+    this.hiY = shellEnvelope.maxY;
+    this.loY = shellEnvelope.minY;
     this.centreY = avg(this.loY, this.hiY);
   }
 
@@ -376,9 +398,10 @@ export class ScanLineYOrdinateFinder {
  * @jts-deviate module-level function — the factory/getter rule maps a static factory to a
  *   module level and the instance getter to a method; in Rust an associated
  *   function and a method of the same name would collide, so both languages
- *   place it here for symmetry.
+ *   place it here for symmetry. The extra `shellEnvelope` parameter forwards
+ *   the value `InteriorPointPolygon` computed; see the constructor above.
  */
-function getScanLineY(poly: Polygon): number {
-  const finder = new ScanLineYOrdinateFinder(poly);
+function getScanLineY(poly: Polygon, shellEnvelope: Envelope): number {
+  const finder = new ScanLineYOrdinateFinder(poly, shellEnvelope);
   return finder.getScanLineY();
 }

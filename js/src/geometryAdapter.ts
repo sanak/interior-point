@@ -36,9 +36,11 @@ export interface Envelope {
 /**
  * Computes a ring's envelope in a single pass.
  *
- * JTS caches this on the `LinearRing` and reads it back in both `scanRing` and
- * `ScanLineYOrdinateFinder`; computing it once here is what removes the
- * duplicate exterior-ring scan.
+ * JTS caches this on the `LinearRing`, so `scanRing` and
+ * `ScanLineYOrdinateFinder` both read it for free. A GeoJSON ring cannot carry
+ * that cache, so this recomputes on every call and the sharing happens in the
+ * caller instead: `InteriorPointPolygon` computes the shell's envelope once and
+ * passes it to both readers.
  *
  * @jts-adapter LinearRing.getEnvelopeInternal()
  */
