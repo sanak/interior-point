@@ -155,3 +155,33 @@ describe("InteriorPointArea - odd scanline crossings (even-crossing assertion)",
     ).not.toThrow();
   });
 });
+
+describe("InteriorPointArea - polygon with a hole (shared shell envelope)", () => {
+  // Shell 0..10 square, hole 2..8 square. The scan line lands at y = 5 and the
+  // hole contributes crossings at x = 2 and 8, so the widest section is [0, 2]
+  // and the midpoint is (1, 5). If the hole's crossings were dropped the
+  // section would be [0, 10] and the midpoint (5, 5) -- inside the hole.
+  const withHole: Geometry = {
+    type: "Polygon",
+    coordinates: [
+      [
+        [0, 0],
+        [10, 0],
+        [10, 10],
+        [0, 10],
+        [0, 0],
+      ],
+      [
+        [2, 2],
+        [2, 8],
+        [8, 8],
+        [8, 2],
+        [2, 2],
+      ],
+    ],
+  };
+
+  it("returns the midpoint of the widest section, outside the hole", () => {
+    expect(interiorPoint(withHole)).toEqual([1, 5]);
+  });
+});

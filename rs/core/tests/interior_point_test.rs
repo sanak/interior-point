@@ -137,3 +137,34 @@ fn test_zero_length_lines_asymmetric() {
         Some(Coord { x: 10.0, y: 10.0 })
     );
 }
+
+/// Polygon with a hole — shared shell envelope. Shell 0..10 square,
+/// hole 2..8 square. The scan line lands at y = 5 and the hole contributes
+/// crossings at x = 2 and 8, so the widest section is [0, 2] and the midpoint is
+/// (1, 5). If the hole's crossings were dropped the section would be [0, 10] and
+/// the midpoint (5, 5) — inside the hole.
+#[test]
+fn test_polygon_with_hole() {
+    let poly = Polygon::new(
+        LineString::from(vec![
+            (0.0, 0.0),
+            (10.0, 0.0),
+            (10.0, 10.0),
+            (0.0, 10.0),
+            (0.0, 0.0),
+        ]),
+        vec![LineString::from(vec![
+            (2.0, 2.0),
+            (2.0, 8.0),
+            (8.0, 8.0),
+            (8.0, 2.0),
+            (2.0, 2.0),
+        ])],
+    );
+    let geom = Geometry::Polygon(poly);
+    check(
+        "polygon with a hole",
+        interior_point(&geom),
+        Some(Coord { x: 1.0, y: 5.0 }),
+    );
+}
