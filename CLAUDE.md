@@ -89,22 +89,24 @@ Following an upstream change:
 5. `node scripts/jts-sync.mjs anchors`
 
 `.github/workflows/jts-drift.yml` runs `check` weekly and opens or updates an issue
-labelled `jts-drift`. `anchors` is not yet wired into `ci.yml`: the robust predicate stack
-(`Orientation`, `CGAlgorithmsDD`, `DD`) and `Centroid` are anchored, but the four
-`InteriorPoint*` files are not, so `anchors` still reports 39 of 71 in-scope members as
-unported and exits 1. It joins CI with the retrofit of those four.
+labelled `jts-drift`. `anchors` runs in `ci.yml` on every push: every one of the 74
+in-scope members across the 13 pinned files carries a `@jts` anchor, so the check exits 0
+and a future member added upstream without a counterpart fails the build.
 
 A `pin.json` file entry may declare `portedMembers`, listing the only members required to
 carry a `@jts` anchor — that is how a deliberately partial port (`DD`: 10 of 73 members)
 avoids 63 spurious `@jts-omit` tags. A file entry without the field requires full coverage.
 
-Ported JTS _tests_ are pinned the same way: `CentroidTest.java` is vendored with a
-two-member `portedMembers`, because an `@jts` anchor must name a vendored file and the
-ported test methods carry anchors like any other port.
+Ported JTS _tests_ are pinned the same way: `CentroidTest.java` (2 ported members) and
+`InteriorPointTest.java` (3) are vendored with a `portedMembers` list, because an `@jts`
+anchor must name a vendored file and the ported test methods carry anchors like any other
+port. A JTS test class with no ported counterpart is not vendored and gets `@jts-adapter`
+instead: `GeometryTestCase`, whose XML runner vitest and the XML parsers stand in for, and
+`InteriorPointAreaPerfTest`, whose timing loop vitest bench and criterion stand in for.
 
 `check` currently reports `upstream/jts/math/DD.java` as DRIFTED: upstream `master` added a
 `hashCode()` after the pinned commit. That is real upstream movement outside the ported
-subset, not a local edit — all 12 pinned files still match their recorded `sha256`.
+subset, not a local edit — all 13 pinned files still match their recorded `sha256`.
 
 ## Public API
 
@@ -117,8 +119,7 @@ interiorPoint(geometry: Geometry | null): Coordinate | null
 Single dispatcher function exported from `js/src/index.ts`, alongside the `Coordinate` type.
 `Coordinate` is `js/src/geometryAdapter.ts`'s alias of GeoJSON's `Position` and carries JTS's
 name for it; an ESLint rule bans importing `Position` inside `js/src/**` so the adapter stays
-the single place the GeoJSON name appears. The three `interiorPoint*` modules are exempt
-until they are retrofitted onto the adapter.
+the single place the GeoJSON name appears. The rule has no exemptions.
 
 ### Rust
 
@@ -141,19 +142,22 @@ Each language implements the same 4 files mirroring JTS:
 
 ### Supporting Ports
 
-Ported from JTS but not yet reachable from the dispatcher — the `interiorPoint*` retrofit
-wires them up. Both languages carry the same set:
+Reached from the dispatcher through `Centroid`, which `InteriorPointLine` and
+`InteriorPointPoint` call. Both languages carry the same set:
 
-| Module                                            | Purpose                                                  |
-| ------------------------------------------------- | -------------------------------------------------------- |
-| `centroid` / `core/src/centroid.rs`               | `Centroid` — weighted centroid for any dimension         |
-| `orientation` / `core/src/orientation.rs`         | `Orientation.isCCW` and `index`                          |
-| `cgAlgorithmsDD` / `core/src/cg_algorithms_dd.rs` | Robust orientation predicate via double-double           |
-| `dd` / `core/src/dd.rs`                           | The `DD` extended-precision subset those predicates need |
+| Module                                             | Purpose                                                  |
+| -------------------------------------------------- | -------------------------------------------------------- |
+| `centroid` / `core/src/centroid.rs`                | `Centroid` — weighted centroid for any dimension         |
+| `orientation` / `core/src/orientation.rs`          | `Orientation.isCCW` and `index`                          |
+| `cgAlgorithmsDD` / `core/src/cg_algorithms_dd.rs`  | Robust orientation predicate via double-double           |
+| `dd` / `core/src/dd.rs`                            | The `DD` extended-precision subset those predicates need |
+| `geometryAdapter` / `core/src/geometry_adapter.rs` | The geometry-model boundary — see below                  |
+| `assert` / — (Rust uses `assert!`)                 | Shim for JTS's `Assert`                                  |
 
-Because Rust decides `dead_code` by reachability from the crate root, all four carry a
-file-level `#![allow(dead_code)]` until the retrofit lands. Each attribute's comment names
-what removes it.
+Every one is reachable from the crate root, so `rs/core/src` carries no file-level
+`#![allow(dead_code)]`. The two that remain are per-constant, on `Orientation::CLOCKWISE`
+and `COLLINEAR`: both complete the ported constant set, but the ported subset of the
+algorithm only ever compares against `COUNTERCLOCKWISE`.
 
 ### Adapter Boundary
 
@@ -163,10 +167,25 @@ geometry-model helper may be defined; nothing else in `js/src` or `rs/core/src` 
 
 ### Type Mapping (JTS → TS / Rust)
 
-- `Coordinate` → `Coordinate` (`geometryAdapter`'s alias of GeoJSON `Position`, i.e. `number[]`) / `Coord<f64>`
-- `Geometry` → `GeoJSON.Geometry` / `geo::Geometry<f64>`
-- `Polygon` → `GeoJSON.Polygon` / `geo::Polygon<f64>`
-- `Envelope` → `geometryAdapter`'s `Envelope` record / `geo::Rect<f64>`
+| JTS                                | TypeScript                                         | Rust                       |
+| ---------------------------------- | -------------------------------------------------- | -------------------------- |
+| `Coordinate`                       | `Coordinate` (adapter alias of GeoJSON `Position`) | `geo_types::Coord<f64>`    |
+| `Geometry`                         | `GeoJSON.Geometry`                                 | `geo_types::Geometry<f64>` |
+| `Polygon`                          | `GeoJSON.Polygon`                                  | `geo_types::Polygon<f64>`  |
+| `LinearRing` / `Coordinate[]`      | `Coordinate[]`                                     | `&[Coord<f64>]`            |
+| `Envelope`                         | adapter's `Envelope` record                        | `geo_types::Rect<f64>`     |
+| `Geometry.isEmpty()`               | `isGeometryEmpty`                                  | `is_geometry_empty`        |
+| `Geometry.getDimension()`          | `dimension`                                        | `dimension`                |
+| `Coordinate.distance(Coordinate)`  | `distance`                                         | `distance`                 |
+| `LinearRing.getEnvelopeInternal()` | `envelopeInternal`                                 | `envelope_internal`        |
+| `Assert.isTrue`                    | `assertTrue` (`js/src/assert.ts`)                  | `assert!`                  |
+| `Orientation`                      | `orientation.ts`                                   | `orientation.rs`           |
+| `List<Double>`                     | `number[]`                                         | `Vec<f64>` / `&mut [f64]`  |
+
+Rust computes the ring envelope in the adapter rather than through `geo`'s `BoundingRect`:
+`geo` is a dev-dependency and the port adds no runtime ones, while `Rect` itself lives in
+`geo-types`. It returns `Option<Rect<f64>>`, since `Rect` cannot represent the empty
+envelope JTS returns for an empty ring; both take the "intersects nothing" path.
 
 ### Scanline Algorithm (Area)
 
