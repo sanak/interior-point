@@ -27,6 +27,8 @@ jobs:
       - run: pnpm build:js
       - name: Check JTS anchor integrity
         run: node scripts/jts-sync.mjs anchors
+      - name: Check for out-of-repo citations
+        run: node scripts/jts-citations.mjs
 
   test-rs:
     name: Test Rust

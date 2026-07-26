@@ -119,6 +119,12 @@ whose timing loop vitest bench and criterion stand in for. `PointLocationTest`,
 `hashCode()` after the pinned commit. That is real upstream movement outside the ported
 subset, not a local edit — all 20 pinned files still match their recorded `sha256`.
 
+### Citation guard
+
+`node scripts/jts-citations.mjs` scans tracked files for comments citing something outside this
+repository — a design doc, a numbered task, a numbered rule — and exits non-zero if it finds one;
+it runs in `ci.yml` beside `anchors` and is covered by `pnpm test:scripts`.
+
 ## Public API
 
 ### TypeScript
