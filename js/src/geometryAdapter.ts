@@ -47,7 +47,13 @@ export function envelopeInternal(ring: Coordinate[]): Envelope {
   let minY = Infinity;
   let maxX = -Infinity;
   let maxY = -Infinity;
-  for (const [x, y] of ring) {
+  // Indexed rather than `for (const [x, y] of ring)`. This runs once per ring
+  // per scan, and destructuring each Position allocates: measured 4.8x slower
+  // on a 100,000-point ring, which showed up as a whole-benchmark regression
+  // when the retrofit put this on the areal path.
+  for (let i = 0; i < ring.length; i++) {
+    const x = ring[i][0];
+    const y = ring[i][1];
     if (x < minX) minX = x;
     if (x > maxX) maxX = x;
     if (y < minY) minY = y;
