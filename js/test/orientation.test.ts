@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { CLOCKWISE, COLLINEAR, COUNTERCLOCKWISE, index, isCCWCoordinates } from "../src/orientation";
+import {
+  CLOCKWISE,
+  COLLINEAR,
+  COUNTERCLOCKWISE,
+  LEFT,
+  RIGHT,
+  STRAIGHT,
+  index,
+  isCCWCoordinates,
+} from "../src/orientation";
 
 const CCW_SQUARE = [
   [0, 0],
@@ -79,5 +88,13 @@ describe("Orientation", () => {
     expect(index([0, 0], [1, 0], [0, 1])).toBe(COUNTERCLOCKWISE);
     expect(index([0, 0], [1, 0], [0, -1])).toBe(CLOCKWISE);
     expect(index([0, 0], [1, 0], [2, 0])).toBe(COLLINEAR);
+  });
+});
+
+describe("the JTS alias constants", () => {
+  it("names each orientation twice, as JTS does", () => {
+    expect(RIGHT).toBe(CLOCKWISE);
+    expect(LEFT).toBe(COUNTERCLOCKWISE);
+    expect(STRAIGHT).toBe(COLLINEAR);
   });
 });

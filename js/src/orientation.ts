@@ -32,6 +32,24 @@ export const COUNTERCLOCKWISE = 1;
 export const COLLINEAR = 0;
 
 /**
+ * A value that indicates an orientation of clockwise, or a right turn.
+ * @jts Orientation#RIGHT
+ */
+export const RIGHT = CLOCKWISE;
+
+/**
+ * A value that indicates an orientation of counterclockwise, or a left turn.
+ * @jts Orientation#LEFT
+ */
+export const LEFT = COUNTERCLOCKWISE;
+
+/**
+ * A value that indicates an orientation of collinear, or no turn.
+ * @jts Orientation#STRAIGHT
+ */
+export const STRAIGHT = COLLINEAR;
+
+/**
  * Returns the orientation index of the direction of the point <code>q</code> relative to
  * a directed infinite line specified by <code>p1-p2</code>.
  *

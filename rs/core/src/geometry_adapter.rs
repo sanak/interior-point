@@ -54,6 +54,90 @@ pub(crate) fn envelope_internal(ring: &[Coord<f64>]) -> Option<Rect<f64>> {
     ))
 }
 
+/// Widens `a` to cover `b`, treating `None` as the empty envelope.
+///
+/// A private helper of [`envelope_internal_geometry`], not a substitute for any
+/// JTS member the port reaches: JTS builds a geometry's envelope inside each
+/// subclass's `computeEnvelopeInternal`, and the `Geometry.getEnvelopeInternal()`
+/// tag below records that substitution whole.
+fn union(a: Option<Rect<f64>>, b: Option<Rect<f64>>) -> Option<Rect<f64>> {
+    match (a, b) {
+        (None, other) | (other, None) => other,
+        (Some(a), Some(b)) => Some(Rect::new(
+            Coord {
+                x: a.min().x.min(b.min().x),
+                y: a.min().y.min(b.min().y),
+            },
+            Coord {
+                x: a.max().x.max(b.max().x),
+                y: a.max().y.max(b.max().y),
+            },
+        )),
+    }
+}
+
+/// A whole geometry's envelope.
+///
+/// [`envelope_internal`] above takes a ring; this takes a geometry. JTS has one
+/// `Geometry.getEnvelopeInternal()` that `LinearRing` inherits, so this is not a
+/// Java overload and the overload-suffix rule does not apply — the split into two functions
+/// exists because neither target model has a supertype spanning rings and
+/// geometries. The two are told apart by their tags.
+///
+/// A polygon's envelope is its shell's: holes lie inside the shell and cannot
+/// widen it, which is what JTS's `Polygon.computeEnvelopeInternal` relies on.
+///
+/// Returns `None` for an empty geometry, the "intersects nothing" contract
+/// [`envelope_internal`] already uses.
+///
+/// @jts-adapter Geometry.getEnvelopeInternal()
+// No caller outside this file's own tests yet: the RayCrossingCounter port and the locator port wire
+// `RayCrossingCounter` and `SimplePointInAreaLocator` to this adapter. The
+// allow (which also covers `union`, reachable only from here) comes off once
+// those callers land.
+#[allow(dead_code)]
+pub(crate) fn envelope_internal_geometry(geometry: &Geometry<f64>) -> Option<Rect<f64>> {
+    match geometry {
+        Geometry::Point(p) => envelope_internal(&[p.0]),
+        Geometry::MultiPoint(mp) => {
+            envelope_internal(&mp.0.iter().map(|p| p.0).collect::<Vec<Coord<f64>>>())
+        }
+        Geometry::Line(l) => envelope_internal(&[l.start, l.end]),
+        Geometry::LineString(ls) => envelope_internal(&ls.0),
+        Geometry::MultiLineString(mls) => mls
+            .0
+            .iter()
+            .fold(None, |acc, ls| union(acc, envelope_internal(&ls.0))),
+        Geometry::Polygon(p) => envelope_internal(&p.exterior().0),
+        Geometry::MultiPolygon(mp) => mp.0.iter().fold(None, |acc, p| {
+            union(acc, envelope_internal(&p.exterior().0))
+        }),
+        Geometry::Rect(r) => Some(*r),
+        Geometry::Triangle(t) => envelope_internal(&t.to_array()),
+        Geometry::GeometryCollection(gc) => {
+            gc.0.iter()
+                .fold(None, |acc, g| union(acc, envelope_internal_geometry(g)))
+        }
+    }
+}
+
+/// Tests whether an envelope contains a point, boundary included.
+///
+/// JTS spells this `!(x > maxx || x < minx || y > maxy || y < miny)`; the
+/// positive form below is the same predicate. `None` is the empty envelope and
+/// intersects nothing.
+///
+/// @jts-adapter Envelope.intersects(Coordinate)
+// No caller outside this file's own tests yet: `RayCrossingCounter::count_segment`
+// and `SimplePointInAreaLocator` both read it.
+#[allow(dead_code)]
+pub(crate) fn envelope_intersects_coordinate(env: Option<Rect<f64>>, p: Coord<f64>) -> bool {
+    match env {
+        None => false,
+        Some(r) => p.x >= r.min().x && p.x <= r.max().x && p.y >= r.min().y && p.y <= r.max().y,
+    }
+}
+
 /// @jts-adapter Geometry.isEmpty()
 pub(crate) fn is_geometry_empty(geometry: &Geometry<f64>) -> bool {
     match geometry {
@@ -100,8 +184,14 @@ pub(crate) fn distance(a: Coord<f64>, b: Coord<f64>) -> f64 {
 
 #[cfg(test)]
 mod tests {
-    use super::{dimension, distance, is_geometry_empty};
-    use geo_types::{Coord, Geometry, GeometryCollection, LineString, MultiPoint, Point, Polygon};
+    use super::{
+        dimension, distance, envelope_internal, envelope_internal_geometry,
+        envelope_intersects_coordinate, is_geometry_empty,
+    };
+    use geo_types::{
+        Coord, Geometry, GeometryCollection, LineString, MultiPoint, MultiPolygon, Point, Polygon,
+        Rect,
+    };
 
     fn square() -> Polygon<f64> {
         Polygon::new(
@@ -156,6 +246,101 @@ mod tests {
         assert_eq!(
             distance(Coord { x: 1.0, y: 1.0 }, Coord { x: 1.0, y: 1.0 }),
             0.0
+        );
+    }
+
+    #[test]
+    fn tests_a_point_against_an_envelope() {
+        let env = envelope_internal(&[Coord { x: 0.0, y: 0.0 }, Coord { x: 10.0, y: 4.0 }]);
+        assert!(envelope_intersects_coordinate(
+            env,
+            Coord { x: 5.0, y: 2.0 }
+        ));
+        // The boundary counts as intersecting, as it does in JTS.
+        assert!(envelope_intersects_coordinate(
+            env,
+            Coord { x: 0.0, y: 0.0 }
+        ));
+        assert!(envelope_intersects_coordinate(
+            env,
+            Coord { x: 10.0, y: 4.0 }
+        ));
+        assert!(!envelope_intersects_coordinate(
+            env,
+            Coord { x: -1.0, y: 2.0 }
+        ));
+        assert!(!envelope_intersects_coordinate(
+            env,
+            Coord { x: 11.0, y: 2.0 }
+        ));
+        assert!(!envelope_intersects_coordinate(
+            env,
+            Coord { x: 5.0, y: -1.0 }
+        ));
+        assert!(!envelope_intersects_coordinate(
+            env,
+            Coord { x: 5.0, y: 5.0 }
+        ));
+        // None is the empty envelope, which intersects nothing.
+        assert!(!envelope_intersects_coordinate(
+            None,
+            Coord { x: 0.0, y: 0.0 }
+        ));
+    }
+
+    #[test]
+    fn takes_a_whole_geometrys_envelope() {
+        // A polygon's envelope comes from its shell: the hole is inside it.
+        let poly = Polygon::new(
+            LineString::from(vec![
+                (0.0, 0.0),
+                (10.0, 0.0),
+                (10.0, 10.0),
+                (0.0, 10.0),
+                (0.0, 0.0),
+            ]),
+            vec![LineString::from(vec![
+                (2.0, 2.0),
+                (3.0, 2.0),
+                (3.0, 3.0),
+                (2.0, 2.0),
+            ])],
+        );
+        assert_eq!(
+            envelope_internal_geometry(&Geometry::Polygon(poly.clone())),
+            Some(Rect::new(
+                Coord { x: 0.0, y: 0.0 },
+                Coord { x: 10.0, y: 10.0 }
+            ))
+        );
+
+        let far = Polygon::new(
+            LineString::from(vec![(5.0, 5.0), (7.0, 5.0), (7.0, 8.0), (5.0, 5.0)]),
+            vec![],
+        );
+        assert_eq!(
+            envelope_internal_geometry(&Geometry::MultiPolygon(MultiPolygon(vec![poly, far]))),
+            Some(Rect::new(
+                Coord { x: 0.0, y: 0.0 },
+                Coord { x: 10.0, y: 10.0 }
+            ))
+        );
+
+        let gc = GeometryCollection(vec![
+            Geometry::Point(Point::new(-3.0, 1.0)),
+            Geometry::LineString(LineString::from(vec![(0.0, 0.0), (4.0, 9.0)])),
+        ]);
+        assert_eq!(
+            envelope_internal_geometry(&Geometry::GeometryCollection(gc)),
+            Some(Rect::new(
+                Coord { x: -3.0, y: 0.0 },
+                Coord { x: 4.0, y: 9.0 }
+            ))
+        );
+
+        assert_eq!(
+            envelope_internal_geometry(&Geometry::MultiPoint(MultiPoint(vec![]))),
+            None
         );
     }
 }

@@ -65,6 +65,69 @@ export function envelopeInternal(ring: Coordinate[]): Envelope {
 }
 
 /**
+ * Widens `a` to cover `b`. A private helper of `envelopeInternalGeometry`, not a
+ * substitute for any JTS member the port reaches: JTS builds a geometry's
+ * envelope inside each subclass's `computeEnvelopeInternal`, and the
+ * `Geometry.getEnvelopeInternal()` tag below records that substitution whole.
+ */
+function union(a: Envelope, b: Envelope): Envelope {
+  return {
+    minX: Math.min(a.minX, b.minX),
+    minY: Math.min(a.minY, b.minY),
+    maxX: Math.max(a.maxX, b.maxX),
+    maxY: Math.max(a.maxY, b.maxY),
+  };
+}
+
+/**
+ * A whole geometry's envelope.
+ *
+ * `envelopeInternal` above takes a ring; this takes a geometry. JTS has one
+ * `Geometry.getEnvelopeInternal()` that `LinearRing` inherits, so this is not a
+ * Java overload and the overload-suffix rule does not apply — the split into two functions
+ * exists because neither target model has a supertype spanning rings and
+ * geometries. The two are told apart by their tags.
+ *
+ * A polygon's envelope is its shell's: holes lie inside the shell and cannot
+ * widen it, which is what JTS's `Polygon.computeEnvelopeInternal` relies on.
+ *
+ * An empty geometry yields `envelopeInternal([])`, whose reversed bounds make
+ * `envelopeIntersectsCoordinate` false for every point — the same "intersects
+ * nothing" answer JTS's empty `Envelope` gives.
+ *
+ * @jts-adapter Geometry.getEnvelopeInternal()
+ */
+export function envelopeInternalGeometry(geometry: Geometry): Envelope {
+  switch (geometry.type) {
+    case "Point":
+      return envelopeInternal([geometry.coordinates]);
+    case "MultiPoint":
+    case "LineString":
+      return envelopeInternal(geometry.coordinates);
+    case "MultiLineString":
+      return geometry.coordinates.map((line) => envelopeInternal(line)).reduce(union, envelopeInternal([]));
+    case "Polygon":
+      return envelopeInternal(geometry.coordinates[0] ?? []);
+    case "MultiPolygon":
+      return geometry.coordinates.map((poly) => envelopeInternal(poly[0] ?? [])).reduce(union, envelopeInternal([]));
+    case "GeometryCollection":
+      return geometry.geometries.map(envelopeInternalGeometry).reduce(union, envelopeInternal([]));
+  }
+}
+
+/**
+ * Tests whether an envelope contains a point, boundary included.
+ *
+ * JTS spells this `!(x > maxx || x < minx || y > maxy || y < miny)`; the
+ * positive form below is the same predicate.
+ *
+ * @jts-adapter Envelope.intersects(Coordinate)
+ */
+export function envelopeIntersectsCoordinate(env: Envelope, p: Coordinate): boolean {
+  return p[0] >= env.minX && p[0] <= env.maxX && p[1] >= env.minY && p[1] <= env.maxY;
+}
+
+/**
  * @jts-adapter Geometry.isEmpty()
  */
 export function isGeometryEmpty(geometry: Geometry): boolean {

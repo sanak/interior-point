@@ -140,8 +140,9 @@ describe("scanPortAnchors", () => {
     // CoordinateSequence in both languages, Coordinate#equals2D in TypeScript,
     // CentroidTest's TOLERANCE and getArea() in both, and the JUnit-bound test
     // infrastructure GeometryTestCase and InteriorPointAreaPerfTest stand in
-    // for, in both languages.
-    assert.equal(kinds["jts-adapter"], 24);
+    // for, in both languages, plus the point-in-polygon stack's whole-geometry
+    // envelope and point-in-envelope helpers, in both languages (4).
+    assert.equal(kinds["jts-adapter"], 28);
   });
 });
 

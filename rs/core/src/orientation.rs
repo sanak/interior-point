@@ -33,6 +33,34 @@ pub(crate) const COUNTERCLOCKWISE: i32 = 1;
 #[allow(dead_code)]
 pub(crate) const COLLINEAR: i32 = 0;
 
+/// A value that indicates an orientation of clockwise, or a right turn.
+///
+/// JTS's alias for [`CLOCKWISE`]. Nothing in the ported subset reads it; it is
+/// here so the ported constant set is complete.
+///
+/// @jts Orientation#RIGHT
+#[allow(dead_code)]
+pub(crate) const RIGHT: i32 = CLOCKWISE;
+
+/// A value that indicates an orientation of counterclockwise, or a left turn.
+///
+/// JTS's alias for [`COUNTERCLOCKWISE`]. `RayCrossingCounter::count_segment`
+/// reads it, but that module is `#[cfg(test)]`, so a build without
+/// `--all-targets` sees no caller.
+///
+/// @jts Orientation#LEFT
+#[allow(dead_code)]
+pub(crate) const LEFT: i32 = COUNTERCLOCKWISE;
+
+/// A value that indicates an orientation of collinear, or no turn.
+///
+/// JTS's alias for [`COLLINEAR`]. Nothing in the ported subset reads it; it is
+/// here so the ported constant set is complete.
+///
+/// @jts Orientation#STRAIGHT
+#[allow(dead_code)]
+pub(crate) const STRAIGHT: i32 = COLLINEAR;
+
 /// Returns the orientation index of the direction of the point `q` relative to
 /// a directed infinite line specified by `p1-p2`.
 ///
@@ -154,7 +182,9 @@ pub(crate) fn is_ccw_coordinate_sequence(ring: &[Coord<f64>]) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{CLOCKWISE, COLLINEAR, COUNTERCLOCKWISE, index, is_ccw_coordinates};
+    use super::{
+        CLOCKWISE, COLLINEAR, COUNTERCLOCKWISE, LEFT, RIGHT, STRAIGHT, index, is_ccw_coordinates,
+    };
     use geo_types::Coord;
 
     fn ring(pts: &[(f64, f64)]) -> Vec<Coord<f64>> {
@@ -225,5 +255,12 @@ mod tests {
         assert_eq!(index(o, e, Coord { x: 0.0, y: 1.0 }), COUNTERCLOCKWISE);
         assert_eq!(index(o, e, Coord { x: 0.0, y: -1.0 }), CLOCKWISE);
         assert_eq!(index(o, e, Coord { x: 2.0, y: 0.0 }), COLLINEAR);
+    }
+
+    #[test]
+    fn names_each_orientation_twice_as_jts_does() {
+        assert_eq!(RIGHT, CLOCKWISE);
+        assert_eq!(LEFT, COUNTERCLOCKWISE);
+        assert_eq!(STRAIGHT, COLLINEAR);
     }
 }
