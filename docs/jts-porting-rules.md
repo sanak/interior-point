@@ -1,7 +1,9 @@
 # JTS Porting Rules
 
-Why these rules exist, and what they are. Referenced by name from comments across `js/src`,
-`rs/core/src`, and `scripts/`.
+Why these rules exist, and what they are. Most rules are cited by name from comments across
+`js/src`, `rs/core/src`, and `scripts/`; two — the strict-interior measurement and the
+adapter file-placement rule — are recorded here for the evidence and the rule they state,
+without a comment naming them.
 
 ## Why these rules exist
 
@@ -219,30 +221,27 @@ the filter's name and its body mirrors `filter(Geometry elem)`.
 `Centroid.java` is the former, which is why it is tracked. `Assert.java` and `Envelope.java` are
 the latter.
 
-| JTS API                                                | TypeScript                                                        | Rust                                      |
-| ------------------------------------------------------ | ----------------------------------------------------------------- | ----------------------------------------- |
-| `Coordinate`                                           | `Coordinate` (adapter alias of `Position`)                        | `Coord<f64>`                              |
-| `Envelope`                                             | `Envelope` (adapter, new)                                         | `Rect<f64>`                               |
-| `LinearRing.getEnvelopeInternal()`                     | `envelopeInternal(ring)` (adapter)                                | `ring.bounding_rect()`                    |
-| `Polygon.getExteriorRing()`                            | `rings[0]`                                                        | `polygon.exterior()`                      |
-| `Polygon.getNumInteriorRing()` / `getInteriorRingN(i)` | `rings.length - 1` / `rings[i + 1]`                               | `polygon.interiors()`                     |
-| `Polygon.getCoordinate()`                              | `rings[0][0]`                                                     | `exterior.0[0]`                           |
-| `Geometry.getCoordinates()`                            | coordinate array as-is                                            | `&LineString.0`                           |
-| `Geometry.isEmpty()`                                   | `isGeometryEmpty()` (adapter)                                     | `is_geometry_empty()` (adapter)           |
-| `Geometry.getDimension()`                              | `dimension()` (adapter)                                           | `dimension()` (adapter)                   |
-| `Geometry.getCentroid()`                               | `getCentroid()` (ported from `Centroid.java`)                     | `get_centroid()` (same)                   |
-| `Coordinate.distance()`                                | `distance()` (adapter)                                            | `distance()` (adapter)                    |
-| `Coordinate.equals2D()`                                | `equals2D()` local helper + `@jts-adapter`                        | `Coord` `PartialEq` (derived)             |
-| `Assert.isTrue()`                                      | `assertTrue()` (adapter)                                          | `assert!` (adapter)                       |
-| `GeometryFilter` / `Geometry.apply()`                  | recursive traversal + `@jts-deviate`                              | same                                      |
-| `Orientation.isCCW()` / `Orientation.index()`          | `isCCWCoordinates()` / `index()` (ported from `Orientation.java`) | `is_ccw_coordinates()` / `index()` (same) |
-| `CoordinateSequence` / `CoordinateArraySequence`       | coordinate array as-is + `@jts-adapter`                           | slice as-is + `@jts-adapter`              |
+The concept-by-concept mapping this rule produces — `Coordinate`, `Envelope`,
+`LinearRing.getEnvelopeInternal()`, `Geometry.isEmpty()`, `Geometry.getDimension()`,
+`Assert.isTrue()`, `Orientation.isCCW()`/`index()`, and the rest — is `CLAUDE.md`'s
+[Type Mapping table](../CLAUDE.md#type-mapping-jts--ts--rust). It is not reproduced here:
+this section states the rule the mapping follows, so the mapping itself has one home and
+cannot drift against a second copy.
+
+Two further JTS members are not in that table because they are not a type-for-type
+substitution, but they are still adapters, and the rule is why: `CoordinateSequence` and
+`Coordinate.equals2D()`.
 
 `CoordinateSequence` is an adapter rather than a ported type because neither port has a sequence
 abstraction: `Orientation.isCCW(Coordinate[])` wraps its argument in a `CoordinateArraySequence`
 before delegating, so in the ports that wrap is a no-op and both overloads take the same coordinate
 array. Both landing sites are kept anyway, so an upstream change to either is still a single
 anchored site.
+
+`Coordinate.equals2D()` has no equivalent in either target geometry model. TypeScript defines
+`equals2D` locally (in `orientation.ts`, tagged `@jts-adapter`, since it is that module's only
+caller); Rust needs no equivalent function, because `geo_types::Coord` already derives
+`PartialEq`, so `==` on two `Coord<f64>` values is the same exact-coordinate comparison.
 
 **Adapter type names follow the host ecosystem, so the two languages differ by design.** The rule:
 where the ecosystem already provides the concept as a named type, borrow that name; where the
@@ -292,11 +291,11 @@ unenforceable and would decay silently.
 Adapters are collected per language rather than scattered through the algorithm modules, so the
 boundary stays visible.
 
-| Language   | File                              | Contents                                                                                                                                       |
-| ---------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| TypeScript | `js/src/geometryAdapter.ts`       | `Coordinate` and `Envelope` types, `envelopeInternal`, `isGeometryEmpty`, `dimension`, `distance`                                              |
-| TypeScript | `js/src/assert.ts`                | `assertTrue` (throws, mirroring `AssertionFailedException`)                                                                                    |
-| Rust       | `rs/core/src/geometry_adapter.rs` | `is_geometry_empty`, `dimension`, `distance`. `Envelope` maps to `geo_types::Rect<f64>` and `assertTrue` to `assert!`, so neither needs a shim |
+| Language   | File                              | Contents                                                                                                                                                                                                                                                                                                                          |
+| ---------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TypeScript | `js/src/geometryAdapter.ts`       | `Coordinate` and `Envelope` types, `envelopeInternal`, `envelopeInternalGeometry`, `envelopeIntersectsCoordinate`, `isGeometryEmpty`, `dimension`, `distance`                                                                                                                                                                     |
+| TypeScript | `js/src/assert.ts`                | `assertTrue` (throws, mirroring `AssertionFailedException`)                                                                                                                                                                                                                                                                       |
+| Rust       | `rs/core/src/geometry_adapter.rs` | `envelope_internal`, `is_geometry_empty`, `dimension`, `distance` unconditionally; `envelope_internal_geometry` and `envelope_intersects_coordinate` are `#[cfg(test)]`, reachable only from the point-in-polygon locator stack. `Envelope` maps to `geo_types::Rect<f64>` and `assertTrue` to `assert!`, so neither needs a shim |
 
 Algorithm modules import from these files; nothing else is allowed to define geometry-model
 helpers.
