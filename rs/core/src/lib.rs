@@ -14,6 +14,18 @@ mod interior_point_line;
 mod interior_point_point;
 mod orientation;
 
+// The point-in-polygon stack. Ported so that both languages evaluate containment
+// with the same JTS-derived code in their world tests, and deliberately not part
+// of the published API (`interior_point` stays the only public item).
+// `#[cfg(test)]` is what keeps that true without a file-level
+// `#![allow(dead_code)]`, which `CLAUDE.md` bans.
+#[cfg(test)]
+mod location;
+#[cfg(test)]
+mod point_in_ring_test;
+#[cfg(test)]
+mod ray_crossing_counter;
+
 use geo_types::{Coord, Geometry};
 
 use geometry_adapter::{dimension, is_geometry_empty};

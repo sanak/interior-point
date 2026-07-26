@@ -110,6 +110,8 @@ describe("scanPortAnchors", () => {
       "js/src/interiorPointArea.ts",
       "js/src/interiorPointLine.ts",
       "js/src/interiorPointPoint.ts",
+      "js/src/location.ts",
+      "js/src/rayCrossingCounter.ts",
       "rs/core/src/dd.rs",
       "rs/core/src/cg_algorithms_dd.rs",
       "rs/core/src/orientation.rs",
@@ -117,6 +119,8 @@ describe("scanPortAnchors", () => {
       "rs/core/src/interior_point_area.rs",
       "rs/core/src/interior_point_line.rs",
       "rs/core/src/interior_point_point.rs",
+      "rs/core/src/location.rs",
+      "rs/core/src/ray_crossing_counter.rs",
     ]) {
       assert.ok((byPath.get(path) ?? 0) > 0, `${path} should carry @jts anchors`);
     }
@@ -141,8 +145,11 @@ describe("scanPortAnchors", () => {
     // CentroidTest's TOLERANCE and getArea() in both, and the JUnit-bound test
     // infrastructure GeometryTestCase and InteriorPointAreaPerfTest stand in
     // for, in both languages, plus the point-in-polygon stack's whole-geometry
-    // envelope and point-in-envelope helpers, in both languages (4).
-    assert.equal(kinds["jts-adapter"], 28);
+    // envelope and point-in-envelope helpers, in both languages (4). The RayCrossingCounter port adds
+    // four more: RayCrossingCounter#locatePointInRing(Coordinate,CoordinateSequence)
+    // in both languages, and AbstractPointInRingTest's JUnit-shape note in both
+    // languages' case-table test files.
+    assert.equal(kinds["jts-adapter"], 32);
   });
 });
 
@@ -328,13 +335,16 @@ describe("runAnchors", () => {
   // SimplePointInAreaLocatorTest 1; Location declares 3 constants, which
   // scanJavaDir never yields as members and which therefore contribute 0).
   //
-  // TEMPORARY: 23 of the 97 are the point-in-polygon stack, vendored here but
-  // not yet ported. The port restores this to 0 unported and 0 violations.
-  it("reports the repository's current state: 97 in-scope members, 23 unported", () => {
+  // TEMPORARY: the RayCrossingCounter port added Location (0 methods) and RayCrossingCounter (7),
+  // and drove all 6 AbstractPointInRingTest members and RayCrossingCounterTest's
+  // 1 through entry point 1, leaving 9 of the 97 unported: PointLocation's 2,
+  // SimplePointInAreaLocator's 6, and SimplePointInAreaLocatorTest's 1. The locator port
+  // restores this to 0 unported and 0 violations.
+  it("reports the repository's current state: 97 in-scope members, 9 unported", () => {
     const { violations, counts } = runAnchors(REPO_ROOT);
     assert.equal(counts.members, 97);
-    assert.equal(counts.unported, 23);
-    assert.equal(violations.length, 23);
+    assert.equal(counts.unported, 9);
+    assert.equal(violations.length, 9);
     assert.ok(counts.anchors > 0);
   });
 
