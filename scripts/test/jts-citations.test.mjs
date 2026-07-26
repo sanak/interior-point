@@ -137,6 +137,19 @@ describe("scanCitations", () => {
     assert.deepEqual(scanCitations(root), []);
   });
 
+  it("exempts its own module and test, which cite the vocabulary as an example", () => {
+    const root = fixtureRoot({
+      "scripts/jts-citations.mjs": "// per rule 3, see the design's plan for task 9\n",
+      "scripts/test/jts-citations.test.mjs": "// per rule 3, see the design's plan for task 9\n",
+      "scripts/other.mjs": "// per rule 3, see the design's plan for task 9\n",
+    });
+    const violations = scanCitations(root);
+    assert.deepEqual(
+      violations.map((v) => v.path),
+      ["scripts/other.mjs"],
+    );
+  });
+
   it("reports the repository's current tree as clean", () => {
     assert.deepEqual(scanCitations(REPO_ROOT), []);
   });

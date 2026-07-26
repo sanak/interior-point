@@ -23,6 +23,14 @@ export const CITATION_RE =
 const EXEMPT_DIRS = ["upstream/", "docs/site/public/"];
 
 /**
+ * This module and its test necessarily contain the vocabulary itself — as the
+ * regex literal, in doc comments explaining it, and as example strings the tests
+ * assert against — so they are exempt from their own scan. Nothing else gets this
+ * exemption: a citation appearing anywhere else is real.
+ */
+const EXEMPT_FILES = new Set(["scripts/jts-citations.mjs", "scripts/test/jts-citations.test.mjs"]);
+
+/**
  * `CITATION_RE`'s own `(?!3\.1\.6)` lookahead would silently wave through a
  * `§3.1.6` citation anywhere in the repository, not just in the two files that
  * actually cite RFC 7946 §3.1.6 (a public, permanent standard, unlike a design
@@ -59,6 +67,7 @@ export function scanCitations(root = REPO_ROOT) {
   const violations = [];
   for (const path of trackedFiles(root)) {
     if (EXEMPT_DIRS.some((dir) => path.startsWith(dir))) continue;
+    if (EXEMPT_FILES.has(path)) continue;
     let buffer;
     try {
       buffer = readFileSync(join(root, path));
