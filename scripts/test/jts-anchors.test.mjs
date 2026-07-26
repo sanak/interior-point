@@ -112,6 +112,8 @@ describe("scanPortAnchors", () => {
       "js/src/interiorPointPoint.ts",
       "js/src/location.ts",
       "js/src/rayCrossingCounter.ts",
+      "js/src/pointLocation.ts",
+      "js/src/simplePointInAreaLocator.ts",
       "rs/core/src/dd.rs",
       "rs/core/src/cg_algorithms_dd.rs",
       "rs/core/src/orientation.rs",
@@ -121,6 +123,8 @@ describe("scanPortAnchors", () => {
       "rs/core/src/interior_point_point.rs",
       "rs/core/src/location.rs",
       "rs/core/src/ray_crossing_counter.rs",
+      "rs/core/src/point_location.rs",
+      "rs/core/src/simple_point_in_area_locator.rs",
     ]) {
       assert.ok((byPath.get(path) ?? 0) > 0, `${path} should carry @jts anchors`);
     }
@@ -136,8 +140,11 @@ describe("scanPortAnchors", () => {
     // anchors), less the two that the factory/getter rule double-counts, plus Rust's
     // odd-crossings test placement (1), plus the ring envelope sharing notes
     // per language (6 — InteriorPointPolygon's shellEnvelope field, scanRing's
-    // env parameter, and ScanLineYOrdinateFinder's shellEnvelope parameter).
-    assert.equal(kinds["jts-deviate"], 22);
+    // env parameter, and ScanLineYOrdinateFinder's shellEnvelope parameter),
+    // plus the locator port's four: SimplePointInAreaLocator#locateInGeometry's
+    // GeometryCollectionIterator-to-recursion note and its MultiPolygon note,
+    // in both languages.
+    assert.equal(kinds["jts-deviate"], 26);
     // The geometry adapters (6 in TypeScript, 4 in Rust — Rust needs no
     // Coordinate or Envelope alias but does define its own ring envelope, since
     // geo's BoundingRect is a dev-dependency), the Assert shim's 3,
@@ -148,7 +155,8 @@ describe("scanPortAnchors", () => {
     // envelope and point-in-envelope helpers, in both languages (4). The RayCrossingCounter port adds
     // four more: RayCrossingCounter#locatePointInRing(Coordinate,CoordinateSequence)
     // in both languages, and AbstractPointInRingTest's JUnit-shape note in both
-    // languages' case-table test files.
+    // languages' case-table test files. The locator port adds none: its two @jts-deviate
+    // records are @jts-deviate, not @jts-adapter.
     assert.equal(kinds["jts-adapter"], 32);
   });
 });
@@ -335,16 +343,15 @@ describe("runAnchors", () => {
   // SimplePointInAreaLocatorTest 1; Location declares 3 constants, which
   // scanJavaDir never yields as members and which therefore contribute 0).
   //
-  // TEMPORARY: the RayCrossingCounter port added Location (0 methods) and RayCrossingCounter (7),
-  // and drove all 6 AbstractPointInRingTest members and RayCrossingCounterTest's
-  // 1 through entry point 1, leaving 9 of the 97 unported: PointLocation's 2,
-  // SimplePointInAreaLocator's 6, and SimplePointInAreaLocatorTest's 1. The locator port
-  // restores this to 0 unported and 0 violations.
-  it("reports the repository's current state: 97 in-scope members, 9 unported", () => {
+  // The locator port added PointLocation's 2 and SimplePointInAreaLocator's 6, and drove
+  // all 25 of JTS's AbstractPointInRingTest assertions through entry point 2
+  // (SimplePointInAreaLocatorTest's 1), closing the port: 0 of the 97 in-scope
+  // members are unported.
+  it("reports the repository's current state: 97 in-scope members, 0 unported", () => {
     const { violations, counts } = runAnchors(REPO_ROOT);
     assert.equal(counts.members, 97);
-    assert.equal(counts.unported, 9);
-    assert.equal(violations.length, 9);
+    assert.equal(counts.unported, 0);
+    assert.equal(violations.length, 0);
     assert.ok(counts.anchors > 0);
   });
 

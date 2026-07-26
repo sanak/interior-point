@@ -24,7 +24,11 @@ mod location;
 #[cfg(test)]
 mod point_in_ring_test;
 #[cfg(test)]
+mod point_location;
+#[cfg(test)]
 mod ray_crossing_counter;
+#[cfg(test)]
+mod simple_point_in_area_locator;
 
 use geo_types::{Coord, Geometry};
 

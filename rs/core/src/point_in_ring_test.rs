@@ -110,6 +110,14 @@ pub(super) fn parse_polygon(wkt_str: &str) -> geo_types::Polygon<f64> {
     }
 }
 
+/// Parses one of the table's WKT strings as a whole geometry, for the entry point
+/// that takes a geometry rather than a ring.
+pub(super) fn parse_geometry(wkt_str: &str) -> geo_types::Geometry<f64> {
+    use std::str::FromStr;
+    let parsed = wkt::Wkt::from_str(wkt_str).expect("the table's WKT must parse");
+    parsed.try_into().expect("the table's WKT must convert")
+}
+
 #[test]
 fn runs_all_25_of_jts_assertions() {
     // A guard, not a behaviour test: it fails loudly if a case is dropped while
@@ -178,5 +186,148 @@ mod ray_crossing_counter_test {
     #[test]
     fn test_robust_triangle() {
         run_pt_in_ring(&TEST_ROBUST_TRIANGLE);
+    }
+}
+
+mod simple_point_in_area_locator_test {
+    use super::{
+        Case, TEST_BOX, TEST_COMB, TEST_COMPLEX_RING, TEST_REPEATED_PTS,
+        TEST_ROBUST_STRESS_TRIANGLES, TEST_ROBUST_TRIANGLE, parse_geometry,
+    };
+    use crate::location::{BOUNDARY, EXTERIOR, INTERIOR};
+    use crate::simple_point_in_area_locator::{SimplePointInAreaLocator, locate};
+    use geo_types::{
+        Coord, Geometry, GeometryCollection, LineString, MultiPolygon, Point, Polygon,
+    };
+
+    /// Entry point 2, which additionally exercises the polygon/hole walk and both
+    /// envelope short-circuits.
+    ///
+    /// @jts SimplePointInAreaLocatorTest#runPtInRing(int,Coordinate,String)
+    fn run_pt_in_ring(cases: &[Case]) {
+        for (i, case) in cases.iter().enumerate() {
+            let geom = parse_geometry(case.wkt);
+            let actual = SimplePointInAreaLocator::new(&geom).locate(case.pt);
+            assert_eq!(
+                actual, case.expected,
+                "case {i}: ({}, {}) in {}",
+                case.pt.x, case.pt.y, case.wkt
+            );
+        }
+    }
+
+    #[test]
+    fn test_box() {
+        run_pt_in_ring(&TEST_BOX);
+    }
+
+    #[test]
+    fn test_complex_ring() {
+        run_pt_in_ring(&TEST_COMPLEX_RING);
+    }
+
+    #[test]
+    fn test_comb() {
+        run_pt_in_ring(&TEST_COMB);
+    }
+
+    #[test]
+    fn test_repeated_pts() {
+        run_pt_in_ring(&TEST_REPEATED_PTS);
+    }
+
+    #[test]
+    fn test_robust_stress_triangles() {
+        run_pt_in_ring(&TEST_ROBUST_STRESS_TRIANGLES);
+    }
+
+    #[test]
+    fn test_robust_triangle() {
+        run_pt_in_ring(&TEST_ROBUST_TRIANGLE);
+    }
+
+    fn with_hole() -> Polygon<f64> {
+        Polygon::new(
+            LineString::from(vec![
+                (0.0, 0.0),
+                (10.0, 0.0),
+                (10.0, 10.0),
+                (0.0, 10.0),
+                (0.0, 0.0),
+            ]),
+            vec![LineString::from(vec![
+                (2.0, 2.0),
+                (6.0, 2.0),
+                (6.0, 6.0),
+                (2.0, 6.0),
+                (2.0, 2.0),
+            ])],
+        )
+    }
+
+    // The 25 shared cases are all single-ring polygons, so the hole walk, the
+    // multipolygon branch, and the collection recursion need their own coverage.
+    #[test]
+    fn walks_holes_and_reports_them_as_jts_does() {
+        let geom = Geometry::Polygon(with_hole());
+        assert_eq!(locate(Coord { x: 4.0, y: 4.0 }, &geom), EXTERIOR);
+        assert_eq!(locate(Coord { x: 2.0, y: 4.0 }, &geom), BOUNDARY);
+        assert_eq!(locate(Coord { x: 1.0, y: 1.0 }, &geom), INTERIOR);
+    }
+
+    #[test]
+    fn finds_the_containing_member_of_a_multipolygon() {
+        let far = Polygon::new(
+            LineString::from(vec![
+                (5.0, 5.0),
+                (8.0, 5.0),
+                (8.0, 8.0),
+                (5.0, 8.0),
+                (5.0, 5.0),
+            ]),
+            vec![],
+        );
+        let geom = Geometry::MultiPolygon(MultiPolygon(vec![with_hole(), far]));
+        // (6, 6) is deliberately avoided here: it is exactly the with_hole
+        // ring's hole corner, so real JTS (verified with jts-core-1.19.0)
+        // reports BOUNDARY for it before the loop ever reaches `far` — not a
+        // useful case for "which member contains the point". (7, 7) sits
+        // strictly inside `far` and away from any other member's boundary.
+        assert_eq!(locate(Coord { x: 7.0, y: 7.0 }, &geom), INTERIOR);
+        assert_eq!(locate(Coord { x: 1.0, y: 1.0 }, &geom), INTERIOR);
+        assert_eq!(locate(Coord { x: 4.0, y: 4.0 }, &geom), EXTERIOR);
+    }
+
+    #[test]
+    fn recurses_into_a_nested_collection() {
+        let inner = GeometryCollection(vec![Geometry::Polygon(with_hole())]);
+        let geom = Geometry::GeometryCollection(GeometryCollection(vec![
+            Geometry::GeometryCollection(inner),
+            Geometry::Point(Point::new(100.0, 100.0)),
+        ]));
+        assert_eq!(locate(Coord { x: 1.0, y: 1.0 }, &geom), INTERIOR);
+        assert_eq!(locate(Coord { x: 4.0, y: 4.0 }, &geom), EXTERIOR);
+    }
+
+    #[test]
+    fn reports_empty_and_far_away_points_as_exterior() {
+        assert_eq!(
+            locate(
+                Coord { x: 0.0, y: 0.0 },
+                &Geometry::MultiPolygon(MultiPolygon(vec![]))
+            ),
+            EXTERIOR
+        );
+        // The fast path in locate(), before locate_in_geometry is reached at all.
+        assert_eq!(
+            locate(
+                Coord {
+                    x: 1000.0,
+                    y: 1000.0
+                },
+                &Geometry::Polygon(with_hole())
+            ),
+            EXTERIOR
+        );
     }
 }

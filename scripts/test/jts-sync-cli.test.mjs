@@ -32,16 +32,16 @@ describe("usage", () => {
 });
 
 describe("anchors", () => {
-  // TEMPORARY: the RayCrossingCounter port added Location and RayCrossingCounter, driving all 25 of
-  // JTS's AbstractPointInRingTest assertions through entry point 1. That leaves
-  // 9 of the 97 in-scope members unported (PointLocation, SimplePointInAreaLocator,
-  // and SimplePointInAreaLocatorTest), so the CLI still exits 1. The locator port restores
-  // this to 74 in-scope, 0 unported, exit 0.
-  it("exits 1 while the point-in-polygon stack is vendored but unported", async () => {
+  // The locator port added PointLocation and SimplePointInAreaLocator, driving all 25 of
+  // JTS's AbstractPointInRingTest assertions through entry point 2 as well. That
+  // closes the point-in-polygon port: all 97 in-scope members are now anchored,
+  // 0 unported, and the CLI exits 0.
+  it("exits 0 now that the point-in-polygon stack is fully ported", async () => {
     const { code, out } = await run(["anchors"]);
-    assert.equal(code, 1);
+    assert.equal(code, 0);
     assert.match(out, /97 method declarations/);
-    assert.match(out, /9 unported/);
+    assert.match(out, /0 unported/);
+    assert.ok(!/has no @jts anchor/.test(out));
   });
 
   it("exits 2 when given an argument, since it takes none", async () => {

@@ -60,6 +60,10 @@ pub(crate) fn envelope_internal(ring: &[Coord<f64>]) -> Option<Rect<f64>> {
 /// JTS member the port reaches: JTS builds a geometry's envelope inside each
 /// subclass's `computeEnvelopeInternal`, and the `Geometry.getEnvelopeInternal()`
 /// tag below records that substitution whole.
+///
+/// `#[cfg(test)]` for the same reason as `envelope_internal_geometry` below: its
+/// only caller is that function.
+#[cfg(test)]
 fn union(a: Option<Rect<f64>>, b: Option<Rect<f64>>) -> Option<Rect<f64>> {
     match (a, b) {
         (None, other) | (other, None) => other,
@@ -91,11 +95,13 @@ fn union(a: Option<Rect<f64>>, b: Option<Rect<f64>>) -> Option<Rect<f64>> {
 /// [`envelope_internal`] already uses.
 ///
 /// @jts-adapter Geometry.getEnvelopeInternal()
-// No caller outside this file's own tests yet: the RayCrossingCounter port and the locator port wire
-// `RayCrossingCounter` and `SimplePointInAreaLocator` to this adapter. The
-// allow (which also covers `union`, reachable only from here) comes off once
-// those callers land.
-#[allow(dead_code)]
+// `SimplePointInAreaLocator::locate` is this function's only non-test
+// caller, and it lives in a `#[cfg(test)] mod` — that is what keeps the whole
+// point-in-polygon stack out of the published API, per the note on
+// `rs/core/src/lib.rs`'s gated module group. That makes this function itself
+// unreachable outside test builds too, so it carries the same `#[cfg(test)]`
+// rather than an `#[allow(dead_code)]` CLAUDE.md bans.
+#[cfg(test)]
 pub(crate) fn envelope_internal_geometry(geometry: &Geometry<f64>) -> Option<Rect<f64>> {
     match geometry {
         Geometry::Point(p) => envelope_internal(&[p.0]),
@@ -128,9 +134,10 @@ pub(crate) fn envelope_internal_geometry(geometry: &Geometry<f64>) -> Option<Rec
 /// intersects nothing.
 ///
 /// @jts-adapter Envelope.intersects(Coordinate)
-// No caller outside this file's own tests yet: `RayCrossingCounter::count_segment`
-// and `SimplePointInAreaLocator` both read it.
-#[allow(dead_code)]
+// Same reasoning as `envelope_internal_geometry` above: its only non-test
+// callers are `SimplePointInAreaLocator::locate` and `locate_point_in_ring`,
+// both inside the `#[cfg(test)]`-gated point-in-polygon stack.
+#[cfg(test)]
 pub(crate) fn envelope_intersects_coordinate(env: Option<Rect<f64>>, p: Coord<f64>) -> bool {
     match env {
         None => false,
