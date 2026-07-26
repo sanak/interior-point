@@ -15,6 +15,7 @@ import { describe, it, expect } from "vitest";
 
 import type { Coordinate } from "../src/geometryAdapter";
 import { BOUNDARY, EXTERIOR, INTERIOR } from "../src/location";
+import { isInRing } from "../src/pointLocation";
 import { RayCrossingCounter } from "../src/rayCrossingCounter";
 import { locate, SimplePointInAreaLocator } from "../src/simplePointInAreaLocator";
 import { parseWkt } from "./utils/wktParser";
@@ -132,6 +133,74 @@ describe("RayCrossingCounter.locatePointInRing", () => {
       });
     });
   }
+});
+
+describe("RayCrossingCounter#getCount / #isPointInPolygon", () => {
+  // getCount and isPointInPolygon are ported but unreached inside the ported
+  // subset — locatePointInRingCoordinateCoordinates reads getLocation directly.
+  // Driven here segment-by-segment against the box fixture already verified
+  // above (testBox), tracing JTS's documented algorithm by hand rather than
+  // reading back whatever the port prints.
+  //
+  // Box ring (0,0)-(0,20)-(20,20)-(20,0)-(0,0), test point (10,10): the
+  // (0,0)-(0,20) edge lies entirely to the left of the test point (both
+  // endpoints have x=0 < 10) so countSegment's own fast path skips it; the two
+  // edges at y=0 and y=20 are horizontal and off the test y=10, so neither is
+  // counted either. Only (20,0)-(20,20) can cross a rightward ray from
+  // (10,10), and it does, so the count is 1 — odd, hence INTERIOR per JTS's
+  // rule — so isPointInPolygon must be true.
+  //
+  // @jts RayCrossingCounter#getCount()
+  // @jts RayCrossingCounter#isPointInPolygon()
+  it("counts 1 crossing and reports in-polygon for an interior point", () => {
+    const geom = parseWkt(box);
+    if (geom.type !== "Polygon") throw new Error(`expected a Polygon, got ${geom.type}`);
+    const ring = geom.coordinates[0];
+    const counter = new RayCrossingCounter([10, 10]);
+    for (let i = 1; i < ring.length; i++) {
+      counter.countSegment(ring[i], ring[i - 1]);
+    }
+    expect(counter.getCount()).toBe(1);
+    expect(counter.isPointInPolygon()).toBe(true);
+  });
+
+  // Same box ring, test point (100,100): every edge's endpoints have both
+  // x < 100, so countSegment's left-of-point fast path skips all four and the
+  // count stays 0 — even, hence EXTERIOR — so isPointInPolygon must be false.
+  //
+  // @jts RayCrossingCounter#getCount()
+  // @jts RayCrossingCounter#isPointInPolygon()
+  it("counts 0 crossings and reports not-in-polygon for an exterior point", () => {
+    const geom = parseWkt(box);
+    if (geom.type !== "Polygon") throw new Error(`expected a Polygon, got ${geom.type}`);
+    const ring = geom.coordinates[0];
+    const counter = new RayCrossingCounter([100, 100]);
+    for (let i = 1; i < ring.length; i++) {
+      counter.countSegment(ring[i], ring[i - 1]);
+    }
+    expect(counter.getCount()).toBe(0);
+    expect(counter.isPointInPolygon()).toBe(false);
+  });
+});
+
+describe("isInRing", () => {
+  // isInRing is ported but unreached inside the ported subset —
+  // SimplePointInAreaLocator reaches for locateInRing directly, per the
+  // module doc comment. Exercised here against the box fixture already
+  // verified by JTS above (testBox): its own doc defines "in ring" as
+  // locateInRing(...) !== EXTERIOR, so an interior point and a shell vertex
+  // (on the boundary) both count as true, and a point far outside the shell
+  // counts as false.
+  //
+  // @jts PointLocation#isInRing(Coordinate,Coordinate[])
+  it("is true for an interior point and a boundary vertex, false for exterior", () => {
+    const geom = parseWkt(box);
+    if (geom.type !== "Polygon") throw new Error(`expected a Polygon, got ${geom.type}`);
+    const ring = geom.coordinates[0];
+    expect(isInRing([10, 10], ring)).toBe(true); // INTERIOR
+    expect(isInRing([0, 0], ring)).toBe(true); // shell vertex — BOUNDARY
+    expect(isInRing([100, 100], ring)).toBe(false); // far outside — EXTERIOR
+  });
 });
 
 /**

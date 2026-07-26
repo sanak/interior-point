@@ -72,6 +72,9 @@ fn locate_in_geometry(p: Coord<f64>, geom: &Geometry<f64>) -> i32 {
 ///
 /// @jts SimplePointInAreaLocator#locatePointInPolygon(Coordinate,Polygon)
 pub(crate) fn locate_point_in_polygon(p: Coord<f64>, poly: &Polygon<f64>) -> i32 {
+    // Inlined rather than calling `is_geometry_empty`'s identical `Polygon` arm
+    // (`p.exterior().0.is_empty()`) to avoid the `Geometry` clone that call would
+    // require here, where only a `&Polygon` is on hand.
     if poly.exterior().0.is_empty() {
         return EXTERIOR;
     }

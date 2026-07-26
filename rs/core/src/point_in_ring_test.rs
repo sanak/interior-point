@@ -137,6 +137,7 @@ mod ray_crossing_counter_test {
         TEST_ROBUST_STRESS_TRIANGLES, TEST_ROBUST_TRIANGLE, parse_polygon,
     };
     use crate::ray_crossing_counter::RayCrossingCounter;
+    use geo_types::Coord;
 
     /// Entry point 1. JTS passes `geom.getCoordinates()`, which for these
     /// single-ring polygons is the shell; the ports have no whole-geometry
@@ -186,6 +187,78 @@ mod ray_crossing_counter_test {
     #[test]
     fn test_robust_triangle() {
         run_pt_in_ring(&TEST_ROBUST_TRIANGLE);
+    }
+
+    /// `get_count` and `is_point_in_polygon` are ported but unreached inside
+    /// the ported subset — `locate_point_in_ring_coordinate_coordinates` reads
+    /// `get_location` directly. Driven here segment-by-segment against the
+    /// box fixture already verified above (`test_box`), tracing JTS's
+    /// documented algorithm by hand rather than reading back whatever the
+    /// port prints.
+    ///
+    /// Box ring (0,0)-(0,20)-(20,20)-(20,0)-(0,0), test point (10,10): the
+    /// (0,0)-(0,20) edge lies entirely to the left of the test point (both
+    /// endpoints have x=0 < 10) so `count_segment`'s own fast path skips it;
+    /// the two edges at y=0 and y=20 are horizontal and off the test y=10, so
+    /// neither is counted either. Only (20,0)-(20,20) can cross a rightward
+    /// ray from (10,10), and it does, so the count is 1 — odd, hence
+    /// INTERIOR per JTS's rule — and `is_point_in_polygon` must be true.
+    ///
+    /// @jts RayCrossingCounter#getCount()
+    /// @jts RayCrossingCounter#isPointInPolygon()
+    #[test]
+    fn get_count_and_is_point_in_polygon_on_an_interior_point() {
+        let poly = parse_polygon(super::BOX);
+        let ring = &poly.exterior().0;
+        let mut counter = RayCrossingCounter::new(Coord { x: 10.0, y: 10.0 });
+        for i in 1..ring.len() {
+            counter.count_segment(ring[i], ring[i - 1]);
+        }
+        assert_eq!(counter.get_count(), 1);
+        assert!(counter.is_point_in_polygon());
+    }
+
+    /// Same box ring, test point (100,100): every edge's endpoints have both
+    /// x < 100, so `count_segment`'s left-of-point fast path skips all four
+    /// and the count stays 0 — even, hence EXTERIOR — so `is_point_in_polygon`
+    /// must be false.
+    ///
+    /// @jts RayCrossingCounter#getCount()
+    /// @jts RayCrossingCounter#isPointInPolygon()
+    #[test]
+    fn get_count_and_is_point_in_polygon_on_an_exterior_point() {
+        let poly = parse_polygon(super::BOX);
+        let ring = &poly.exterior().0;
+        let mut counter = RayCrossingCounter::new(Coord { x: 100.0, y: 100.0 });
+        for i in 1..ring.len() {
+            counter.count_segment(ring[i], ring[i - 1]);
+        }
+        assert_eq!(counter.get_count(), 0);
+        assert!(!counter.is_point_in_polygon());
+    }
+}
+
+mod point_location_test {
+    use super::{TEST_BOX, parse_polygon};
+    use crate::point_location::is_in_ring;
+    use geo_types::Coord;
+
+    /// `is_in_ring` is ported but unreached inside the ported subset —
+    /// `SimplePointInAreaLocator` reaches for `locate_in_ring` directly, per
+    /// the module doc comment. Exercised here against the box fixture already
+    /// verified by JTS above (`TEST_BOX`): its own doc defines "in ring" as
+    /// `locate_in_ring(...) != EXTERIOR`, so an interior point and a shell
+    /// vertex (on the boundary) both count as true, and a point far outside
+    /// the shell counts as false.
+    ///
+    /// @jts PointLocation#isInRing(Coordinate,Coordinate[])
+    #[test]
+    fn true_for_interior_and_boundary_false_for_exterior() {
+        let poly = parse_polygon(TEST_BOX[0].wkt);
+        let ring = &poly.exterior().0;
+        assert!(is_in_ring(TEST_BOX[0].pt, ring)); // (10,10) — INTERIOR
+        assert!(is_in_ring(Coord { x: 0.0, y: 0.0 }, ring)); // shell vertex — BOUNDARY
+        assert!(!is_in_ring(Coord { x: 100.0, y: 100.0 }, ring)); // far outside — EXTERIOR
     }
 }
 
@@ -337,6 +410,20 @@ mod simple_point_in_area_locator_test {
             locate(
                 Coord { x: 0.0, y: 0.0 },
                 &Geometry::MultiPolygon(MultiPolygon(vec![]))
+            ),
+            EXTERIOR
+        );
+        // Mirrors js/test/pointInRing.test.ts's "reports an empty geometry as
+        // exterior" case: a member with one empty ring is not "empty" by
+        // GeoJSON's shape, but has no envelope, so it takes the
+        // intersects-nothing path rather than reading a coordinate out of it.
+        assert_eq!(
+            locate(
+                Coord { x: 0.0, y: 0.0 },
+                &Geometry::MultiPolygon(MultiPolygon(vec![Polygon::new(
+                    LineString::from(Vec::<Coord<f64>>::new()),
+                    vec![]
+                )]))
             ),
             EXTERIOR
         );

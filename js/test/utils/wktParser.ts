@@ -9,7 +9,7 @@ import { wktToGeoJSON } from "betterknown";
 export function parseWktFile(filePath: string): Geometry[] {
   const text = readFileSync(filePath, "utf-8");
   const entries = text.split(/\n\s*\n/).filter((s) => s.trim().length > 0);
-  return entries.map((entry) => wktToGeoJSON(entry.trim().replace(/\s+/g, " ")) as Geometry);
+  return entries.map(parseWkt);
 }
 
 /**
@@ -17,8 +17,10 @@ export function parseWktFile(filePath: string): Geometry[] {
  * entries and calls the same conversion; this is the single-string half of it, for
  * tests that carry their WKT inline.
  *
- * Whitespace is collapsed first because JTS's own fixtures contain runs of spaces
- * inside coordinate lists — `AbstractPointInRingTest.testComplexRing` has one.
+ * Whitespace is collapsed first because `betterknown` rejects a raw newline inside
+ * a coordinate list, and `world.wkt`'s entries are wrapped across multiple lines —
+ * `parseWktFile` calls this per entry, so every one needs its embedded newlines
+ * folded to spaces before conversion.
  */
 export function parseWkt(wkt: string): Geometry {
   return wktToGeoJSON(wkt.trim().replace(/\s+/g, " ")) as Geometry;
