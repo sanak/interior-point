@@ -89,24 +89,35 @@ Following an upstream change:
 5. `node scripts/jts-sync.mjs anchors`
 
 `.github/workflows/jts-drift.yml` runs `check` weekly and opens or updates an issue
-labelled `jts-drift`. `anchors` runs in `ci.yml` on every push: every one of the 74
-in-scope members across the 13 pinned files carries a `@jts` anchor, so the check exits 0
+labelled `jts-drift`. `anchors` runs in `ci.yml` on every push: every one of the 97
+in-scope members across the 20 pinned files carries a `@jts` anchor, so the check exits 0
 and a future member added upstream without a counterpart fails the build.
 
 A `pin.json` file entry may declare `portedMembers`, listing the only members required to
 carry a `@jts` anchor — that is how a deliberately partial port (`DD`: 10 of 73 members)
 avoids 63 spurious `@jts-omit` tags. A file entry without the field requires full coverage.
+Eleven of the twenty entries declare one.
+
+`Location.java` is the limiting case: its entry lists three **constants**. `scanJavaDir`
+only ever yields method declarations, so a `portedMembers` entry naming a field matches
+nothing and is never validated — the narrowing comes from the field being present at all,
+which drops the unported `toLocationSymbol(int)` out of the coverage denominator. Anchors
+in the _port_ that name a constant are validated separately, by a field-declaration probe.
 
 Ported JTS _tests_ are pinned the same way: `CentroidTest.java` (2 ported members) and
 `InteriorPointTest.java` (3) are vendored with a `portedMembers` list, because an `@jts`
 anchor must name a vendored file and the ported test methods carry anchors like any other
-port. A JTS test class with no ported counterpart is not vendored and gets `@jts-adapter`
-instead: `GeometryTestCase`, whose XML runner vitest and the XML parsers stand in for, and
-`InteriorPointAreaPerfTest`, whose timing loop vitest bench and criterion stand in for.
+port. `AbstractPointInRingTest.java` (6 ported members), `RayCrossingCounterTest.java` (1),
+and `SimplePointInAreaLocatorTest.java` (1) are vendored the same way. A JTS test class with
+no ported counterpart is not vendored and gets `@jts-adapter` instead: `GeometryTestCase`,
+whose XML runner vitest and the XML parsers stand in for, and `InteriorPointAreaPerfTest`,
+whose timing loop vitest bench and criterion stand in for. `PointLocationTest`,
+`IndexedPointInAreaLocatorTest`, `PointLocatorTest`, `PointLocationOn4DLineTest`, and
+`SimpleRayCrossingStressTest` are deliberately not vendored: nothing in them is ported.
 
 `check` currently reports `upstream/jts/math/DD.java` as DRIFTED: upstream `master` added a
 `hashCode()` after the pinned commit. That is real upstream movement outside the ported
-subset, not a local edit — all 13 pinned files still match their recorded `sha256`.
+subset, not a local edit — all 20 pinned files still match their recorded `sha256`.
 
 ## Public API
 
@@ -145,19 +156,42 @@ Each language implements the same 4 files mirroring JTS:
 Reached from the dispatcher through `Centroid`, which `InteriorPointLine` and
 `InteriorPointPoint` call. Both languages carry the same set:
 
-| Module                                             | Purpose                                                  |
-| -------------------------------------------------- | -------------------------------------------------------- |
-| `centroid` / `core/src/centroid.rs`                | `Centroid` — weighted centroid for any dimension         |
-| `orientation` / `core/src/orientation.rs`          | `Orientation.isCCW` and `index`                          |
-| `cgAlgorithmsDD` / `core/src/cg_algorithms_dd.rs`  | Robust orientation predicate via double-double           |
-| `dd` / `core/src/dd.rs`                            | The `DD` extended-precision subset those predicates need |
-| `geometryAdapter` / `core/src/geometry_adapter.rs` | The geometry-model boundary — see below                  |
-| `assert` / — (Rust uses `assert!`)                 | Shim for JTS's `Assert`                                  |
+| Module                                                                  | Purpose                                                      |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `centroid` / `core/src/centroid.rs`                                     | `Centroid` — weighted centroid for any dimension             |
+| `orientation` / `core/src/orientation.rs`                               | `Orientation.isCCW` and `index`                              |
+| `cgAlgorithmsDD` / `core/src/cg_algorithms_dd.rs`                       | Robust orientation predicate via double-double               |
+| `dd` / `core/src/dd.rs`                                                 | The `DD` extended-precision subset those predicates need     |
+| `geometryAdapter` / `core/src/geometry_adapter.rs`                      | The geometry-model boundary — see below                      |
+| `assert` / — (Rust uses `assert!`)                                      | Shim for JTS's `Assert`                                      |
+| `location` / `core/src/location.rs`                                     | `Location` — the INTERIOR/BOUNDARY/EXTERIOR constants        |
+| `pointLocation` / `core/src/point_location.rs`                          | `PointLocation.locateInRing` and `isInRing`                  |
+| `rayCrossingCounter` / `core/src/ray_crossing_counter.rs`               | `RayCrossingCounter` — the crossing count and `countSegment` |
+| `simplePointInAreaLocator` / `core/src/simple_point_in_area_locator.rs` | `SimplePointInAreaLocator` — point-in-area location          |
+
+Those four are the point-in-polygon stack. Unlike every other supporting port they are
+**not reachable from the dispatcher**: they exist so both languages' world tests assert
+containment with JTS-derived code instead of a third-party predicate. They are not
+exported from `js/src/index.ts`, and in Rust they are declared `#[cfg(test)] mod` — which
+is what keeps `rs/core/src` free of file-level `#![allow(dead_code)]` while they have no
+runtime caller. The gate is that `js/src`'s four locator modules are the only modules
+unreachable from `index.ts`; TypeScript cannot enforce that, so it is recorded here.
+
+Because the Rust locator is `#[cfg(test)]`, an integration test cannot see it:
+`rs/core/tests/interior_point_world_test.rs` therefore lives at
+`rs/core/src/interior_point_world_test.rs` as a `#[cfg(test)] mod`, recorded with
+`@jts-deviate`, the same arrangement `centroid.rs` uses. The TypeScript world test stays
+in `js/test/`, since TypeScript tests can import unexported `js/src` modules directly.
 
 Every one is reachable from the crate root, so `rs/core/src` carries no file-level
-`#![allow(dead_code)]`. The two that remain are per-constant, on `Orientation::CLOCKWISE`
-and `COLLINEAR`: both complete the ported constant set, but the ported subset of the
-algorithm only ever compares against `COUNTERCLOCKWISE`.
+`#![allow(dead_code)]`. The eight that remain are per-item. Five are orientation
+constants — `CLOCKWISE`, `COLLINEAR`, `RIGHT`, `LEFT`, `STRAIGHT` — which complete
+JTS's constant set; `COUNTERCLOCKWISE` is the only one a build without `--all-targets`
+reaches, because `RayCrossingCounter` (which reads `LEFT` and `COLLINEAR`) is
+`#[cfg(test)]`. The other three are ported members with no caller inside the ported
+subset: `RayCrossingCounter::get_count` and `is_point_in_polygon` (`locate_point_in_ring_*`
+reads `get_location`), and `PointLocation::is_in_ring` (`SimplePointInAreaLocator` reads
+`locate_in_ring`). Each attribute names its member and its reason.
 
 ### Adapter Boundary
 
@@ -167,20 +201,27 @@ geometry-model helper may be defined; nothing else in `js/src` or `rs/core/src` 
 
 ### Type Mapping (JTS → TS / Rust)
 
-| JTS                                | TypeScript                                         | Rust                       |
-| ---------------------------------- | -------------------------------------------------- | -------------------------- |
-| `Coordinate`                       | `Coordinate` (adapter alias of GeoJSON `Position`) | `geo_types::Coord<f64>`    |
-| `Geometry`                         | `GeoJSON.Geometry`                                 | `geo_types::Geometry<f64>` |
-| `Polygon`                          | `GeoJSON.Polygon`                                  | `geo_types::Polygon<f64>`  |
-| `LinearRing` / `Coordinate[]`      | `Coordinate[]`                                     | `&[Coord<f64>]`            |
-| `Envelope`                         | adapter's `Envelope` record                        | `geo_types::Rect<f64>`     |
-| `Geometry.isEmpty()`               | `isGeometryEmpty`                                  | `is_geometry_empty`        |
-| `Geometry.getDimension()`          | `dimension`                                        | `dimension`                |
-| `Coordinate.distance(Coordinate)`  | `distance`                                         | `distance`                 |
-| `LinearRing.getEnvelopeInternal()` | `envelopeInternal`                                 | `envelope_internal`        |
-| `Assert.isTrue`                    | `assertTrue` (`js/src/assert.ts`)                  | `assert!`                  |
-| `Orientation`                      | `orientation.ts`                                   | `orientation.rs`           |
-| `List<Double>`                     | `number[]`                                         | `Vec<f64>` / `&mut [f64]`  |
+| JTS                                | TypeScript                                         | Rust                             |
+| ---------------------------------- | -------------------------------------------------- | -------------------------------- |
+| `Coordinate`                       | `Coordinate` (adapter alias of GeoJSON `Position`) | `geo_types::Coord<f64>`          |
+| `Geometry`                         | `GeoJSON.Geometry`                                 | `geo_types::Geometry<f64>`       |
+| `Polygon`                          | `GeoJSON.Polygon`                                  | `geo_types::Polygon<f64>`        |
+| `LinearRing` / `Coordinate[]`      | `Coordinate[]`                                     | `&[Coord<f64>]`                  |
+| `Envelope`                         | adapter's `Envelope` record                        | `geo_types::Rect<f64>`           |
+| `Geometry.isEmpty()`               | `isGeometryEmpty`                                  | `is_geometry_empty`              |
+| `Geometry.getDimension()`          | `dimension`                                        | `dimension`                      |
+| `Coordinate.distance(Coordinate)`  | `distance`                                         | `distance`                       |
+| `LinearRing.getEnvelopeInternal()` | `envelopeInternal`                                 | `envelope_internal`              |
+| `Envelope.intersects(Coordinate)`  | `envelopeIntersectsCoordinate`                     | `envelope_intersects_coordinate` |
+| `Geometry.getEnvelopeInternal()`   | `envelopeInternalGeometry`                         | `envelope_internal_geometry`     |
+| `Assert.isTrue`                    | `assertTrue` (`js/src/assert.ts`)                  | `assert!`                        |
+| `Orientation`                      | `orientation.ts`                                   | `orientation.rs`                 |
+| `List<Double>`                     | `number[]`                                         | `Vec<f64>` / `&mut [f64]`        |
+
+`getEnvelopeInternal()` is one method on `Geometry` that `LinearRing` inherits, not a Java
+overload, so the overload-suffix rule does not apply; the split into two functions exists because
+neither target model has a supertype spanning rings and geometries, and the two are told
+apart by their tags.
 
 Rust computes the ring envelope in the adapter rather than through `geo`'s `BoundingRect`:
 `geo` is a dev-dependency and the port adds no runtime ones, while `Rect` itself lives in

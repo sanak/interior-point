@@ -11,11 +11,13 @@ use geo_types::Coord;
 
 use crate::cg_algorithms_dd::orientation_index_coordinate;
 
-// `CLOCKWISE` and `COLLINEAR` complete the ported constant set but the ported
-// subset of the algorithm only ever compares against `COUNTERCLOCKWISE`. They
-// are anchored members of `Orientation`, so a faithful port keeps them; the
-// allow is on the two constants rather than the file so that any genuinely
-// dead code added later is still caught.
+// `CLOCKWISE` and `COLLINEAR` complete the ported constant set. Of the two,
+// only `CLOCKWISE` is truly uncalled: `COLLINEAR` is compared against by
+// `RayCrossingCounter::count_segment`, `#[cfg(test)]` in this crate, so a
+// build without `--all-targets` still sees no caller. They are anchored
+// members of `Orientation`, so a faithful port keeps them; the allow is on
+// the two constants rather than the file so that any genuinely dead code
+// added later is still caught.
 /// A value that indicates an orientation of clockwise, or a right turn.
 ///
 /// @jts Orientation#CLOCKWISE
@@ -28,6 +30,9 @@ pub(crate) const CLOCKWISE: i32 = -1;
 pub(crate) const COUNTERCLOCKWISE: i32 = 1;
 
 /// A value that indicates an orientation of collinear, or no turn.
+///
+/// `RayCrossingCounter::count_segment` reads it, but that module is
+/// `#[cfg(test)]`, so a build without `--all-targets` sees no caller.
 ///
 /// @jts Orientation#COLLINEAR
 #[allow(dead_code)]
