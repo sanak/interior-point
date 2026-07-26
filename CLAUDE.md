@@ -96,7 +96,7 @@ and a future member added upstream without a counterpart fails the build.
 A `pin.json` file entry may declare `portedMembers`, listing the only members required to
 carry a `@jts` anchor — that is how a deliberately partial port (`DD`: 10 of 73 members)
 avoids 63 spurious `@jts-omit` tags. A file entry without the field requires full coverage.
-Eleven of the twenty entries declare one.
+Twelve of the twenty entries declare one.
 
 `Location.java` is the limiting case: its entry lists three **constants**. `scanJavaDir`
 only ever yields method declarations, so a `portedMembers` entry naming a field matches
@@ -247,6 +247,13 @@ it and its `TestCentroid.xml` test lives in a `#[cfg(test)] mod tests` inside `c
 recorded with `@jts-deviate`. That module reaches the shared XML parser with
 `include!("../tests/utils/xml_test_parser.rs")` — `#[path] mod` cannot, because its base
 directory would be the non-existent `core/src/centroid/`.
+
+The Rust world test is the second exception, for the same underlying reason: the point-in-polygon
+locator it now asserts containment through is `#[cfg(test)]` (see Supporting Ports above), so
+`rs/core/tests/interior_point_world_test.rs` cannot reach it either. It lives instead at
+`rs/core/src/interior_point_world_test.rs` as a `#[cfg(test)] mod`, recorded with
+`@jts-deviate`, and `rs/core/tests/` now holds only `interior_point_test.rs`. The TypeScript
+world test is unaffected and stays in `js/test/`.
 
 ## Development Approach
 
