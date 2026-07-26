@@ -130,8 +130,10 @@ describe("scanPortAnchors", () => {
     // language (14 — four getInteriorPoint, ScanLineYOrdinateFinder#getScanLineY,
     // and DimensionNonEmptyFilter, of which the last is one tag carrying two
     // anchors), less the two that the factory/getter rule double-counts, plus Rust's
-    // odd-crossings test placement (1).
-    assert.equal(kinds["jts-deviate"], 16);
+    // odd-crossings test placement (1), plus the ring envelope sharing notes
+    // per language (6 — InteriorPointPolygon's shellEnvelope field, scanRing's
+    // env parameter, and ScanLineYOrdinateFinder's shellEnvelope parameter).
+    assert.equal(kinds["jts-deviate"], 22);
     // The geometry adapters (6 in TypeScript, 4 in Rust — Rust needs no
     // Coordinate or Envelope alias but does define its own ring envelope, since
     // geo's BoundingRect is a dev-dependency), the Assert shim's 3,
