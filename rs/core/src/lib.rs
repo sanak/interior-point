@@ -89,9 +89,9 @@ fn dimension_non_empty(geom: &Geometry<f64>) -> i32 {
 /// @jts InteriorPoint.DimensionNonEmptyFilter#getDimension()
 /// @jts-deviate GeometryFilter / Geometry.apply() are not part of the adapted
 ///   geometry model, so the filter becomes a recursive traversal with identical
-///   semantics. The receptacle is preserved: the function keeps the filter's
-///   name and its body mirrors `filter(Geometry elem)`, returning what
-///   `getDimension()` would have reported, per the structure rule.
+///   semantics. The receptacle is preserved, per the structure rule: the function
+///   keeps the filter's name and its body mirrors `filter(Geometry elem)`,
+///   returning what `getDimension()` would have reported.
 fn dimension_non_empty_filter(elem: &Geometry<f64>) -> i32 {
     let mut dim = -1;
     if let Geometry::GeometryCollection(gc) = elem {

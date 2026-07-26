@@ -42,7 +42,7 @@ export function rsType(javaType) {
 }
 
 /**
- * An unchanged-name-rule mechanical case conversion. The acronym rule runs first so that a
+ * The unchanged-name rule's mechanical case conversion. The acronym rule runs first so that a
  * run of capitals followed by a capitalised word splits between them:
  * `isCCWCoordinates` -> `is_ccw_coordinates`, not `is_ccwcoordinates`. A trailing
  * acronym has no following lowercase and is left whole (`selfAddDD` ->

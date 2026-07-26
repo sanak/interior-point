@@ -66,40 +66,39 @@ Rust port.
 
 ## Naming
 
-1. **Use JTS identifiers unchanged.** TypeScript matches Java spelling exactly. Rust applies
-   mechanical case conversion only: members and variables to `snake_case`, types to `PascalCase`,
-   constants to `SCREAMING_SNAKE_CASE`. Clarifying renames are forbidden: `intersection` must not
-   become `intersectionX`. Readability is served by porting the Javadoc, not by renaming.
-
 ### The unchanged-name rule
 
-This is rule 1 above: a ported symbol keeps its JTS name (subject to Rust's mechanical case
-conversion), full stop. No rewording for clarity, no shortening, no "more idiomatic" alternative.
-The reason is provenance, not taste — a renamed symbol is a broken landing site for the next
-upstream diff, and the whole point of this document is to keep those landing sites mechanical to
-find.
+**Use JTS identifiers unchanged.** TypeScript matches Java spelling exactly. Rust applies
+mechanical case conversion only: members and variables to `snake_case`, types to `PascalCase`,
+constants to `SCREAMING_SNAKE_CASE`. Clarifying renames are forbidden: `intersection` must not
+become `intersectionX`. Readability is served by porting the Javadoc, not by renaming.
+
+A ported symbol keeps its JTS name (subject to Rust's mechanical case conversion), full stop. No
+rewording for clarity, no shortening, no "more idiomatic" alternative. The reason is provenance,
+not taste — a renamed symbol is a broken landing site for the next upstream diff, and the whole
+point of this document is to keep those landing sites mechanical to find.
 
 ### The overload-suffix rule
 
 **Overload disambiguation.** Append the PascalCase name of the first parameter's Java type to the
 base name, uniformly across all overloads of that name. Array types use the plural of the element
 type (`Coordinate[]` → `Coordinates`). **If the first parameter type does not uniquely identify the
-overload, append the PascalCase names of every parameter type in order** (the rule-3 extension,
-below). Constructors are outside this rule entirely: both emitters name them structurally
-(`constructor` in TypeScript, `new` in Rust) and never consult the derived name.
+overload, append the PascalCase names of every parameter type in order** (the overload-suffix
+rule's extension, below). Constructors are outside this rule entirely: both emitters name them
+structurally (`constructor` in TypeScript, `new` in Rust) and never consult the derived name.
 
-**Rule 3 extension for overloads sharing a first parameter type.** The base rule was written
-against the five originally tracked files, where every overload set differs in its first parameter
-type. `DD.java` breaks that assumption three times:
+**The overload-suffix rule's extension, for overloads sharing a first parameter type.** The base
+rule was written against the five originally tracked files, where every overload set differs in
+its first parameter type. `DD.java` breaks that assumption three times:
 
-| Java member                      | Rule 3 as originally written | Collides with              | Extended name              |
-| -------------------------------- | ---------------------------- | -------------------------- | -------------------------- |
-| `DD#selfAdd(double)`             | `selfAddDouble`              | —                          | `selfAddDouble`            |
-| `DD#selfAdd(double,double)`      | `selfAddDouble`              | **`selfAdd(double)`**      | `selfAddDoubleDouble`      |
-| `DD#selfMultiply(double)`        | `selfMultiplyDouble`         | —                          | `selfMultiplyDouble`       |
-| `DD#selfMultiply(double,double)` | `selfMultiplyDouble`         | **`selfMultiply(double)`** | `selfMultiplyDoubleDouble` |
-| `DD#init(double)`                | `initDouble`                 | —                          | `initDouble`               |
-| `DD#init(double,double)`         | `initDouble`                 | **`init(double)`**         | `initDoubleDouble`         |
+| Java member                      | Base overload-suffix name | Collides with              | Extended name              |
+| -------------------------------- | ------------------------- | -------------------------- | -------------------------- |
+| `DD#selfAdd(double)`             | `selfAddDouble`           | —                          | `selfAddDouble`            |
+| `DD#selfAdd(double,double)`      | `selfAddDouble`           | **`selfAdd(double)`**      | `selfAddDoubleDouble`      |
+| `DD#selfMultiply(double)`        | `selfMultiplyDouble`      | —                          | `selfMultiplyDouble`       |
+| `DD#selfMultiply(double,double)` | `selfMultiplyDouble`      | **`selfMultiply(double)`** | `selfMultiplyDoubleDouble` |
+| `DD#init(double)`                | `initDouble`              | —                          | `initDouble`               |
+| `DD#init(double,double)`         | `initDouble`              | **`init(double)`**         | `initDoubleDouble`         |
 
 Whether the short form is safe is decided from the **whole overload set**, not per member, so every
 member of a set agrees on the form. Every name in the resulting-names table is unchanged by this
@@ -111,20 +110,21 @@ files and diffing byte-for-byte against the pre-change output.
 Two further corrections the extension exposed, both in `scripts/jts-scaffold.mjs`:
 
 - **Constructors cannot be suffixed at all.** `DD.java` declares five `DD` constructors, one of
-  them nullary, and rule 3 has no first parameter type to append for `DD()`. Since both emitters
-  name constructors structurally, they are excluded from the rule rather than given an artificial
-  suffix. Rule 3's nullary case still throws loudly for a genuine _method_ overload set, so the
-  rule's limit stays visible rather than silently colliding.
+  them nullary, and the overload-suffix rule has no first parameter type to append for `DD()`.
+  Since both emitters name constructors structurally, they are excluded from the rule rather than
+  given an artificial suffix. The overload-suffix rule's nullary case still throws loudly for a
+  genuine _method_ overload set, so the rule's limit stays visible rather than silently colliding.
 - **`toSnake` collapsed internal acronyms.** `isCCWCoordinates` became `is_ccwcoordinates`, because
   the conversion only split lower→upper boundaries. A run of capitals followed by a capitalised
   word now splits between them (`is_ccw_coordinates`, `cg_algorithms_dd`), while a trailing acronym
-  stays whole (`selfMultiplyDD` → `self_multiply_dd`). Without this, rule 1's "mechanical case
-  conversion" could not produce the Rust names this document specifies.
+  stays whole (`selfMultiplyDD` → `self_multiply_dd`). Without this, the unchanged-name rule's
+  "mechanical case conversion" could not produce the Rust names this document specifies.
 
-**Type-safe overloading was considered and rejected.** Rule 3's suffixes are not a workaround for
-missing type safety — they are already fully type-checked, since each suffixed name takes distinct
-parameter types. The alternative was to keep the JTS name and let the type system disambiguate;
-measured, it is available in Rust for all five overload sets but in TypeScript for only four:
+**Type-safe overloading was considered and rejected.** The overload-suffix rule's suffixes are not
+a workaround for missing type safety — they are already fully type-checked, since each suffixed
+name takes distinct parameter types. The alternative was to keep the JTS name and let the type
+system disambiguate; measured, it is available in Rust for all five overload sets but in
+TypeScript for only four:
 
 | Overload set                                                                                     | TS overload signatures | Rust trait dispatch |
 | ------------------------------------------------------------------------------------------------ | ---------------------- | ------------------- |
@@ -185,9 +185,9 @@ Resulting names for the five originally tracked files:
 | `InteriorPoint#getInteriorPoint(Geometry)` (static)                        | `interiorPoint` + `@jts-deviate`                                                  | `interior_point` + `@jts-deviate`       |
 | `Centroid#getCentroid(Geometry)` (static)                                  | `getCentroid`                                                                     | `get_centroid`                          |
 
-The rule-3 extension table (`DD#selfAdd`, `DD#selfMultiply`, `DD#init`) is reproduced under
-[the overload-suffix rule](#the-overload-suffix-rule) above, since it exists to justify that rule's
-extension rather than to add further rows to this one.
+The overload-suffix rule's extension table (`DD#selfAdd`, `DD#selfMultiply`, `DD#init`) is
+reproduced under [the overload-suffix rule](#the-overload-suffix-rule) above, since it exists to
+justify that rule's extension rather than to add further rows to this one.
 
 ## The structure rule
 
@@ -311,15 +311,15 @@ Test methods carry anchors too, so anchor coverage extends to tests
 (`js/test/utils/xmlTestParser.ts`, `rs/core/tests/utils/xml_test_parser.rs`) gained a branch for
 the `getCentroid` op alongside the pre-existing `getInteriorPoint` one.
 
-| JTS test asset                                  | Size                                       | Treatment                                                                                                                                    |
-| ----------------------------------------------- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `testxml/general/TestInteriorPoint.xml`         | 24 cases                                   | Vendored, moved under `upstream/jts/resources/`                                                                                              |
-| `testxml/general/TestCentroid.xml`              | 38 cases                                   | Vendored; drives the `Centroid` tests                                                                                                        |
-| `core/.../testdata/world.wkt`                   | 244 geometries                             | Vendored, moved under `upstream/jts/resources/`                                                                                              |
-| `algorithm/InteriorPointTest.java`              | 3 test methods                             | Mirrored in both languages, anchored                                                                                                         |
-| `algorithm/CentroidTest.java`                   | 1 test method (`testCentroidMultiPolygon`) | Ported to both languages                                                                                                                     |
-| `perf/algorithm/InteriorPointAreaPerfTest.java` | —                                          | Ported as benches, anchored                                                                                                                  |
-| `test/jts/GeometryTestCase.java`                | 474 lines                                  | **Not ported.** JUnit-bound test infrastructure; vitest / cargo test plus the existing XML parsers fill the role. Recorded as `@jts-adapter` |
+| JTS test asset                                  | Size                                                                  | Treatment                                                                                                                                    |
+| ----------------------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `testxml/general/TestInteriorPoint.xml`         | 24 cases                                                              | Vendored, moved under `upstream/jts/resources/`                                                                                              |
+| `testxml/general/TestCentroid.xml`              | 38 cases                                                              | Vendored; drives the `Centroid` tests                                                                                                        |
+| `core/.../testdata/world.wkt`                   | 244 geometries                                                        | Vendored, moved under `upstream/jts/resources/`                                                                                              |
+| `algorithm/InteriorPointTest.java`              | 3 test methods                                                        | Mirrored in both languages, anchored                                                                                                         |
+| `algorithm/CentroidTest.java`                   | 2 ported members (`testCentroidMultiPolygon`, `areaWeightedCentroid`) | Ported to both languages                                                                                                                     |
+| `perf/algorithm/InteriorPointAreaPerfTest.java` | —                                                                     | **Not vendored.** Ported as benches (vitest bench / criterion stand in for the timing loop); recorded as `@jts-adapter`                      |
+| `test/jts/GeometryTestCase.java`                | 474 lines                                                             | **Not ported.** JUnit-bound test infrastructure; vitest / cargo test plus the existing XML parsers fill the role. Recorded as `@jts-adapter` |
 
 ### The exact-comparison rule
 
@@ -354,7 +354,8 @@ with `@jts-deviate`.
 ## Behaviour changes
 
 Both changes below are intentional and belong in the changelog rather than being silently absorbed.
-The published version is 0.2.0, so breaking changes are acceptable.
+Neither port has reached a stable 1.0 release — `js/package.json` is at `0.1.0`, `rs/Cargo.toml` at
+`0.2.0` — so a breaking change is an acceptable outcome, provided it is recorded rather than hidden.
 
 ### The even-crossing assertion
 

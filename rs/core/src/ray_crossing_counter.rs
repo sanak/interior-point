@@ -118,8 +118,8 @@ impl RayCrossingCounter {
     /// Gets the count of crossings.
     ///
     /// Nothing in the ported subset calls this: `locate_point_in_ring_*` reads
-    /// `get_location` instead. It is ported because `pin.json` scopes
-    /// `RayCrossingCounter`'s `portedMembers` to the whole file.
+    /// `get_location` instead. It is ported because `pin.json`'s `portedMembers`
+    /// for `RayCrossingCounter` lists it among the 7 of 8 declared members in scope.
     ///
     /// @jts RayCrossingCounter#getCount()
     #[allow(dead_code)]

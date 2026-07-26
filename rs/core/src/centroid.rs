@@ -276,8 +276,8 @@ mod tests {
 
     #[test]
     fn treats_zero_length_lines_as_points() {
-        // Zero-length-line centroid defect: JTS 1.19.0 gives (6.666…, 6.666…) here; the pre-retrofit
-        // inline centroid gave (0, 0).
+        // Zero-length-line centroid defect: JTS 1.19.0 gives (6.666…, 6.666…) here; the
+        // pre-retrofit inline centroid gave (0, 0).
         let mls = MultiLineString(vec![
             LineString::from(vec![(0.0, 0.0), (0.0, 0.0)]),
             LineString::from(vec![(10.0, 10.0), (10.0, 10.0)]),

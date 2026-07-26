@@ -55,8 +55,8 @@ impl DD {
 
     /// Adds the argument to the value of `self`.
     ///
-    /// Java's `H`, `S`, `T` and `C` become `big_h`, `big_s`, `big_t` and `big_c`:
-    /// an unchanged-name-rule mechanical case conversion, since rustfmt and clippy reject
+    /// Java's `H`, `S`, `T` and `C` become `big_h`, `big_s`, `big_t` and `big_c`: the
+    /// unchanged-name rule's mechanical case conversion, since rustfmt and clippy reject
     /// single uppercase locals.
     ///
     /// @jts DD#selfAdd(double)
