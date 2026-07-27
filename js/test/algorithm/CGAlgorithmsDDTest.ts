@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { orientationIndexCoordinate, orientationIndexDouble } from "../src/cgAlgorithmsDD";
+import { orientationIndexCoordinate, orientationIndexDouble } from "../../src/algorithm/CGAlgorithmsDD";
 
 /**
  * The triples JTS's own OrientationIndexFailureTest documents as defeating

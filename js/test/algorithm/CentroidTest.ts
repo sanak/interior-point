@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
-import { getCentroid } from "../src/centroid";
-import type { Coordinate } from "../src/geometryAdapter";
-import { parseXmlTestCases } from "./utils/xmlTestParser";
+import { getCentroid } from "../../src/algorithm/Centroid";
+import type { Coordinate } from "../../src/GeometryAdapter";
+import { parseXmlTestCases } from "../utils/XmlTestParser";
 
-const FIXTURE = join(import.meta.dirname, "../../upstream/jts/resources/testxml/general/TestCentroid.xml");
+const FIXTURE = join(import.meta.dirname, "../../../upstream/jts/resources/testxml/general/TestCentroid.xml");
 
 describe("Centroid", () => {
   const cases = parseXmlTestCases(FIXTURE, "getCentroid");

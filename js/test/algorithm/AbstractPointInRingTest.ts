@@ -13,12 +13,12 @@
 import type { Geometry } from "geojson";
 import { describe, it, expect } from "vitest";
 
-import type { Coordinate } from "../src/geometryAdapter";
-import { BOUNDARY, EXTERIOR, INTERIOR } from "../src/location";
-import { isInRing } from "../src/pointLocation";
-import { RayCrossingCounter } from "../src/rayCrossingCounter";
-import { locate, SimplePointInAreaLocator } from "../src/simplePointInAreaLocator";
-import { parseWkt } from "./utils/wktParser";
+import type { Coordinate } from "../../src/GeometryAdapter";
+import { BOUNDARY, EXTERIOR, INTERIOR } from "../../src/geom/Location";
+import { isInRing } from "../../src/algorithm/PointLocation";
+import { RayCrossingCounter } from "../../src/algorithm/RayCrossingCounter";
+import { locate, SimplePointInAreaLocator } from "../../src/algorithm/locate/SimplePointInAreaLocator";
+import { parseWkt } from "../utils/WktParser";
 
 interface Case {
   expected: number;

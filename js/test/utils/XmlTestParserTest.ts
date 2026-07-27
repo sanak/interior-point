@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
-import { parseXmlTestCases } from "./xmlTestParser";
+import { parseXmlTestCases } from "./XmlTestParser";
 
 const FIXTURES = join(import.meta.dirname, "../../../upstream/jts/resources/testxml/general");
 

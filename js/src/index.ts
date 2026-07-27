@@ -1,2 +1,2 @@
-export { interiorPoint } from "./interiorPoint";
-export type { Coordinate } from "./geometryAdapter";
+export { interiorPoint } from "./algorithm/InteriorPoint";
+export type { Coordinate } from "./GeometryAdapter";

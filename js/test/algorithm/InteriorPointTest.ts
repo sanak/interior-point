@@ -8,11 +8,11 @@
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import type { Geometry } from "geojson";
-import { AssertionFailedError } from "../src/assert";
-import { interiorPoint } from "../src/interiorPoint";
-import { parseXmlTestCases } from "./utils/xmlTestParser";
+import { AssertionFailedError } from "../../src/Assert";
+import { interiorPoint } from "../../src/algorithm/InteriorPoint";
+import { parseXmlTestCases } from "../utils/XmlTestParser";
 
-const xmlPath = resolve(__dirname, "../../upstream/jts/resources/testxml/general/TestInteriorPoint.xml");
+const xmlPath = resolve(__dirname, "../../../upstream/jts/resources/testxml/general/TestInteriorPoint.xml");
 const testCases = parseXmlTestCases(xmlPath, "getInteriorPoint");
 
 /**

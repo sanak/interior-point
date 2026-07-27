@@ -28,12 +28,12 @@
  */
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
-import { interiorPoint } from "../src/interiorPoint";
-import { INTERIOR } from "../src/location";
-import { locate } from "../src/simplePointInAreaLocator";
-import { parseWktFile } from "./utils/wktParser";
+import { interiorPoint } from "../../src/algorithm/InteriorPoint";
+import { INTERIOR } from "../../src/geom/Location";
+import { locate } from "../../src/algorithm/locate/SimplePointInAreaLocator";
+import { parseWktFile } from "../utils/WktParser";
 
-const wktPath = resolve(__dirname, "../../upstream/jts/resources/testdata/world.wkt");
+const wktPath = resolve(__dirname, "../../../upstream/jts/resources/testdata/world.wkt");
 const geometries = parseWktFile(wktPath);
 
 /** @jts InteriorPointTest#testAll() */

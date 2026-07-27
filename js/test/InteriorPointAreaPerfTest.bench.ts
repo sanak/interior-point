@@ -9,8 +9,8 @@
  */
 import { bench, describe } from "vitest";
 import type { Geometry } from "geojson";
-import { interiorPoint } from "../src/interiorPoint";
-import { createSineStar, reducePrecision } from "./utils/sineStar";
+import { interiorPoint } from "../src/algorithm/InteriorPoint";
+import { createSineStar, reducePrecision } from "./utils/SineStar";
 
 // JTS InteriorPointAreaPerfTest parameters
 const ORG_X = 100;

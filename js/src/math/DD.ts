@@ -3,7 +3,7 @@
  * which maintain 106 bits (approximately 30 decimal digits) of precision.
  *
  * Only the subset reachable from {@link orientationIndexDouble} is ported; see
- * `portedMembers` for `upstream/jts/math/DD.java` in `upstream/jts/pin.json`.
+ * `portedMembers` for `upstream/jts/main/math/DD.java` in `upstream/jts/pin.json`.
  *
  * Every method body below is a literal transcription of the vendored Java. The
  * operation order is the algorithm: Dekker's splitting constant and Knuth's

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DD } from "../src/dd";
+import { DD } from "../../src/math/DD";
 
 /** Reproduces CGAlgorithmsDD's unrolled 2x2 determinant so the DD ops are exercised together. */
 function det(ax: number, ay: number, bx: number, by: number): number {

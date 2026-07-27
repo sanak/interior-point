@@ -1,14 +1,14 @@
 import type { Geometry, Polygon } from "geojson";
 
-import type { Coordinate } from "./geometryAdapter";
+import type { Coordinate } from "../../GeometryAdapter";
 import {
   envelopeInternal,
   envelopeInternalGeometry,
   envelopeIntersectsCoordinate,
   isGeometryEmpty,
-} from "./geometryAdapter";
-import { BOUNDARY, EXTERIOR, INTERIOR } from "./location";
-import { locateInRing } from "./pointLocation";
+} from "../../GeometryAdapter";
+import { BOUNDARY, EXTERIOR, INTERIOR } from "../../geom/Location";
+import { locateInRing } from "../PointLocation";
 
 /**
  * Computes the location of points relative to a polygonal geometry, using a

@@ -9,7 +9,7 @@ import {
   STRAIGHT,
   index,
   isCCWCoordinates,
-} from "../src/orientation";
+} from "../../src/algorithm/Orientation";
 
 const CCW_SQUARE = [
   [0, 0],

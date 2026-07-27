@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AssertionFailedError, assertTrue } from "../src/assert";
+import { AssertionFailedError, assertTrue } from "../src/Assert";
 
 describe("assertTrue", () => {
   it("does nothing when the assertion holds", () => {

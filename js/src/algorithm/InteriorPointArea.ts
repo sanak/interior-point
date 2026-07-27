@@ -1,8 +1,8 @@
 import type { Geometry, Polygon } from "geojson";
 
-import { assertTrue } from "./assert";
-import type { Coordinate, Envelope } from "./geometryAdapter";
-import { envelopeInternal, isGeometryEmpty } from "./geometryAdapter";
+import { assertTrue } from "../Assert";
+import type { Coordinate, Envelope } from "../GeometryAdapter";
+import { envelopeInternal, isGeometryEmpty } from "../GeometryAdapter";
 
 /**
  * Computes a point in the interior of an areal geometry.

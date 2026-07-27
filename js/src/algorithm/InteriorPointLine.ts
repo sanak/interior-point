@@ -1,8 +1,8 @@
 import type { Geometry } from "geojson";
 
-import { getCentroid } from "./centroid";
-import type { Coordinate } from "./geometryAdapter";
-import { distance, isGeometryEmpty } from "./geometryAdapter";
+import { getCentroid } from "./Centroid";
+import type { Coordinate } from "../GeometryAdapter";
+import { distance, isGeometryEmpty } from "../GeometryAdapter";
 
 /**
  * Computes a point in the interior of an linear geometry.

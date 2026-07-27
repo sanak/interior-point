@@ -1,13 +1,13 @@
-import type { Coordinate } from "./geometryAdapter";
+import type { Coordinate } from "../GeometryAdapter";
 
-import { DD } from "./dd";
+import { DD } from "../math/DD";
 
 /**
  * Implements various fundamental Computational Geometric algorithms using
  * {@link DD} arithmetic.
  *
  * Only the subset reachable from `Orientation.isCCW` is ported; see
- * `portedMembers` for `upstream/jts/algorithm/CGAlgorithmsDD.java` in
+ * `portedMembers` for `upstream/jts/main/algorithm/CGAlgorithmsDD.java` in
  * `upstream/jts/pin.json`.
  *
  * @jts CGAlgorithmsDD

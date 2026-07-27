@@ -1,13 +1,13 @@
-import type { Coordinate } from "./geometryAdapter";
+import type { Coordinate } from "../GeometryAdapter";
 
-import { orientationIndexCoordinate } from "./cgAlgorithmsDD";
+import { orientationIndexCoordinate } from "./CGAlgorithmsDD";
 
 /**
  * Functions to compute the orientation of basic geometric structures
  * including point triplets (triangles) and rings.
  *
  * Only the subset reachable from `Centroid.addShell` is ported; see
- * `portedMembers` for `upstream/jts/algorithm/Orientation.java` in
+ * `portedMembers` for `upstream/jts/main/algorithm/Orientation.java` in
  * `upstream/jts/pin.json`.
  *
  * @jts Orientation

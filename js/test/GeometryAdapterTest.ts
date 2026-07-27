@@ -7,7 +7,7 @@ import {
   envelopeInternalGeometry,
   envelopeIntersectsCoordinate,
   isGeometryEmpty,
-} from "../src/geometryAdapter";
+} from "../src/GeometryAdapter";
 
 describe("geometryAdapter", () => {
   it("reports the dimension of each geometry type", () => {

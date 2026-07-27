@@ -1,7 +1,7 @@
-import type { Coordinate } from "./geometryAdapter";
+import type { Coordinate } from "../GeometryAdapter";
 
-import { EXTERIOR } from "./location";
-import { RayCrossingCounter } from "./rayCrossingCounter";
+import { EXTERIOR } from "../geom/Location";
+import { RayCrossingCounter } from "./RayCrossingCounter";
 
 /**
  * Functions for locating points within basic geometric structures such as line
