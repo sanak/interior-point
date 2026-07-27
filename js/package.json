@@ -38,6 +38,7 @@
   ],
   "scripts": {
     "build": "vite build && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "prepack": "cp ../LICENSE . && cp ../LICENSE_EDLv1.txt .",
     "test": "node --test \"test/**/*Test.ts\"",
     "test:watch": "node --test --watch \"test/**/*Test.ts\"",

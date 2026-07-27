@@ -9,6 +9,7 @@
     "format": "prettier --write \"**/*.{ts,mts,mjs,json,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,mts,mjs,json,md,yml,yaml}\"",
     "build:js": "pnpm --filter ./js run build",
+    "typecheck:js": "pnpm --filter ./js run typecheck",
     "test:scripts": "node --test \"scripts/test/*.test.mjs\"",
     "test:js": "pnpm --filter ./js run test",
     "test:rs": "cd rs && cargo test --workspace",

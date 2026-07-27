@@ -29,6 +29,7 @@ Anything under `docs/` outside `docs/site/` is invisible to VitePress. To publis
 ```bash
 pnpm install              # install dependencies
 pnpm test:js              # run TS tests (node --test)
+pnpm typecheck:js         # typecheck src + test (tsc --noEmit)
 pnpm build:js             # build TS library (tsc)
 pnpm lint                 # eslint
 pnpm lint:fix             # eslint --fix
@@ -37,7 +38,7 @@ pnpm format:check         # prettier --check
 ```
 
 Single file: `cd js && node --test test/algorithm/InteriorPointTest.ts`
-Single case: `cd js && node --test --test-name-pattern "zero-area polygon" "test/**/*Test.ts"`
+Single case: `cd js && node --test --test-name-pattern "^zero-area polygon$" test/algorithm/InteriorPointTest.ts`
 Watch mode: `cd js && pnpm test:watch`
 
 ### Rust (from repo root)
@@ -259,10 +260,6 @@ Both languages share the same test structure:
 - `algorithm/InteriorPointWorldTest.ts` / `src/test/algorithm/interior_point_world_test.rs` — integration tests using the `world.wkt` fixture from `upstream/jts/resources/`
 - `InteriorPointAreaPerfTest.bench.ts` / `benches/` — benchmarks (tinybench / cargo bench)
 
-`node:test` has no benchmark counterpart, so the TypeScript bench is not a test at all: it is a
-plain script that drives tinybench itself and `pnpm bench:js` runs it with `node` directly. That
-is also why it does not match the `*Test.ts` collection pattern below — it must not be collected.
-
 `Centroid` is the exception: it is crate-internal in Rust, so `rs/core/tests/` cannot reach
 it and its `TestCentroid.xml` test lives in its own file under `src/test/algorithm/`,
 `rs/core/src/test/algorithm/centroid_test.rs`, recorded with `@jts-deviate`. That file reaches
@@ -281,17 +278,10 @@ not matching that pattern is silently skipped. `rs/core/Cargo.toml` needs a hand
 entry per integration test, since cargo auto-discovers only `tests/*.rs` and nothing under
 `tests/algorithm/` otherwise.
 
-Node runs the `.ts` files directly by type stripping — there is no bundler in the test path, so
-two Node ESM rules bind every file under `js/src` and `js/test`:
-
-- every relative import specifier carries an explicit `.ts` extension; extension search and
-  directory indexes do not exist in ESM
-- `__dirname` does not exist; fixtures resolve from `import.meta.dirname`
-
-Type stripping erases types without checking them. `pnpm build:js` runs `tsc` over
-`tsconfig.build.json`, which covers `src` only, so nothing in CI typechecks `js/test` — as was
-already the case under the previous runner, which transformed the tests without checking them.
-`cd js && npx tsc -p tsconfig.json --noEmit` covers both when you want it.
+Node runs the `.ts` files itself, so every relative import under `js/src` and `js/test` carries an
+explicit `.ts` extension and fixtures resolve from `import.meta.dirname`, not `__dirname`. Type
+stripping does not typecheck, and no type-aware ESLint rule is enabled, so `pnpm typecheck:js` is
+the only command covering `js/test`; `pnpm build:js` typechecks `src` alone.
 
 ## Development Approach
 
@@ -309,7 +299,7 @@ already the case under the previous runner, which transformed the tests without 
 
 GitHub Actions (`.github/workflows/ci.yml`):
 
-- **test-js**: pnpm install → lint → format:check → test:js
+- **test-js**: pnpm install → lint → format:check → typecheck:js → test:js
 - **test-rs**: cargo test --workspace → clippy --workspace --all-targets -D warnings → fmt --all --check
 - **docs**: VitePress build → GitHub Pages deploy (main branch only)
 
