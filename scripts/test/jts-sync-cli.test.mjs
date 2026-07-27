@@ -216,10 +216,10 @@ describe("pull", () => {
 
 describe("locate", () => {
   it("maps InteriorPointArea.java:262 to findBestMidpoint", async () => {
-    const { code, out } = await run(["locate", "upstream/jts/algorithm/InteriorPointArea.java:262"]);
+    const { code, out } = await run(["locate", "upstream/jts/main/algorithm/InteriorPointArea.java:262"]);
     assert.equal(code, 0);
     assert.match(out, /^InteriorPointArea\.InteriorPointPolygon#findBestMidpoint\(List<Double>\)$/m);
-    assert.match(out, /upstream\/jts\/algorithm\/InteriorPointArea\.java:251-/);
+    assert.match(out, /upstream\/jts\/main\/algorithm\/InteriorPointArea\.java:251-/);
   });
 
   it("accepts a bare file name", async () => {
@@ -264,7 +264,8 @@ describe("locate", () => {
       mkdirSync(join(root, "js/src"), { recursive: true });
       mkdirSync(join(root, "rs/core/src"), { recursive: true });
       const java = "upstream/jts/algorithm/InteriorPointArea.java";
-      writeFileSync(join(root, java), readFileSync(join(REPO_ROOT, java)));
+      const realJava = "upstream/jts/main/algorithm/InteriorPointArea.java";
+      writeFileSync(join(root, java), readFileSync(join(REPO_ROOT, realJava)));
       // The Java scan is driven by pin.json, so the fixture has to pin its one file.
       writeFileSync(
         join(root, "upstream/jts/pin.json"),

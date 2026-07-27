@@ -75,18 +75,24 @@ describe("verifyVendored", () => {
 
   it("records a ported member subset for each partially ported file", () => {
     const byPath = new Map(readPin().files.map((f) => [f.localPath, f]));
-    assert.equal(byPath.get("upstream/jts/algorithm/Orientation.java").portedMembers.length, 3);
-    assert.equal(byPath.get("upstream/jts/algorithm/CGAlgorithmsDD.java").portedMembers.length, 4);
-    assert.equal(byPath.get("upstream/jts/math/DD.java").portedMembers.length, 10);
+    assert.equal(byPath.get("upstream/jts/main/algorithm/Orientation.java").portedMembers.length, 3);
+    assert.equal(byPath.get("upstream/jts/main/algorithm/CGAlgorithmsDD.java").portedMembers.length, 4);
+    assert.equal(byPath.get("upstream/jts/main/math/DD.java").portedMembers.length, 10);
     // The five fully tracked files declare no subset, so every member stays in scope.
-    assert.equal(byPath.get("upstream/jts/algorithm/Centroid.java").portedMembers, undefined);
-    assert.equal(byPath.get("upstream/jts/geom/Location.java").portedMembers.length, 3);
-    assert.equal(byPath.get("upstream/jts/algorithm/RayCrossingCounter.java").portedMembers.length, 7);
-    assert.equal(byPath.get("upstream/jts/algorithm/PointLocation.java").portedMembers.length, 2);
-    assert.equal(byPath.get("upstream/jts/algorithm/locate/SimplePointInAreaLocator.java").portedMembers.length, 6);
-    assert.equal(byPath.get("upstream/jts/algorithm/AbstractPointInRingTest.java").portedMembers.length, 6);
-    assert.equal(byPath.get("upstream/jts/algorithm/RayCrossingCounterTest.java").portedMembers.length, 1);
-    assert.equal(byPath.get("upstream/jts/algorithm/locate/SimplePointInAreaLocatorTest.java").portedMembers.length, 1);
+    assert.equal(byPath.get("upstream/jts/main/algorithm/Centroid.java").portedMembers, undefined);
+    assert.equal(byPath.get("upstream/jts/main/geom/Location.java").portedMembers.length, 3);
+    assert.equal(byPath.get("upstream/jts/main/algorithm/RayCrossingCounter.java").portedMembers.length, 7);
+    assert.equal(byPath.get("upstream/jts/main/algorithm/PointLocation.java").portedMembers.length, 2);
+    assert.equal(
+      byPath.get("upstream/jts/main/algorithm/locate/SimplePointInAreaLocator.java").portedMembers.length,
+      6,
+    );
+    assert.equal(byPath.get("upstream/jts/test/algorithm/AbstractPointInRingTest.java").portedMembers.length, 6);
+    assert.equal(byPath.get("upstream/jts/test/algorithm/RayCrossingCounterTest.java").portedMembers.length, 1);
+    assert.equal(
+      byPath.get("upstream/jts/test/algorithm/locate/SimplePointInAreaLocatorTest.java").portedMembers.length,
+      1,
+    );
   });
 
   it("reports a locally edited file as modified", () => {

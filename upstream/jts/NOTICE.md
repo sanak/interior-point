@@ -9,24 +9,24 @@ never edited locally and are not compiled or distributed as part of this project
 
 ## Copyright
 
-- `algorithm/AbstractPointInRingTest.java` — Copyright (c) 2016 Vivid Solutions.
-- `algorithm/CGAlgorithmsDD.java` — Copyright (c) 2016 Martin Davis.
-- `algorithm/Centroid.java` — Copyright (c) 2016 Vivid Solutions.
-- `algorithm/CentroidTest.java` — carries no copyright header upstream; covered by
+- `test/algorithm/AbstractPointInRingTest.java` — Copyright (c) 2016 Vivid Solutions.
+- `main/algorithm/CGAlgorithmsDD.java` — Copyright (c) 2016 Martin Davis.
+- `main/algorithm/Centroid.java` — Copyright (c) 2016 Vivid Solutions.
+- `test/algorithm/CentroidTest.java` — carries no copyright header upstream; covered by
   the repository-wide license below.
-- `algorithm/InteriorPoint.java` — Copyright (c) 2016 Martin Davis.
-- `algorithm/InteriorPointArea.java` — Copyright (c) 2016 Vivid Solutions.
-- `algorithm/InteriorPointLine.java` — Copyright (c) 2016 Vivid Solutions.
-- `algorithm/InteriorPointPoint.java` — Copyright (c) 2016 Vivid Solutions.
-- `algorithm/InteriorPointTest.java` — Copyright (c) 2016 Vivid Solutions.
-- `algorithm/Orientation.java` — Copyright (c) 2016 Vivid Solutions.
-- `algorithm/PointLocation.java` — Copyright (c) 2016 Vivid Solutions.
-- `algorithm/RayCrossingCounter.java` — Copyright (c) 2016 Vivid Solutions.
-- `algorithm/RayCrossingCounterTest.java` — Copyright (c) 2016 Vivid Solutions.
-- `algorithm/locate/SimplePointInAreaLocator.java` — Copyright (c) 2016 Vivid Solutions.
-- `algorithm/locate/SimplePointInAreaLocatorTest.java` — Copyright (c) 2016 Vivid Solutions.
-- `geom/Location.java` — Copyright (c) 2016 Vivid Solutions.
-- `math/DD.java` — Copyright (c) 2016 Martin Davis.
+- `main/algorithm/InteriorPoint.java` — Copyright (c) 2016 Martin Davis.
+- `main/algorithm/InteriorPointArea.java` — Copyright (c) 2016 Vivid Solutions.
+- `main/algorithm/InteriorPointLine.java` — Copyright (c) 2016 Vivid Solutions.
+- `main/algorithm/InteriorPointPoint.java` — Copyright (c) 2016 Vivid Solutions.
+- `test/algorithm/InteriorPointTest.java` — Copyright (c) 2016 Vivid Solutions.
+- `main/algorithm/Orientation.java` — Copyright (c) 2016 Vivid Solutions.
+- `main/algorithm/PointLocation.java` — Copyright (c) 2016 Vivid Solutions.
+- `main/algorithm/RayCrossingCounter.java` — Copyright (c) 2016 Vivid Solutions.
+- `test/algorithm/RayCrossingCounterTest.java` — Copyright (c) 2016 Vivid Solutions.
+- `main/algorithm/locate/SimplePointInAreaLocator.java` — Copyright (c) 2016 Vivid Solutions.
+- `test/algorithm/locate/SimplePointInAreaLocatorTest.java` — Copyright (c) 2016 Vivid Solutions.
+- `main/geom/Location.java` — Copyright (c) 2016 Vivid Solutions.
+- `main/math/DD.java` — Copyright (c) 2016 Martin Davis.
 - `resources/**` — test resources from the same repository and commit.
 
 ## License

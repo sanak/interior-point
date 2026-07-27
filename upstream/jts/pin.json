@@ -6,38 +6,38 @@
   "files": [
     {
       "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/InteriorPoint.java",
-      "localPath": "upstream/jts/algorithm/InteriorPoint.java",
+      "localPath": "upstream/jts/main/algorithm/InteriorPoint.java",
       "sha256": "08dd262246463397f7709b7dfb1ef05891d34e133b4ebf57ca816d9029401389"
     },
     {
       "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/InteriorPointArea.java",
-      "localPath": "upstream/jts/algorithm/InteriorPointArea.java",
+      "localPath": "upstream/jts/main/algorithm/InteriorPointArea.java",
       "sha256": "76d7aeff1f5386f9bf0d491997d56f2a127c1437b127b83ae7b2f4dbb3f1fd8b"
     },
     {
       "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/InteriorPointLine.java",
-      "localPath": "upstream/jts/algorithm/InteriorPointLine.java",
+      "localPath": "upstream/jts/main/algorithm/InteriorPointLine.java",
       "sha256": "e8acad75063955215f64978c5eb0fad0741fb0493890cdb91ba922ba3e1d2ce8"
     },
     {
       "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/InteriorPointPoint.java",
-      "localPath": "upstream/jts/algorithm/InteriorPointPoint.java",
+      "localPath": "upstream/jts/main/algorithm/InteriorPointPoint.java",
       "sha256": "c8e73c94ff6e61d7ac2004c0a9fd779ad72cbcf4be2d60dafe3fd9a756342697"
     },
     {
       "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/Centroid.java",
-      "localPath": "upstream/jts/algorithm/Centroid.java",
+      "localPath": "upstream/jts/main/algorithm/Centroid.java",
       "sha256": "0d944641dbfb240f0971f4174cf0e7c94a376ff376480e3b7b38c0d1f4c942cc"
     },
     {
       "upstreamPath": "modules/core/src/test/java/org/locationtech/jts/algorithm/CentroidTest.java",
-      "localPath": "upstream/jts/algorithm/CentroidTest.java",
+      "localPath": "upstream/jts/test/algorithm/CentroidTest.java",
       "sha256": "5b79cd7cf72fe78adc01e2a66757d7ba2437e6e528d61ad2b7add3dda09d4a0a",
       "portedMembers": ["CentroidTest#areaWeightedCentroid(Geometry)", "CentroidTest#testCentroidMultiPolygon()"]
     },
     {
       "upstreamPath": "modules/core/src/test/java/org/locationtech/jts/algorithm/InteriorPointTest.java",
-      "localPath": "upstream/jts/algorithm/InteriorPointTest.java",
+      "localPath": "upstream/jts/test/algorithm/InteriorPointTest.java",
       "sha256": "d3dc22fd42737f04b4102d9b0f284bde6c7b55770af3ec7cefb38df71da0809b",
       "portedMembers": [
         "InteriorPointTest#testPolygonZeroArea()",
@@ -47,7 +47,7 @@
     },
     {
       "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/Orientation.java",
-      "localPath": "upstream/jts/algorithm/Orientation.java",
+      "localPath": "upstream/jts/main/algorithm/Orientation.java",
       "sha256": "bdf35ffc5eab43454b651061c4f0f91359fa6154ec30548a359d1ae3482acc4e",
       "portedMembers": [
         "Orientation#isCCW(Coordinate[])",
@@ -57,7 +57,7 @@
     },
     {
       "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/CGAlgorithmsDD.java",
-      "localPath": "upstream/jts/algorithm/CGAlgorithmsDD.java",
+      "localPath": "upstream/jts/main/algorithm/CGAlgorithmsDD.java",
       "sha256": "a124999a7521b8a1363e5e8000dd9b5b53e45b7cf5ab7cdac04a6fef770638a2",
       "portedMembers": [
         "CGAlgorithmsDD#orientationIndex(Coordinate,Coordinate,Coordinate)",
@@ -68,7 +68,7 @@
     },
     {
       "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/math/DD.java",
-      "localPath": "upstream/jts/math/DD.java",
+      "localPath": "upstream/jts/main/math/DD.java",
       "sha256": "9e83b99537e7c8e4796a05ba5c06ed47178b5c774b224450578eb43463bb5d39",
       "portedMembers": [
         "DD#valueOf(double)",
@@ -85,13 +85,13 @@
     },
     {
       "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/geom/Location.java",
-      "localPath": "upstream/jts/geom/Location.java",
+      "localPath": "upstream/jts/main/geom/Location.java",
       "sha256": "fb7b24c63b31e88830f4297cfb35920fa7e49d3852884b35080911c773f4aa94",
       "portedMembers": ["Location#INTERIOR", "Location#BOUNDARY", "Location#EXTERIOR"]
     },
     {
       "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/RayCrossingCounter.java",
-      "localPath": "upstream/jts/algorithm/RayCrossingCounter.java",
+      "localPath": "upstream/jts/main/algorithm/RayCrossingCounter.java",
       "sha256": "ec0def3f6eea2c107666c6e082a0f18986c7de880c14ff63ee58179ea596b5b3",
       "portedMembers": [
         "RayCrossingCounter#locatePointInRing(Coordinate,Coordinate[])",
@@ -105,7 +105,7 @@
     },
     {
       "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/PointLocation.java",
-      "localPath": "upstream/jts/algorithm/PointLocation.java",
+      "localPath": "upstream/jts/main/algorithm/PointLocation.java",
       "sha256": "a012c94bf80b81072448ca4622199022ac326e67769ab13b6bbb7d61a97bb06d",
       "portedMembers": [
         "PointLocation#locateInRing(Coordinate,Coordinate[])",
@@ -114,7 +114,7 @@
     },
     {
       "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/locate/SimplePointInAreaLocator.java",
-      "localPath": "upstream/jts/algorithm/locate/SimplePointInAreaLocator.java",
+      "localPath": "upstream/jts/main/algorithm/locate/SimplePointInAreaLocator.java",
       "sha256": "75b596962d99bd7a9a0b506d12d70b887cef1b76e376caa6d0d30c2ed6392e6b",
       "portedMembers": [
         "SimplePointInAreaLocator#locate(Coordinate,Geometry)",
@@ -127,7 +127,7 @@
     },
     {
       "upstreamPath": "modules/core/src/test/java/org/locationtech/jts/algorithm/AbstractPointInRingTest.java",
-      "localPath": "upstream/jts/algorithm/AbstractPointInRingTest.java",
+      "localPath": "upstream/jts/test/algorithm/AbstractPointInRingTest.java",
       "sha256": "f2bf2ad520c9585626d003916c39baf10c74f1ba0916001e3bed875f53eb75a3",
       "portedMembers": [
         "AbstractPointInRingTest#testBox()",
@@ -140,13 +140,13 @@
     },
     {
       "upstreamPath": "modules/core/src/test/java/org/locationtech/jts/algorithm/RayCrossingCounterTest.java",
-      "localPath": "upstream/jts/algorithm/RayCrossingCounterTest.java",
+      "localPath": "upstream/jts/test/algorithm/RayCrossingCounterTest.java",
       "sha256": "ff28176659a6fadce1685f57564cc9ce39f10ac3425dc851ecff4aac6bcd3c60",
       "portedMembers": ["RayCrossingCounterTest#runPtInRing(int,Coordinate,String)"]
     },
     {
       "upstreamPath": "modules/core/src/test/java/org/locationtech/jts/algorithm/locate/SimplePointInAreaLocatorTest.java",
-      "localPath": "upstream/jts/algorithm/locate/SimplePointInAreaLocatorTest.java",
+      "localPath": "upstream/jts/test/algorithm/locate/SimplePointInAreaLocatorTest.java",
       "sha256": "b6e8292bce28bf9185d2eb5d34841f34e70ef85170bb06db1fd87a4628c9d14c",
       "portedMembers": ["SimplePointInAreaLocatorTest#runPtInRing(int,Coordinate,String)"]
     },
