@@ -1,10 +1,10 @@
 import type { Geometry } from "geojson";
 
-import type { Coordinate } from "../GeometryAdapter";
-import { dimension, isGeometryEmpty } from "../GeometryAdapter";
-import { interiorPointArea } from "./InteriorPointArea";
-import { interiorPointLine } from "./InteriorPointLine";
-import { interiorPointPoint } from "./InteriorPointPoint";
+import type { Coordinate } from "../GeometryAdapter.ts";
+import { dimension, isGeometryEmpty } from "../GeometryAdapter.ts";
+import { interiorPointArea } from "./InteriorPointArea.ts";
+import { interiorPointLine } from "./InteriorPointLine.ts";
+import { interiorPointPoint } from "./InteriorPointPoint.ts";
 
 /**
  * Computes a location of an interior point in a {@link Geometry}.

@@ -2,7 +2,7 @@
  * Ports of JTS's AbstractPointInRingTest, run through both entry points.
  *
  * JUnit expresses this as one abstract test class and two subclasses, each
- * binding the shared cases to a different entry point. vitest has no counterpart,
+ * binding the shared cases to a different entry point. node:test has no counterpart,
  * so the cases become a table and each subclass's runPtInRing becomes a function
  * bound to its own describe block.
  *
@@ -11,14 +11,15 @@
  *   per subclass.
  */
 import type { Geometry } from "geojson";
-import { describe, it, expect } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 
-import type { Coordinate } from "../../src/GeometryAdapter";
-import { BOUNDARY, EXTERIOR, INTERIOR } from "../../src/geom/Location";
-import { isInRing } from "../../src/algorithm/PointLocation";
-import { RayCrossingCounter } from "../../src/algorithm/RayCrossingCounter";
-import { locate, SimplePointInAreaLocator } from "../../src/algorithm/locate/SimplePointInAreaLocator";
-import { parseWkt } from "../utils/WktParser";
+import type { Coordinate } from "../../src/GeometryAdapter.ts";
+import { BOUNDARY, EXTERIOR, INTERIOR } from "../../src/geom/Location.ts";
+import { isInRing } from "../../src/algorithm/PointLocation.ts";
+import { RayCrossingCounter } from "../../src/algorithm/RayCrossingCounter.ts";
+import { locate, SimplePointInAreaLocator } from "../../src/algorithm/locate/SimplePointInAreaLocator.ts";
+import { parseWkt } from "../utils/WktParser.ts";
 
 interface Case {
   expected: number;
@@ -128,7 +129,7 @@ describe("RayCrossingCounter.locatePointInRing", () => {
     describe(name, () => {
       cases.forEach((c, i) => {
         it(`case ${i}: (${c.pt[0]}, ${c.pt[1]}) is ${NAMES[c.expected]}`, () => {
-          expect(runPtInRingRayCrossingCounter(c)).toBe(c.expected);
+          assert.equal(runPtInRingRayCrossingCounter(c), c.expected);
         });
       });
     });
@@ -160,8 +161,8 @@ describe("RayCrossingCounter#getCount / #isPointInPolygon", () => {
     for (let i = 1; i < ring.length; i++) {
       counter.countSegment(ring[i], ring[i - 1]);
     }
-    expect(counter.getCount()).toBe(1);
-    expect(counter.isPointInPolygon()).toBe(true);
+    assert.equal(counter.getCount(), 1);
+    assert.equal(counter.isPointInPolygon(), true);
   });
 
   // Same box ring, test point (100,100): every edge's endpoints have both
@@ -178,8 +179,8 @@ describe("RayCrossingCounter#getCount / #isPointInPolygon", () => {
     for (let i = 1; i < ring.length; i++) {
       counter.countSegment(ring[i], ring[i - 1]);
     }
-    expect(counter.getCount()).toBe(0);
-    expect(counter.isPointInPolygon()).toBe(false);
+    assert.equal(counter.getCount(), 0);
+    assert.equal(counter.isPointInPolygon(), false);
   });
 });
 
@@ -197,9 +198,9 @@ describe("isInRing", () => {
     const geom = parseWkt(box);
     if (geom.type !== "Polygon") throw new Error(`expected a Polygon, got ${geom.type}`);
     const ring = geom.coordinates[0];
-    expect(isInRing([10, 10], ring)).toBe(true); // INTERIOR
-    expect(isInRing([0, 0], ring)).toBe(true); // shell vertex — BOUNDARY
-    expect(isInRing([100, 100], ring)).toBe(false); // far outside — EXTERIOR
+    assert.equal(isInRing([10, 10], ring), true); // INTERIOR
+    assert.equal(isInRing([0, 0], ring), true); // shell vertex — BOUNDARY
+    assert.equal(isInRing([100, 100], ring), false); // far outside — EXTERIOR
   });
 });
 
@@ -218,7 +219,7 @@ describe("SimplePointInAreaLocator#locate", () => {
     describe(name, () => {
       cases.forEach((c, i) => {
         it(`case ${i}: (${c.pt[0]}, ${c.pt[1]}) is ${NAMES[c.expected]}`, () => {
-          expect(runPtInRingLocator(c)).toBe(c.expected);
+          assert.equal(runPtInRingLocator(c), c.expected);
         });
       });
     });
@@ -226,7 +227,10 @@ describe("SimplePointInAreaLocator#locate", () => {
 });
 
 it("runs all 25 of JTS's assertions", () => {
-  expect(groups.reduce((n, [, cases]) => n + cases.length, 0)).toBe(25);
+  assert.equal(
+    groups.reduce((n, [, cases]) => n + cases.length, 0),
+    25,
+  );
 });
 
 describe("SimplePointInAreaLocator#locate — beyond the shared cases", () => {
@@ -255,15 +259,15 @@ describe("SimplePointInAreaLocator#locate — beyond the shared cases", () => {
   };
 
   it("reports a point inside a hole as exterior", () => {
-    expect(locate([4, 4], withHole)).toBe(EXTERIOR);
+    assert.equal(locate([4, 4], withHole), EXTERIOR);
   });
 
   it("reports a point on a hole's edge as boundary", () => {
-    expect(locate([2, 4], withHole)).toBe(BOUNDARY);
+    assert.equal(locate([2, 4], withHole), BOUNDARY);
   });
 
   it("reports a point between the shell and the hole as interior", () => {
-    expect(locate([1, 1], withHole)).toBe(INTERIOR);
+    assert.equal(locate([1, 1], withHole), INTERIOR);
   });
 
   it("finds the containing member of a multipolygon", () => {
@@ -290,9 +294,9 @@ describe("SimplePointInAreaLocator#locate — beyond the shared cases", () => {
         ],
       ],
     };
-    expect(locate([6, 6], multi)).toBe(INTERIOR);
-    expect(locate([0.5, 0.5], multi)).toBe(INTERIOR);
-    expect(locate([3, 3], multi)).toBe(EXTERIOR);
+    assert.equal(locate([6, 6], multi), INTERIOR);
+    assert.equal(locate([0.5, 0.5], multi), INTERIOR);
+    assert.equal(locate([3, 3], multi), EXTERIOR);
   });
 
   it("recurses into a nested collection", () => {
@@ -303,20 +307,20 @@ describe("SimplePointInAreaLocator#locate — beyond the shared cases", () => {
         { type: "Point", coordinates: [100, 100] },
       ],
     };
-    expect(locate([1, 1], nested)).toBe(INTERIOR);
-    expect(locate([4, 4], nested)).toBe(EXTERIOR);
+    assert.equal(locate([1, 1], nested), INTERIOR);
+    assert.equal(locate([4, 4], nested), EXTERIOR);
   });
 
   it("reports an empty geometry as exterior", () => {
-    expect(locate([0, 0], { type: "MultiPolygon", coordinates: [] })).toBe(EXTERIOR);
+    assert.equal(locate([0, 0], { type: "MultiPolygon", coordinates: [] }), EXTERIOR);
     // A member with one empty ring is not "empty" by GeoJSON's shape but has no
     // envelope, so it takes the intersects-nothing path rather than reading
     // coordinates[0][0].
-    expect(locate([0, 0], { type: "MultiPolygon", coordinates: [[[]]] })).toBe(EXTERIOR);
+    assert.equal(locate([0, 0], { type: "MultiPolygon", coordinates: [[[]]] }), EXTERIOR);
   });
 
   it("reports a point outside the whole-geometry envelope as exterior", () => {
     // The fast path in locate(), before locateInGeometry is reached at all.
-    expect(locate([1000, 1000], withHole)).toBe(EXTERIOR);
+    assert.equal(locate([1000, 1000], withHole), EXTERIOR);
   });
 });

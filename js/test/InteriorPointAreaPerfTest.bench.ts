@@ -5,12 +5,15 @@
  * Run with: pnpm bench:js
  *
  * @jts-adapter InteriorPointAreaPerfTest — JTS's perf harness is not vendored,
- *   so this stands in for it; vitest bench replaces its timing loop.
+ *   so this stands in for it; tinybench replaces its timing loop.
+ *
+ * `node:test` has no benchmark counterpart, so this file is a plain script
+ * rather than a test: node runs it directly and it drives tinybench itself.
  */
-import { bench, describe } from "vitest";
+import { Bench } from "tinybench";
 import type { Geometry } from "geojson";
-import { interiorPoint } from "../src/algorithm/InteriorPoint";
-import { createSineStar, reducePrecision } from "./utils/SineStar";
+import { interiorPoint } from "../src/algorithm/InteriorPoint.ts";
+import { createSineStar, reducePrecision } from "./utils/SineStar.ts";
 
 // JTS InteriorPointAreaPerfTest parameters
 const ORG_X = 100;
@@ -29,11 +32,16 @@ for (const nPts of SIZES) {
   polygons.set(nPts, reducePrecision(star, scale));
 }
 
-describe("InteriorPoint - SineStar polygons", () => {
-  for (const nPts of SIZES) {
-    const poly = polygons.get(nPts)!;
-    bench(`${nPts} pts`, () => {
-      interiorPoint(poly);
-    });
-  }
-});
+const bench = new Bench({ time: 500 });
+
+for (const nPts of SIZES) {
+  const poly = polygons.get(nPts)!;
+  bench.add(`${nPts} pts`, () => {
+    interiorPoint(poly);
+  });
+}
+
+await bench.run();
+
+console.log("InteriorPoint - SineStar polygons");
+console.table(bench.table());

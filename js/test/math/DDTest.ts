@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 
-import { DD } from "../../src/math/DD";
+import { DD } from "../../src/math/DD.ts";
 
 /** Reproduces CGAlgorithmsDD's unrolled 2x2 determinant so the DD ops are exercised together. */
 function det(ax: number, ay: number, bx: number, by: number): number {
@@ -13,9 +14,9 @@ function det(ax: number, ay: number, bx: number, by: number): number {
 
 describe("DD", () => {
   it("represents a plain double exactly", () => {
-    expect(DD.valueOfDouble(0).signum()).toBe(0);
-    expect(DD.valueOfDouble(1.5).signum()).toBe(1);
-    expect(DD.valueOfDouble(-1.5).signum()).toBe(-1);
+    assert.equal(DD.valueOfDouble(0).signum(), 0);
+    assert.equal(DD.valueOfDouble(1.5).signum(), 1);
+    assert.equal(DD.valueOfDouble(-1.5).signum(), -1);
   });
 
   it("keeps the sign of a determinant that cancels to zero in plain f64", () => {
@@ -28,8 +29,8 @@ describe("DD", () => {
       ay = 1,
       bx = 1 + 2 * e,
       by = 1 + e;
-    expect(ax * by - ay * bx).toBe(0); // plain f64 loses it
-    expect(det(ax, ay, bx, by)).toBe(1); // DD does not
+    assert.equal(ax * by - ay * bx, 0); // plain f64 loses it
+    assert.equal(det(ax, ay, bx, by), 1); // DD does not
   });
 
   it("adds without losing the low-order component", () => {
@@ -37,15 +38,15 @@ describe("DD", () => {
     dd.selfAddDouble(1e-30);
     // 1 + 1e-30 is exactly 1 in f64, but the DD carries the remainder,
     // so subtracting 1 back must leave a positive value.
-    expect(1 + 1e-30 - 1).toBe(0);
+    assert.equal(1 + 1e-30 - 1, 0);
     dd.selfSubtractDD(DD.valueOfDouble(1));
-    expect(dd.signum()).toBe(1);
+    assert.equal(dd.signum(), 1);
   });
 
   it("treats a determinant of four identical values as collinear", () => {
     // At 1e17 the ulp is 16, so 1e17+1, +2 and +3 all collapse onto 1e17 and the
     // true determinant really is 0. DD agrees, and must not invent a sign.
-    expect(1e17 + 1).toBe(1e17);
-    expect(det(1e17, 1e17 + 1, 1e17 + 2, 1e17 + 3)).toBe(0);
+    assert.equal(1e17 + 1, 1e17);
+    assert.equal(det(1e17, 1e17 + 1, 1e17 + 2, 1e17 + 3), 0);
   });
 });

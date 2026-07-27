@@ -1,6 +1,6 @@
-import type { Coordinate } from "../GeometryAdapter";
+import type { Coordinate } from "../GeometryAdapter.ts";
 
-import { orientationIndexCoordinate } from "./CGAlgorithmsDD";
+import { orientationIndexCoordinate } from "./CGAlgorithmsDD.ts";
 
 /**
  * Functions to compute the orientation of basic geometric structures

@@ -1,7 +1,7 @@
-import type { Coordinate } from "../GeometryAdapter";
+import type { Coordinate } from "../GeometryAdapter.ts";
 
-import { BOUNDARY, EXTERIOR, INTERIOR } from "../geom/Location";
-import { COLLINEAR, LEFT, index } from "./Orientation";
+import { BOUNDARY, EXTERIOR, INTERIOR } from "../geom/Location.ts";
+import { COLLINEAR, LEFT, index } from "./Orientation.ts";
 
 /**
  * Counts the number of segments crossed by a horizontal ray extending to the

@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 
-import { orientationIndexCoordinate, orientationIndexDouble } from "../../src/algorithm/CGAlgorithmsDD";
+import { orientationIndexCoordinate, orientationIndexDouble } from "../../src/algorithm/CGAlgorithmsDD.ts";
 
 /**
  * The triples JTS's own OrientationIndexFailureTest documents as defeating
@@ -90,7 +91,7 @@ describe("CGAlgorithmsDD", () => {
         actual.push(orientationIndexCoordinate(t[p[0]], t[p[1]], t[p[2]]));
       }
     }
-    expect(actual).toEqual(JTS_EXPECTED);
+    assert.deepEqual(actual, JTS_EXPECTED);
   });
 
   it("is antisymmetric under swapping the first two arguments", () => {
@@ -99,14 +100,15 @@ describe("CGAlgorithmsDD", () => {
       const reversed = orientationIndexCoordinate(t[1], t[0], t[2]);
       // Stated as a cancelling sum rather than `toBe(-forward)`: the collinear
       // rows return 0, and `-0` is not `Object.is`-equal to the `0` that comes back.
-      expect(reversed + forward).toBe(0);
-      expect(Math.abs(reversed)).toBe(Math.abs(forward));
+      assert.equal(reversed + forward, 0);
+      assert.equal(Math.abs(reversed), Math.abs(forward));
     }
   });
 
   it("takes the same answer through both entry points", () => {
     for (const t of HARD) {
-      expect(orientationIndexDouble(t[0][0], t[0][1], t[1][0], t[1][1], t[2][0], t[2][1])).toBe(
+      assert.equal(
+        orientationIndexDouble(t[0][0], t[0][1], t[1][0], t[1][1], t[2][0], t[2][1]),
         orientationIndexCoordinate(t[0], t[1], t[2]),
       );
     }
@@ -114,8 +116,8 @@ describe("CGAlgorithmsDD", () => {
 
   it("returns the plain orientation for well-conditioned input", () => {
     // The Shewchuk filter answers these without reaching the DD path.
-    expect(orientationIndexCoordinate([0, 0], [1, 0], [0, 1])).toBe(1);
-    expect(orientationIndexCoordinate([0, 0], [1, 0], [0, -1])).toBe(-1);
-    expect(orientationIndexCoordinate([0, 0], [1, 0], [2, 0])).toBe(0);
+    assert.equal(orientationIndexCoordinate([0, 0], [1, 0], [0, 1]), 1);
+    assert.equal(orientationIndexCoordinate([0, 0], [1, 0], [0, -1]), -1);
+    assert.equal(orientationIndexCoordinate([0, 0], [1, 0], [2, 0]), 0);
   });
 });

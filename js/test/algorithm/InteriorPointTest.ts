@@ -5,30 +5,31 @@
  * plus extra cases from InteriorPointTest.java that are not in the XML.
  * Mirrors JTS InteriorPointTest.java: single test file, all via dispatcher.
  */
-import { describe, it, expect } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import { resolve } from "node:path";
 import type { Geometry } from "geojson";
-import { AssertionFailedError } from "../../src/Assert";
-import { interiorPoint } from "../../src/algorithm/InteriorPoint";
-import { parseXmlTestCases } from "../utils/XmlTestParser";
+import { AssertionFailedError } from "../../src/Assert.ts";
+import { interiorPoint } from "../../src/algorithm/InteriorPoint.ts";
+import { parseXmlTestCases } from "../utils/XmlTestParser.ts";
 
-const xmlPath = resolve(__dirname, "../../../upstream/jts/resources/testxml/general/TestInteriorPoint.xml");
+const xmlPath = resolve(import.meta.dirname, "../../../upstream/jts/resources/testxml/general/TestInteriorPoint.xml");
 const testCases = parseXmlTestCases(xmlPath, "getInteriorPoint");
 
 /**
- * @jts-adapter GeometryTestCase — JUnit-bound test infrastructure; vitest plus
+ * @jts-adapter GeometryTestCase — JUnit-bound test infrastructure; node:test plus
  *   the XML parsers fill the role. JTS drives these cases through
  *   GeometryTestCase's XML runner, which has no counterpart here.
  */
 describe("InteriorPoint - TestInteriorPoint.xml", () => {
   it("loads all 24 upstream cases", () => {
-    expect(testCases).toHaveLength(24);
+    assert.equal(testCases.length, 24);
   });
 
   for (const tc of testCases) {
     it(tc.desc, () => {
       const result = interiorPoint(tc.input);
-      expect(result).toEqual(tc.expected);
+      assert.deepEqual(result, tc.expected);
     });
   }
 });
@@ -47,7 +48,7 @@ describe("InteriorPoint - extra cases (InteriorPointTest.java)", () => {
         ],
       ],
     };
-    expect(interiorPoint(input)).toEqual([10, 10]);
+    assert.deepEqual(interiorPoint(input), [10, 10]);
   });
 
   /** @jts InteriorPointTest#testMultiLineWithEmpty() */
@@ -61,7 +62,7 @@ describe("InteriorPoint - extra cases (InteriorPointTest.java)", () => {
         ],
       ],
     };
-    expect(interiorPoint(input)).toEqual([0, 0]);
+    assert.deepEqual(interiorPoint(input), [0, 0]);
   });
 
   it("mL - zero length lines, asymmetric (centroid defect regression)", () => {
@@ -85,7 +86,7 @@ describe("InteriorPoint - extra cases (InteriorPointTest.java)", () => {
         ],
       ],
     });
-    expect(result).toEqual([10, 10]);
+    assert.deepEqual(result, [10, 10]);
   });
 });
 
@@ -106,40 +107,44 @@ describe("InteriorPointArea - odd scanline crossings (even-crossing assertion)",
     // one crossing. Before the retrofit the loop bound was `i < length - 1`,
     // so a single crossing was silently skipped and the zero-area default --
     // the ring's first vertex, [0, 0] -- was returned as if it were interior.
-    expect(() =>
-      interiorPoint({
-        type: "Polygon",
-        coordinates: [
-          [
-            [0, 0],
-            [10, 0],
-            [10, 10],
+    assert.throws(
+      () =>
+        interiorPoint({
+          type: "Polygon",
+          coordinates: [
+            [
+              [0, 0],
+              [10, 0],
+              [10, 10],
+            ],
           ],
-        ],
-      }),
-    ).toThrow(AssertionFailedError);
+        }),
+      AssertionFailedError,
+    );
   });
 
   it("names the robustness failure in the assertion message", () => {
-    expect(() =>
-      interiorPoint({
-        type: "Polygon",
-        coordinates: [
-          [
-            [0, 0],
-            [10, 0],
-            [10, 10],
-            [0, 10],
+    assert.throws(
+      () =>
+        interiorPoint({
+          type: "Polygon",
+          coordinates: [
+            [
+              [0, 0],
+              [10, 0],
+              [10, 10],
+              [0, 10],
+            ],
           ],
-        ],
-      }),
-    ).toThrow("Interior Point robustness failure: odd number of scanline crossings");
+        }),
+      { message: "Interior Point robustness failure: odd number of scanline crossings" },
+    );
   });
 
   it("does not throw on a self-intersecting but closed ring", () => {
     // A bowtie is invalid too, but it is closed, so the crossing count stays
     // even. The assertion must not fire here -- it guards parity, not validity.
-    expect(() =>
+    assert.doesNotThrow(() =>
       interiorPoint({
         type: "Polygon",
         coordinates: [
@@ -152,7 +157,7 @@ describe("InteriorPointArea - odd scanline crossings (even-crossing assertion)",
           ],
         ],
       }),
-    ).not.toThrow();
+    );
   });
 });
 
@@ -182,6 +187,6 @@ describe("InteriorPointArea - polygon with a hole (shared shell envelope)", () =
   };
 
   it("returns the midpoint of the widest section, outside the hole", () => {
-    expect(interiorPoint(withHole)).toEqual([1, 5]);
+    assert.deepEqual(interiorPoint(withHole), [1, 5]);
   });
 });

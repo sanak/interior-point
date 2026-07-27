@@ -1,6 +1,6 @@
-import type { Coordinate } from "../GeometryAdapter";
+import type { Coordinate } from "../GeometryAdapter.ts";
 
-import { DD } from "../math/DD";
+import { DD } from "../math/DD.ts";
 
 /**
  * Implements various fundamental Computational Geometric algorithms using

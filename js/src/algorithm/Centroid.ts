@@ -1,8 +1,8 @@
 import type { Geometry, Polygon } from "geojson";
 
-import type { Coordinate } from "../GeometryAdapter";
-import { distance, isGeometryEmpty } from "../GeometryAdapter";
-import { isCCWCoordinates } from "./Orientation";
+import type { Coordinate } from "../GeometryAdapter.ts";
+import { distance, isGeometryEmpty } from "../GeometryAdapter.ts";
+import { isCCWCoordinates } from "./Orientation.ts";
 
 /**
  * Computes the centroid of a Geometry of any dimension.

@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vite";
 
 const extensions: Record<string, string> = {
   es: "mjs",

@@ -28,7 +28,7 @@ Anything under `docs/` outside `docs/site/` is invisible to VitePress. To publis
 
 ```bash
 pnpm install              # install dependencies
-pnpm test:js              # run TS tests (vitest)
+pnpm test:js              # run TS tests (node --test)
 pnpm build:js             # build TS library (tsc)
 pnpm lint                 # eslint
 pnpm lint:fix             # eslint --fix
@@ -36,8 +36,9 @@ pnpm format               # prettier --write
 pnpm format:check         # prettier --check
 ```
 
-Single test: `cd js && npx vitest run test/algorithm/InteriorPointTest.ts`
-Watch mode: `cd js && npx vitest`
+Single file: `cd js && node --test test/algorithm/InteriorPointTest.ts`
+Single case: `cd js && node --test --test-name-pattern "zero-area polygon" "test/**/*Test.ts"`
+Watch mode: `cd js && pnpm test:watch`
 
 ### Rust (from repo root)
 
@@ -111,8 +112,8 @@ anchor must name a vendored file and the ported test methods carry anchors like 
 port. `AbstractPointInRingTest.java` (6 ported members), `RayCrossingCounterTest.java` (1),
 and `SimplePointInAreaLocatorTest.java` (1) are vendored the same way. A JTS test class with
 no ported counterpart is not vendored and gets `@jts-adapter` instead: `GeometryTestCase`,
-whose XML runner vitest and the XML parsers stand in for, and `InteriorPointAreaPerfTest`,
-whose timing loop vitest bench and criterion stand in for. `PointLocationTest`,
+whose XML runner node:test and the XML parsers stand in for, and `InteriorPointAreaPerfTest`,
+whose timing loop tinybench and criterion stand in for. `PointLocationTest`,
 `IndexedPointInAreaLocatorTest`, `PointLocatorTest`, `PointLocationOn4DLineTest`, and
 `SimpleRayCrossingStressTest` are deliberately not vendored: nothing in them is ported.
 
@@ -256,7 +257,11 @@ Both languages share the same test structure:
 
 - `algorithm/InteriorPointTest.ts` / `tests/algorithm/interior_point_test.rs` — unit tests for all geometry types
 - `algorithm/InteriorPointWorldTest.ts` / `src/test/algorithm/interior_point_world_test.rs` — integration tests using the `world.wkt` fixture from `upstream/jts/resources/`
-- `InteriorPointAreaPerfTest.bench.ts` / `benches/` — benchmarks (vitest bench / cargo bench)
+- `InteriorPointAreaPerfTest.bench.ts` / `benches/` — benchmarks (tinybench / cargo bench)
+
+`node:test` has no benchmark counterpart, so the TypeScript bench is not a test at all: it is a
+plain script that drives tinybench itself and `pnpm bench:js` runs it with `node` directly. That
+is also why it does not match the `*Test.ts` collection pattern below — it must not be collected.
 
 `Centroid` is the exception: it is crate-internal in Rust, so `rs/core/tests/` cannot reach
 it and its `TestCentroid.xml` test lives in its own file under `src/test/algorithm/`,
@@ -271,9 +276,22 @@ locator it now asserts containment through is `#[cfg(test)]` (see Supporting Por
 `@jts-deviate`, and `rs/core/tests/` now holds only `algorithm/interior_point_test.rs` plus
 `utils/`. The TypeScript world test is unaffected and stays in `js/test/`.
 
-`js/vitest.config.ts` only collects `test/**/*Test.ts`, so a test file not matching that pattern
-is silently skipped. `rs/core/Cargo.toml` needs a hand-written `[[test]]` entry per integration
-test, since cargo auto-discovers only `tests/*.rs` and nothing under `tests/algorithm/` otherwise.
+`js/package.json`'s `test` script hands `node --test` the glob `test/**/*Test.ts`, so a test file
+not matching that pattern is silently skipped. `rs/core/Cargo.toml` needs a hand-written `[[test]]`
+entry per integration test, since cargo auto-discovers only `tests/*.rs` and nothing under
+`tests/algorithm/` otherwise.
+
+Node runs the `.ts` files directly by type stripping — there is no bundler in the test path, so
+two Node ESM rules bind every file under `js/src` and `js/test`:
+
+- every relative import specifier carries an explicit `.ts` extension; extension search and
+  directory indexes do not exist in ESM
+- `__dirname` does not exist; fixtures resolve from `import.meta.dirname`
+
+Type stripping erases types without checking them. `pnpm build:js` runs `tsc` over
+`tsconfig.build.json`, which covers `src` only, so nothing in CI typechecks `js/test` — as was
+already the case under the previous runner, which transformed the tests without checking them.
+`cd js && npx tsc -p tsconfig.json --noEmit` covers both when you want it.
 
 ## Development Approach
 

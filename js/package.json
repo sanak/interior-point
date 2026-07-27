@@ -39,8 +39,9 @@
   "scripts": {
     "build": "vite build && tsc -p tsconfig.build.json",
     "prepack": "cp ../LICENSE . && cp ../LICENSE_EDLv1.txt .",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "node --test \"test/**/*Test.ts\"",
+    "test:watch": "node --test --watch \"test/**/*Test.ts\"",
+    "bench": "node test/InteriorPointAreaPerfTest.bench.ts"
   },
   "dependencies": {
     "@types/geojson": "^7946.0.16"
@@ -49,8 +50,8 @@
     "@types/node": "^22",
     "betterknown": "^1.2.0",
     "fast-xml-parser": "^5.10.1",
+    "tinybench": "^6.1.2",
     "typescript": "^5.9.3",
-    "vite": "^8.1.5",
-    "vitest": "^3.2.7"
+    "vite": "^8.1.5"
   }
 }

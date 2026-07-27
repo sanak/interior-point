@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import type { Geometry } from "geojson";
 import {
   dimension,
@@ -7,13 +8,13 @@ import {
   envelopeInternalGeometry,
   envelopeIntersectsCoordinate,
   isGeometryEmpty,
-} from "../src/GeometryAdapter";
+} from "../src/GeometryAdapter.ts";
 
 describe("geometryAdapter", () => {
   it("reports the dimension of each geometry type", () => {
-    expect(dimension({ type: "Point", coordinates: [0, 0] })).toBe(0);
-    expect(dimension({ type: "MultiPoint", coordinates: [[0, 0]] })).toBe(0);
-    expect(
+    assert.equal(dimension({ type: "Point", coordinates: [0, 0] }), 0);
+    assert.equal(dimension({ type: "MultiPoint", coordinates: [[0, 0]] }), 0);
+    assert.equal(
       dimension({
         type: "LineString",
         coordinates: [
@@ -21,8 +22,9 @@ describe("geometryAdapter", () => {
           [1, 1],
         ],
       }),
-    ).toBe(1);
-    expect(
+      1,
+    );
+    assert.equal(
       dimension({
         type: "MultiLineString",
         coordinates: [
@@ -32,8 +34,9 @@ describe("geometryAdapter", () => {
           ],
         ],
       }),
-    ).toBe(1);
-    expect(
+      1,
+    );
+    assert.equal(
       dimension({
         type: "Polygon",
         coordinates: [
@@ -45,8 +48,9 @@ describe("geometryAdapter", () => {
           ],
         ],
       }),
-    ).toBe(2);
-    expect(
+      2,
+    );
+    assert.equal(
       dimension({
         type: "MultiPolygon",
         coordinates: [
@@ -60,7 +64,8 @@ describe("geometryAdapter", () => {
           ],
         ],
       }),
-    ).toBe(2);
+      2,
+    );
   });
 
   it("gives a GeometryCollection the highest dimension of its members", () => {
@@ -81,33 +86,35 @@ describe("geometryAdapter", () => {
         },
       ],
     };
-    expect(dimension(gc)).toBe(2);
+    assert.equal(dimension(gc), 2);
   });
 
   it("detects empty geometries", () => {
-    expect(isGeometryEmpty({ type: "Point", coordinates: [] })).toBe(true);
-    expect(isGeometryEmpty({ type: "Point", coordinates: [0, 0] })).toBe(false);
-    expect(isGeometryEmpty({ type: "MultiPoint", coordinates: [] })).toBe(true);
-    expect(isGeometryEmpty({ type: "GeometryCollection", geometries: [] })).toBe(true);
-    expect(isGeometryEmpty({ type: "GeometryCollection", geometries: [{ type: "Point", coordinates: [] }] })).toBe(
+    assert.equal(isGeometryEmpty({ type: "Point", coordinates: [] }), true);
+    assert.equal(isGeometryEmpty({ type: "Point", coordinates: [0, 0] }), false);
+    assert.equal(isGeometryEmpty({ type: "MultiPoint", coordinates: [] }), true);
+    assert.equal(isGeometryEmpty({ type: "GeometryCollection", geometries: [] }), true);
+    assert.equal(
+      isGeometryEmpty({ type: "GeometryCollection", geometries: [{ type: "Point", coordinates: [] }] }),
       true,
     );
   });
 
   it("computes a ring envelope in one pass", () => {
-    expect(
+    assert.deepEqual(
       envelopeInternal([
         [1, 5],
         [3, 2],
         [-1, 4],
         [1, 5],
       ]),
-    ).toEqual({ minX: -1, minY: 2, maxX: 3, maxY: 5 });
+      { minX: -1, minY: 2, maxX: 3, maxY: 5 },
+    );
   });
 
   it("computes Euclidean distance", () => {
-    expect(distance([0, 0], [3, 4])).toBe(5);
-    expect(distance([1, 1], [1, 1])).toBe(0);
+    assert.equal(distance([0, 0], [3, 4]), 5);
+    assert.equal(distance([1, 1], [1, 1]), 0);
   });
 });
 
@@ -118,23 +125,23 @@ describe("envelopeIntersectsCoordinate", () => {
   ]);
 
   it("accepts a point inside the envelope", () => {
-    expect(envelopeIntersectsCoordinate(env, [5, 2])).toBe(true);
+    assert.equal(envelopeIntersectsCoordinate(env, [5, 2]), true);
   });
 
   it("accepts a point on the boundary", () => {
-    expect(envelopeIntersectsCoordinate(env, [0, 0])).toBe(true);
-    expect(envelopeIntersectsCoordinate(env, [10, 4])).toBe(true);
+    assert.equal(envelopeIntersectsCoordinate(env, [0, 0]), true);
+    assert.equal(envelopeIntersectsCoordinate(env, [10, 4]), true);
   });
 
   it("rejects a point outside on each side", () => {
-    expect(envelopeIntersectsCoordinate(env, [-1, 2])).toBe(false);
-    expect(envelopeIntersectsCoordinate(env, [11, 2])).toBe(false);
-    expect(envelopeIntersectsCoordinate(env, [5, -1])).toBe(false);
-    expect(envelopeIntersectsCoordinate(env, [5, 5])).toBe(false);
+    assert.equal(envelopeIntersectsCoordinate(env, [-1, 2]), false);
+    assert.equal(envelopeIntersectsCoordinate(env, [11, 2]), false);
+    assert.equal(envelopeIntersectsCoordinate(env, [5, -1]), false);
+    assert.equal(envelopeIntersectsCoordinate(env, [5, 5]), false);
   });
 
   it("rejects every point when the envelope is empty", () => {
-    expect(envelopeIntersectsCoordinate(envelopeInternal([]), [0, 0])).toBe(false);
+    assert.equal(envelopeIntersectsCoordinate(envelopeInternal([]), [0, 0]), false);
   });
 });
 
@@ -160,7 +167,7 @@ describe("envelopeInternalGeometry", () => {
         ],
       ],
     };
-    expect(envelopeInternalGeometry(polygon)).toEqual({ minX: 0, minY: 0, maxX: 10, maxY: 10 });
+    assert.deepEqual(envelopeInternalGeometry(polygon), { minX: 0, minY: 0, maxX: 10, maxY: 10 });
   });
 
   it("unions the members of a multipolygon", () => {
@@ -185,7 +192,7 @@ describe("envelopeInternalGeometry", () => {
         ],
       ],
     };
-    expect(envelopeInternalGeometry(multi)).toEqual({ minX: 0, minY: 0, maxX: 7, maxY: 8 });
+    assert.deepEqual(envelopeInternalGeometry(multi), { minX: 0, minY: 0, maxX: 7, maxY: 8 });
   });
 
   it("unions the members of a collection across dimensions", () => {
@@ -202,11 +209,11 @@ describe("envelopeInternalGeometry", () => {
         },
       ],
     };
-    expect(envelopeInternalGeometry(gc)).toEqual({ minX: -3, minY: 0, maxX: 4, maxY: 9 });
+    assert.deepEqual(envelopeInternalGeometry(gc), { minX: -3, minY: 0, maxX: 4, maxY: 9 });
   });
 
   it("returns the empty envelope for an empty geometry", () => {
-    expect(envelopeInternalGeometry({ type: "MultiPoint", coordinates: [] })).toEqual({
+    assert.deepEqual(envelopeInternalGeometry({ type: "MultiPoint", coordinates: [] }), {
       minX: Infinity,
       minY: Infinity,
       maxX: -Infinity,

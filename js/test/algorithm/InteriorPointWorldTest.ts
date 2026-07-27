@@ -26,28 +26,29 @@
  * untranslated, the orientations are 3.773e-21 and -6.841e-21 — genuinely
  * nonzero, so JTS is right.
  */
-import { describe, it, expect } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import { resolve } from "node:path";
-import { interiorPoint } from "../../src/algorithm/InteriorPoint";
-import { INTERIOR } from "../../src/geom/Location";
-import { locate } from "../../src/algorithm/locate/SimplePointInAreaLocator";
-import { parseWktFile } from "../utils/WktParser";
+import { interiorPoint } from "../../src/algorithm/InteriorPoint.ts";
+import { INTERIOR } from "../../src/geom/Location.ts";
+import { locate } from "../../src/algorithm/locate/SimplePointInAreaLocator.ts";
+import { parseWktFile } from "../utils/WktParser.ts";
 
-const wktPath = resolve(__dirname, "../../../upstream/jts/resources/testdata/world.wkt");
+const wktPath = resolve(import.meta.dirname, "../../../upstream/jts/resources/testdata/world.wkt");
 const geometries = parseWktFile(wktPath);
 
 /** @jts InteriorPointTest#testAll() */
 describe("InteriorPoint - world.wkt comprehensive test", () => {
   it(`should parse ${geometries.length} geometries from world.wkt`, () => {
-    expect(geometries.length).toBeGreaterThan(0);
+    assert.ok(geometries.length > 0);
   });
 
   for (let i = 0; i < geometries.length; i++) {
     const geom = geometries[i];
     it(`geometry[${i}] (${geom.type}): interior point lies within geometry`, () => {
       const ip = interiorPoint(geom);
-      expect(ip).not.toBeNull();
-      expect(locate(ip!, geom)).toBe(INTERIOR);
+      assert.notEqual(ip, null);
+      assert.equal(locate(ip!, geom), INTERIOR);
     });
   }
 });

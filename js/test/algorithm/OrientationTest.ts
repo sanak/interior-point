@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 
 import {
   CLOCKWISE,
@@ -9,7 +10,7 @@ import {
   STRAIGHT,
   index,
   isCCWCoordinates,
-} from "../../src/algorithm/Orientation";
+} from "../../src/algorithm/Orientation.ts";
 
 const CCW_SQUARE = [
   [0, 0],
@@ -22,31 +23,32 @@ const CW_SQUARE = [...CCW_SQUARE].reverse();
 
 describe("Orientation", () => {
   it("names the JTS constants", () => {
-    expect(CLOCKWISE).toBe(-1);
-    expect(COUNTERCLOCKWISE).toBe(1);
-    expect(COLLINEAR).toBe(0);
+    assert.equal(CLOCKWISE, -1);
+    assert.equal(COUNTERCLOCKWISE, 1);
+    assert.equal(COLLINEAR, 0);
   });
 
   it("classifies a counter-clockwise ring", () => {
-    expect(isCCWCoordinates(CCW_SQUARE)).toBe(true);
+    assert.equal(isCCWCoordinates(CCW_SQUARE), true);
   });
 
   it("classifies a clockwise ring", () => {
-    expect(isCCWCoordinates(CW_SQUARE)).toBe(false);
+    assert.equal(isCCWCoordinates(CW_SQUARE), false);
   });
 
   it("returns false for a ring with too few points", () => {
-    expect(
+    assert.equal(
       isCCWCoordinates([
         [0, 0],
         [1, 1],
         [0, 0],
       ]),
-    ).toBe(false);
+      false,
+    );
   });
 
   it("returns false for a flat ring", () => {
-    expect(
+    assert.equal(
       isCCWCoordinates([
         [0, 0],
         [1, 0],
@@ -54,12 +56,13 @@ describe("Orientation", () => {
         [1, 0],
         [0, 0],
       ]),
-    ).toBe(false);
+      false,
+    );
   });
 
   it("handles a ring with a flat top", () => {
     // Flat cap: the direction of the flat top decides, without consulting index().
-    expect(
+    assert.equal(
       isCCWCoordinates([
         [0, 0],
         [2, 0],
@@ -68,11 +71,12 @@ describe("Orientation", () => {
         [0, 1],
         [0, 0],
       ]),
-    ).toBe(true);
+      true,
+    );
   });
 
   it("handles repeated points along the top", () => {
-    expect(
+    assert.equal(
       isCCWCoordinates([
         [0, 0],
         [2, 0],
@@ -81,20 +85,21 @@ describe("Orientation", () => {
         [0, 1],
         [0, 0],
       ]),
-    ).toBe(true);
+      true,
+    );
   });
 
   it("delegates the pointed-cap case to the robust index", () => {
-    expect(index([0, 0], [1, 0], [0, 1])).toBe(COUNTERCLOCKWISE);
-    expect(index([0, 0], [1, 0], [0, -1])).toBe(CLOCKWISE);
-    expect(index([0, 0], [1, 0], [2, 0])).toBe(COLLINEAR);
+    assert.equal(index([0, 0], [1, 0], [0, 1]), COUNTERCLOCKWISE);
+    assert.equal(index([0, 0], [1, 0], [0, -1]), CLOCKWISE);
+    assert.equal(index([0, 0], [1, 0], [2, 0]), COLLINEAR);
   });
 });
 
 describe("the JTS alias constants", () => {
   it("names each orientation twice, as JTS does", () => {
-    expect(RIGHT).toBe(CLOCKWISE);
-    expect(LEFT).toBe(COUNTERCLOCKWISE);
-    expect(STRAIGHT).toBe(COLLINEAR);
+    assert.equal(RIGHT, CLOCKWISE);
+    assert.equal(LEFT, COUNTERCLOCKWISE);
+    assert.equal(STRAIGHT, COLLINEAR);
   });
 });

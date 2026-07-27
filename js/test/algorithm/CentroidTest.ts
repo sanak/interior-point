@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import { describe, it } from "node:test";
 import { join } from "node:path";
-import { getCentroid } from "../../src/algorithm/Centroid";
-import type { Coordinate } from "../../src/GeometryAdapter";
-import { parseXmlTestCases } from "../utils/XmlTestParser";
+import { getCentroid } from "../../src/algorithm/Centroid.ts";
+import type { Coordinate } from "../../src/GeometryAdapter.ts";
+import { parseXmlTestCases } from "../utils/XmlTestParser.ts";
 
 const FIXTURE = join(import.meta.dirname, "../../../upstream/jts/resources/testxml/general/TestCentroid.xml");
 
@@ -10,7 +11,7 @@ describe("Centroid", () => {
   const cases = parseXmlTestCases(FIXTURE, "getCentroid");
 
   it("loads all 38 upstream cases", () => {
-    expect(cases).toHaveLength(38);
+    assert.equal(cases.length, 38);
   });
 
   for (const c of cases) {
@@ -18,7 +19,7 @@ describe("Centroid", () => {
       const actual = c.input === null ? null : getCentroid(c.input);
       // Exact comparison, per the exact-comparison rule: both languages evaluate the same IEEE
       // 754 operations in the same order, so any difference is information.
-      expect(actual).toEqual(c.expected);
+      assert.deepEqual(actual, c.expected);
     });
   }
 
@@ -42,13 +43,16 @@ describe("Centroid", () => {
         ],
       ],
     });
-    expect(centroid).not.toBeNull();
-    expect(centroid![0]).toBeCloseTo(6.666666666666667, 12);
-    expect(centroid![1]).toBeCloseTo(6.666666666666667, 12);
+    assert.notEqual(centroid, null);
+    // Both ordinates land on 20/3. The band is the one this case has always been
+    // held to; it is tighter than TOLERANCE below, which tracks JTS's own constant.
+    const BAND = 5e-13;
+    assert.ok(Math.abs(centroid![0] - 6.666666666666667) < BAND);
+    assert.ok(Math.abs(centroid![1] - 6.666666666666667) < BAND);
   });
 
   it("returns null for an empty geometry", () => {
-    expect(getCentroid({ type: "MultiPoint", coordinates: [] })).toBeNull();
+    assert.equal(getCentroid({ type: "MultiPoint", coordinates: [] }), null);
   });
 
   /** @jts-adapter CentroidTest#TOLERANCE */
@@ -129,7 +133,7 @@ describe("Centroid", () => {
     ];
     const expected = areaWeightedCentroid(polys);
     const actual = getCentroid({ type: "MultiPolygon", coordinates: polys })!;
-    expect(Math.abs(actual[0] - expected[0])).toBeLessThan(TOLERANCE);
-    expect(Math.abs(actual[1] - expected[1])).toBeLessThan(TOLERANCE);
+    assert.ok(Math.abs(actual[0] - expected[0]) < TOLERANCE);
+    assert.ok(Math.abs(actual[1] - expected[1]) < TOLERANCE);
   });
 });

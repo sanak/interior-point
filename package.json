@@ -13,7 +13,7 @@
     "test:js": "pnpm --filter ./js run test",
     "test:rs": "cd rs && cargo test --workspace",
     "test": "pnpm test:scripts && pnpm test:js && pnpm test:rs",
-    "bench:js": "pnpm --filter ./js exec vitest bench",
+    "bench:js": "pnpm --filter ./js run bench",
     "bench:rs": "cd rs && cargo bench -p interior-point",
     "bench": "pnpm bench:js && pnpm bench:rs",
     "docs:dev": "pnpm --filter ./docs run dev",
