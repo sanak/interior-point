@@ -58,7 +58,7 @@ export async function checkDrift(root, ref, fetchImpl = fetch) {
   for (const file of pin.files) {
     const bytes = upstream.get(file.upstreamPath);
     const upstreamSha = sha256(bytes);
-    let localSha = null;
+    let localSha;
     try {
       localSha = sha256(readFileSync(join(root, file.localPath)));
     } catch {

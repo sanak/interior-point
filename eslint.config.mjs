@@ -37,6 +37,15 @@ export default tseslint.config(
     },
   },
   {
+    // Ported code mirrors the Java statement structure, including declarations JTS
+    // initializes before an if/else chain that always assigns. Preserving that shape
+    // is what keeps a file diffable against `upstream/jts/main/`.
+    files: ["js/src/**/*.ts"],
+    rules: {
+      "no-useless-assignment": "off",
+    },
+  },
+  {
     // `Coordinate` and `Position` are the same structural type, so `tsc` cannot
     // detect a module that keeps importing `Position`. This rule is the only
     // enforcement of the unchanged-name rule.
