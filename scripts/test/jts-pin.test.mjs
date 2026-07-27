@@ -29,7 +29,7 @@ describe("sha256", () => {
 describe("readPin", () => {
   it("reads the repository's real pin", () => {
     const pin = readPin();
-    assert.equal(pin.commit, "123a182e6e5a9cc8caed8ff037e4f824a5ce74ee");
+    assert.equal(pin.commit, "03517d9b4249f7712569c4016c0d0c7d055f4b07");
     assert.equal(pin.nearestTag, "1.20.0");
     assert.equal(pin.files.length, 20);
     assert.deepEqual(pin.anchorIgnore, []);

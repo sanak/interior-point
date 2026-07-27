@@ -97,8 +97,8 @@ in-scope members across the 20 pinned files carries a `@jts` anchor, so the chec
 and a future member added upstream without a counterpart fails the build.
 
 A `pin.json` file entry may declare `portedMembers`, listing the only members required to
-carry a `@jts` anchor — that is how a deliberately partial port (`DD`: 10 of 73 members)
-avoids 63 spurious `@jts-omit` tags. A file entry without the field requires full coverage.
+carry a `@jts` anchor — that is how a deliberately partial port (`DD`: 10 of 74 members)
+avoids 64 spurious `@jts-omit` tags. A file entry without the field requires full coverage.
 Twelve of the twenty entries declare one.
 
 `Location.java` is the limiting case: its entry lists three **constants**. `scanJavaDir`
@@ -117,10 +117,6 @@ whose XML runner node:test and the XML parsers stand in for, and `InteriorPointA
 whose timing loop tinybench and criterion stand in for. `PointLocationTest`,
 `IndexedPointInAreaLocatorTest`, `PointLocatorTest`, `PointLocationOn4DLineTest`, and
 `SimpleRayCrossingStressTest` are deliberately not vendored: nothing in them is ported.
-
-`check` currently reports `upstream/jts/main/math/DD.java` as DRIFTED: upstream `master` added a
-`hashCode()` after the pinned commit. That is real upstream movement outside the ported
-subset, not a local edit — all 20 pinned files still match their recorded `sha256`.
 
 ### Citation guard
 

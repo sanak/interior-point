@@ -243,8 +243,8 @@ describe("resolveNames against the naming table", () => {
     assert.deepEqual(lookup("DD#signum()"), { ts: "signum", rs: "signum" });
   });
 
-  it("assigns a name to every one of the 184 members", () => {
-    assert.equal(names.size, 184);
+  it("assigns a name to every one of the 185 members", () => {
+    assert.equal(names.size, 185);
     for (const member of members) {
       assert.match(names.get(member).ts, /^\w+$/);
       assert.match(names.get(member).rs, /^[a-z0-9_]+$/);

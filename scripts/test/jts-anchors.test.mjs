@@ -234,13 +234,13 @@ describe("checkJavaToAnchors", () => {
   const members = scanJavaDir(REPO_ROOT);
 
   // Every member of every vendored file: 52 from the five original files plus
-  // Orientation's 4, CGAlgorithmsDD's 8, DD's 73, CentroidTest's 3,
+  // Orientation's 4, CGAlgorithmsDD's 8, DD's 74, CentroidTest's 3,
   // InteriorPointTest's 8, and the point-in-polygon stack's 36 (Location 1,
   // PointLocation 5, RayCrossingCounter 8, SimplePointInAreaLocator 8,
   // AbstractPointInRingTest 7, RayCrossingCounterTest 4,
   // SimplePointInAreaLocatorTest 3). Narrowing to the ported subset is
   // portedMembers' job, exercised separately below.
-  const ALL_MEMBERS = 184;
+  const ALL_MEMBERS = 185;
 
   it("reports every member as unported when no anchors exist", () => {
     assert.equal(checkJavaToAnchors(members, [], []).length, ALL_MEMBERS);

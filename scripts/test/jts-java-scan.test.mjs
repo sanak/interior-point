@@ -150,7 +150,7 @@ describe("scanJavaDir against the vendored JTS sources", () => {
       "CGAlgorithmsDD.java": 8,
       "Centroid.java": 13,
       "CentroidTest.java": 3,
-      "DD.java": 73,
+      "DD.java": 74,
       "InteriorPoint.java": 4,
       "InteriorPointArea.java": 22,
       "InteriorPointLine.java": 8,
@@ -164,7 +164,7 @@ describe("scanJavaDir against the vendored JTS sources", () => {
       "SimplePointInAreaLocator.java": 8,
       "SimplePointInAreaLocatorTest.java": 3,
     });
-    assert.equal(members.length, 184);
+    assert.equal(members.length, 185);
   });
 
   it("scans a vendored file that lives outside algorithm/", () => {

@@ -1,8 +1,8 @@
 {
   "upstream": "https://github.com/locationtech/jts",
-  "commit": "123a182e6e5a9cc8caed8ff037e4f824a5ce74ee",
+  "commit": "03517d9b4249f7712569c4016c0d0c7d055f4b07",
   "nearestTag": "1.20.0",
-  "syncedAt": "2026-07-26",
+  "syncedAt": "2026-07-27",
   "files": [
     {
       "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/algorithm/InteriorPoint.java",
@@ -69,7 +69,7 @@
     {
       "upstreamPath": "modules/core/src/main/java/org/locationtech/jts/math/DD.java",
       "localPath": "upstream/jts/main/math/DD.java",
-      "sha256": "9e83b99537e7c8e4796a05ba5c06ed47178b5c774b224450578eb43463bb5d39",
+      "sha256": "a15fa71307698779201e31e3397ceb79157a56d3b6418de8e747884d3e3d7ee1",
       "portedMembers": [
         "DD#valueOf(double)",
         "DD#DD(double)",
