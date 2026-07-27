@@ -9,28 +9,28 @@ importers:
   .:
     devDependencies:
       '@eslint/js':
-        specifier: ^9.18.0
+        specifier: ^9.39.5
         version: 9.39.5
       eslint:
-        specifier: ^9.18.0
+        specifier: ^9.39.5
         version: 9.39.5(supports-color@7.2.0)
       eslint-config-prettier:
-        specifier: ^10.0.0
+        specifier: ^10.1.8
         version: 10.1.8(eslint@9.39.5(supports-color@7.2.0))
       lint-staged:
-        specifier: ^15.4.0
+        specifier: ^15.5.2
         version: 15.5.2(supports-color@7.2.0)
       prettier:
-        specifier: ^3.4.0
+        specifier: ^3.9.6
         version: 3.9.6
       simple-git-hooks:
-        specifier: ^2.11.0
+        specifier: ^2.13.1
         version: 2.13.1
       typescript:
-        specifier: ^5.7.0
+        specifier: ^5.9.3
         version: 5.9.3
       typescript-eslint:
-        specifier: ^8.20.0
+        specifier: ^8.65.0
         version: 8.65.0(eslint@9.39.5(supports-color@7.2.0))(supports-color@7.2.0)(typescript@5.9.3)
 
   docs:
@@ -39,11 +39,11 @@ importers:
         specifier: workspace:*
         version: link:../js
       maplibre-gl:
-        specifier: ^5.21.0
+        specifier: ^5.24.0
         version: 5.24.0
     devDependencies:
       vitepress:
-        specifier: ^1.5.0
+        specifier: ^1.6.4
         version: 1.6.4(@algolia/client-search@5.56.0)(@types/node@25.5.0)(lightningcss@1.33.0)(postcss@8.5.23)(search-insights@2.17.3)(typescript@5.9.3)
 
   examples/comparison: {}
@@ -51,7 +51,7 @@ importers:
   js:
     dependencies:
       '@types/geojson':
-        specifier: ^7946.0.15
+        specifier: ^7946.0.16
         version: 7946.0.16
     devDependencies:
       '@types/node':
@@ -61,16 +61,16 @@ importers:
         specifier: ^1.2.0
         version: 1.2.0
       fast-xml-parser:
-        specifier: ^5.5.8
+        specifier: ^5.10.1
         version: 5.10.1
       typescript:
-        specifier: ^5.7.0
+        specifier: ^5.9.3
         version: 5.9.3
       vite:
-        specifier: ^8.0.1
+        specifier: ^8.1.5
         version: 8.1.5(@types/node@22.20.1)(esbuild@0.28.1)(yaml@2.9.0)
       vitest:
-        specifier: ^3.0.0
+        specifier: ^3.2.7
         version: 3.2.7(@types/node@22.20.1)(lightningcss@1.33.0)(supports-color@7.2.0)(yaml@2.9.0)
 
 packages:
