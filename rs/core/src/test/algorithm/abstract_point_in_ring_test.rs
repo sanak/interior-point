@@ -11,7 +11,7 @@
 
 use geo_types::Coord;
 
-use crate::location::{BOUNDARY, EXTERIOR, INTERIOR};
+use crate::geom::location::{BOUNDARY, EXTERIOR, INTERIOR};
 
 pub(super) struct Case {
     pub(super) expected: i32,
@@ -136,7 +136,7 @@ mod ray_crossing_counter_test {
         Case, TEST_BOX, TEST_COMB, TEST_COMPLEX_RING, TEST_REPEATED_PTS,
         TEST_ROBUST_STRESS_TRIANGLES, TEST_ROBUST_TRIANGLE, parse_polygon,
     };
-    use crate::ray_crossing_counter::RayCrossingCounter;
+    use crate::algorithm::ray_crossing_counter::RayCrossingCounter;
     use geo_types::Coord;
 
     /// Entry point 1. JTS passes `geom.getCoordinates()`, which for these
@@ -240,7 +240,7 @@ mod ray_crossing_counter_test {
 
 mod point_location_test {
     use super::{TEST_BOX, parse_polygon};
-    use crate::point_location::is_in_ring;
+    use crate::algorithm::point_location::is_in_ring;
     use geo_types::Coord;
 
     /// `is_in_ring` is ported but unreached inside the ported subset —
@@ -267,8 +267,10 @@ mod simple_point_in_area_locator_test {
         Case, TEST_BOX, TEST_COMB, TEST_COMPLEX_RING, TEST_REPEATED_PTS,
         TEST_ROBUST_STRESS_TRIANGLES, TEST_ROBUST_TRIANGLE, parse_geometry,
     };
-    use crate::location::{BOUNDARY, EXTERIOR, INTERIOR};
-    use crate::simple_point_in_area_locator::{SimplePointInAreaLocator, locate};
+    use crate::algorithm::locate::simple_point_in_area_locator::{
+        SimplePointInAreaLocator, locate,
+    };
+    use crate::geom::location::{BOUNDARY, EXTERIOR, INTERIOR};
     use geo_types::{
         Coord, Geometry, GeometryCollection, LineString, MultiPolygon, Point, Polygon,
     };

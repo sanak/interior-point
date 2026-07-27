@@ -4,13 +4,12 @@
 //! point lies within the original geometry. This mirrors JTS
 //! InteriorPointTest.testAll().
 //!
-//! @jts-deviate test placement — this lived in `rs/core/tests/` until the
-//!   point-in-polygon port. An integration test links against the library built
-//!   without `cfg(test)`, so it cannot see the `#[cfg(test)]` locator modules that
-//!   supply the containment predicate. `centroid.rs` holds its TestCentroid.xml
-//!   test inline for the same reason. The TypeScript world test stays in
-//!   `js/test/`, since TypeScript tests can import unexported `js/src` modules
-//!   directly.
+//! @jts-deviate test placement — this lives in `rs/core/src/test/algorithm/`
+//!   instead of `rs/core/tests/`. An integration test links against the library
+//!   built without `cfg(test)`, so it cannot see the `#[cfg(test)]` locator
+//!   modules that supply the containment predicate. The TypeScript world test
+//!   stays in `js/test/`, since TypeScript tests can import unexported `js/src`
+//!   modules directly.
 //!
 //! Why hand-roll point-in-polygon instead of keeping a maintained dependency: this port was
 //! cross-checked against real JTS 1.19.0 over 263,944 probes across all
@@ -33,9 +32,9 @@ use std::str::FromStr;
 use geo_types::Geometry;
 use wkt::Wkt;
 
+use crate::algorithm::locate::simple_point_in_area_locator::locate;
+use crate::geom::location::INTERIOR;
 use crate::interior_point;
-use crate::location::INTERIOR;
-use crate::simple_point_in_area_locator::locate;
 
 /// Parse a WKT string into a geo-types Geometry.
 fn parse_wkt(wkt_str: &str) -> Option<Geometry<f64>> {

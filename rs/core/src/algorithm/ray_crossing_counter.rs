@@ -12,8 +12,8 @@
 
 use geo_types::Coord;
 
-use crate::location::{BOUNDARY, EXTERIOR, INTERIOR};
-use crate::orientation::{COLLINEAR, LEFT, index};
+use crate::algorithm::orientation::{COLLINEAR, LEFT, index};
+use crate::geom::location::{BOUNDARY, EXTERIOR, INTERIOR};
 
 pub(crate) struct RayCrossingCounter {
     p: Coord<f64>,

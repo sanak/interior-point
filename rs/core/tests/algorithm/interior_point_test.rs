@@ -4,6 +4,7 @@
 //! plus extra cases from InteriorPointTest.java that are not in the XML.
 //! Mirrors JTS InteriorPointTest.java: single test file, all via dispatcher.
 
+#[path = "../utils/mod.rs"]
 mod utils;
 
 use geo_types::{Coord, Geometry, LineString, MultiLineString, Polygon};

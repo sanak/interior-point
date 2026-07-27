@@ -1,15 +1,15 @@
 //! Implements various fundamental Computational Geometric algorithms using
 //! [`DD`] arithmetic.
 //!
-//! Only the subset reachable from [`crate::orientation::is_ccw_coordinates`] is
-//! ported; see `portedMembers` for `upstream/jts/algorithm/CGAlgorithmsDD.java`
+//! Only the subset reachable from [`crate::algorithm::orientation::is_ccw_coordinates`] is
+//! ported; see `portedMembers` for `upstream/jts/main/algorithm/CGAlgorithmsDD.java`
 //! in `upstream/jts/pin.json`.
 //!
 //! @jts CGAlgorithmsDD
 
 use geo_types::Coord;
 
-use crate::dd::DD;
+use crate::math::dd::DD;
 
 /// Returns the index of the direction of the point `q` relative to
 /// a vector specified by `p1-p2`.

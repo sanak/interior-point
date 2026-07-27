@@ -10,7 +10,7 @@
 
 use geo_types::{Coord, Geometry};
 
-use crate::centroid::get_centroid;
+use crate::algorithm::centroid::get_centroid;
 use crate::geometry_adapter::{distance, is_geometry_empty};
 
 pub(crate) struct InteriorPointLine {

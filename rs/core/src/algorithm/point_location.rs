@@ -8,8 +8,8 @@
 
 use geo_types::Coord;
 
-use crate::location::EXTERIOR;
-use crate::ray_crossing_counter::RayCrossingCounter;
+use crate::algorithm::ray_crossing_counter::RayCrossingCounter;
+use crate::geom::location::EXTERIOR;
 
 /// Tests whether a point lies inside or on a ring. The ring may be oriented in
 /// either direction. A point lying exactly on the ring boundary is considered to

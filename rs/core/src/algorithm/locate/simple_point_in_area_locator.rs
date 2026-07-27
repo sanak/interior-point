@@ -8,12 +8,12 @@
 
 use geo_types::{Coord, Geometry, Polygon};
 
+use crate::algorithm::point_location::locate_in_ring;
+use crate::geom::location::{BOUNDARY, EXTERIOR, INTERIOR};
 use crate::geometry_adapter::{
     envelope_internal, envelope_internal_geometry, envelope_intersects_coordinate,
     is_geometry_empty,
 };
-use crate::location::{BOUNDARY, EXTERIOR, INTERIOR};
-use crate::point_location::locate_in_ring;
 
 /// Determines the location of a point in an areal geometry. The return value is
 /// one of `INTERIOR`, `BOUNDARY` or `EXTERIOR`.

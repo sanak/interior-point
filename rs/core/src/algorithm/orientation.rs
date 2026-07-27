@@ -2,14 +2,14 @@
 //! including point triplets (triangles) and rings.
 //!
 //! Only the subset reachable from `Centroid.addShell` is ported; see
-//! `portedMembers` for `upstream/jts/algorithm/Orientation.java` in
+//! `portedMembers` for `upstream/jts/main/algorithm/Orientation.java` in
 //! `upstream/jts/pin.json`.
 //!
 //! @jts Orientation
 
 use geo_types::Coord;
 
-use crate::cg_algorithms_dd::orientation_index_coordinate;
+use crate::algorithm::cg_algorithms_dd::orientation_index_coordinate;
 
 // `CLOCKWISE` and `COLLINEAR` complete the ported constant set. Of the two,
 // only `CLOCKWISE` is truly uncalled: `COLLINEAR` is compared against by

@@ -1,8 +1,8 @@
 //! Implements extended-precision floating-point numbers which maintain 106 bits
 //! (approximately 30 decimal digits) of precision.
 //!
-//! Only the subset reachable from [`crate::cg_algorithms_dd::orientation_index_double`]
-//! is ported; see `portedMembers` for `upstream/jts/math/DD.java` in `upstream/jts/pin.json`.
+//! Only the subset reachable from [`crate::algorithm::cg_algorithms_dd::orientation_index_double`]
+//! is ported; see `portedMembers` for `upstream/jts/main/math/DD.java` in `upstream/jts/pin.json`.
 //!
 //! Every method body below is a literal transcription of the vendored Java. The
 //! operation order is the algorithm: Dekker's splitting constant and Knuth's
