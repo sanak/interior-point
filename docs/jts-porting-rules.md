@@ -205,7 +205,7 @@ a `&mut f64` parameter, and a TypeScript class instance replaces per-call closur
 | `InteriorPoint.DimensionNonEmptyFilter`                  | `dimensionNonEmptyFilter` + `@jts-deviate` | `dimension_non_empty_filter` + `@jts-deviate` |
 | `InteriorPointLine`                                      | `class InteriorPointLine`                  | `struct InteriorPointLine`                    |
 | `InteriorPointPoint`                                     | `class InteriorPointPoint`                 | `struct InteriorPointPoint`                   |
-| `Centroid`                                               | `class Centroid` (`centroid.ts`)           | `struct Centroid` (`centroid.rs`)             |
+| `Centroid`                                               | `class Centroid` (`algorithm/Centroid.ts`) | `struct Centroid` (`algorithm/centroid.rs`)   |
 
 `DimensionNonEmptyFilter` implements `GeometryFilter`, driven by `Geometry.apply()`. That interface
 is not part of the adapted geometry model, so it becomes a recursive traversal function with
@@ -239,7 +239,7 @@ array. Both landing sites are kept anyway, so an upstream change to either is st
 anchored site.
 
 `Coordinate.equals2D()` has no equivalent in either target geometry model. TypeScript defines
-`equals2D` locally (in `orientation.ts`, tagged `@jts-adapter`, since it is that module's only
+`equals2D` locally (in `algorithm/Orientation.ts`, tagged `@jts-adapter`, since it is that module's only
 caller); Rust needs no equivalent function, because `geo_types::Coord` already derives
 `PartialEq`, so `==` on two `Coord<f64>` values is the same exact-coordinate comparison.
 
@@ -276,7 +276,7 @@ consistent, and the table above is the bridge.
       paths: [{
         name: "geojson",
         importNames: ["Position"],
-        message: "Use Coordinate from ./geometryAdapter (the unchanged-name rule).",
+        message: "Use Coordinate from ./GeometryAdapter (the unchanged-name rule).",
       }],
     }],
   },
@@ -293,8 +293,8 @@ boundary stays visible.
 
 | Language   | File                              | Contents                                                                                                                                                                                                                                                                                                                          |
 | ---------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TypeScript | `js/src/geometryAdapter.ts`       | `Coordinate` and `Envelope` types, `envelopeInternal`, `envelopeInternalGeometry`, `envelopeIntersectsCoordinate`, `isGeometryEmpty`, `dimension`, `distance`                                                                                                                                                                     |
-| TypeScript | `js/src/assert.ts`                | `assertTrue` (throws, mirroring `AssertionFailedException`)                                                                                                                                                                                                                                                                       |
+| TypeScript | `js/src/GeometryAdapter.ts`       | `Coordinate` and `Envelope` types, `envelopeInternal`, `envelopeInternalGeometry`, `envelopeIntersectsCoordinate`, `isGeometryEmpty`, `dimension`, `distance`                                                                                                                                                                     |
+| TypeScript | `js/src/Assert.ts`                | `assertTrue` (throws, mirroring `AssertionFailedException`)                                                                                                                                                                                                                                                                       |
 | Rust       | `rs/core/src/geometry_adapter.rs` | `envelope_internal`, `is_geometry_empty`, `dimension`, `distance` unconditionally; `envelope_internal_geometry` and `envelope_intersects_coordinate` are `#[cfg(test)]`, reachable only from the point-in-polygon locator stack. `Envelope` maps to `geo_types::Rect<f64>` and `assertTrue` to `assert!`, so neither needs a shim |
 
 Algorithm modules import from these files; nothing else is allowed to define geometry-model
@@ -308,7 +308,7 @@ is a purely additive change to the public API, not a breaking one.
 
 Test methods carry anchors too, so anchor coverage extends to tests
 (`/** @jts InteriorPointTest#testPolygonZeroArea */`), and the XML parsers
-(`js/test/utils/xmlTestParser.ts`, `rs/core/tests/utils/xml_test_parser.rs`) gained a branch for
+(`js/test/utils/XmlTestParser.ts`, `rs/core/tests/utils/xml_test_parser.rs`) gained a branch for
 the `getCentroid` op alongside the pre-existing `getInteriorPoint` one.
 
 | JTS test asset                                  | Size                                                                  | Treatment                                                                                                                                    |
@@ -341,14 +341,14 @@ never the baseline.
 `Centroid` stays internal — it is not exported from either language's public entry point. In
 TypeScript, tests already import from `../src/*` directly, so nothing extra is needed. In Rust,
 `tests/` is an external crate and cannot see a crate-internal type, so the `TestCentroid.xml`-driven
-test lives in a `#[cfg(test)] mod tests` inside `centroid.rs` itself. This departs from the
-one-JTS-test-file-to-one-port-test-file mapping every other ported test follows, and is recorded
-with `@jts-deviate`.
+test lives in its own `#[cfg(test)] mod` file, `rs/core/src/test/algorithm/centroid_test.rs`, rather
+than alongside `algorithm/centroid.rs` itself. This departs from the one-JTS-test-file-to-one-port-
+test-file mapping every other ported test follows, and is recorded with `@jts-deviate`.
 
 The Rust world test follows the same rule for the same underlying reason: the point-in-polygon
 locator stack it asserts containment through is also `#[cfg(test)]`-only (see `CLAUDE.md`'s
-Supporting Ports section), so `rs/core/tests/interior_point_world_test.rs` cannot reach it either.
-It lives instead at `rs/core/src/interior_point_world_test.rs` as a `#[cfg(test)] mod`, recorded
+Supporting Ports section), so `rs/core/tests/` cannot reach it either. It lives instead at
+`rs/core/src/test/algorithm/interior_point_world_test.rs` as a `#[cfg(test)] mod`, recorded
 with `@jts-deviate`.
 
 ## Behaviour changes

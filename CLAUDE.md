@@ -17,6 +17,7 @@ Port of JTS (Java Topology Suite) InteriorPoint algorithm to **TypeScript** and 
   - `docs/site/public/` — Static assets copied to the site root
 - `examples/` — Sample apps
 - `upstream/jts/` — Verbatim copies of the tracked JTS sources and test resources, pinned by `upstream/jts/pin.json`. Never edit these files; see `upstream/jts/NOTICE.md`.
+  `upstream/jts/main/`, `upstream/jts/test/`, and `upstream/jts/resources/` mirror JTS's Maven layout, and `js/src`/`rs/core/src` mirror `upstream/jts/main/` while `js/test`/`rs/core/tests`+`rs/core/src/test` mirror `upstream/jts/test/`, so each pair can be folder-diffed directly.
 - `testdata/` — Locally generated test fixtures only (upstream fixtures live under `upstream/jts/resources/`)
 
 Anything under `docs/` outside `docs/site/` is invisible to VitePress. To publish a document, move it into `docs/site/`. Do not reach for `srcExclude` — the boundary is the directory.
@@ -35,7 +36,7 @@ pnpm format               # prettier --write
 pnpm format:check         # prettier --check
 ```
 
-Single test: `cd js && npx vitest run test/interiorPoint.test.ts`
+Single test: `cd js && npx vitest run test/algorithm/InteriorPointTest.ts`
 Watch mode: `cd js && npx vitest`
 
 ### Rust (from repo root)
@@ -115,7 +116,7 @@ whose timing loop vitest bench and criterion stand in for. `PointLocationTest`,
 `IndexedPointInAreaLocatorTest`, `PointLocatorTest`, `PointLocationOn4DLineTest`, and
 `SimpleRayCrossingStressTest` are deliberately not vendored: nothing in them is ported.
 
-`check` currently reports `upstream/jts/math/DD.java` as DRIFTED: upstream `master` added a
+`check` currently reports `upstream/jts/main/math/DD.java` as DRIFTED: upstream `master` added a
 `hashCode()` after the pinned commit. That is real upstream movement outside the ported
 subset, not a local edit — all 20 pinned files still match their recorded `sha256`.
 
@@ -134,7 +135,7 @@ interiorPoint(geometry: Geometry | null): Coordinate | null
 ```
 
 Single dispatcher function exported from `js/src/index.ts`, alongside the `Coordinate` type.
-`Coordinate` is `js/src/geometryAdapter.ts`'s alias of GeoJSON's `Position` and carries JTS's
+`Coordinate` is `js/src/GeometryAdapter.ts`'s alias of GeoJSON's `Position` and carries JTS's
 name for it; an ESLint rule bans importing `Position` inside `js/src/**` so the adapter stays
 the single place the GeoJSON name appears. The rule has no exemptions.
 
@@ -150,30 +151,30 @@ pub fn interior_point(geometry: &Geometry<f64>) -> Option<Coord<f64>>
 
 Each language implements the same 4 files mirroring JTS:
 
-| Module                                                    | Purpose                                   |
-| --------------------------------------------------------- | ----------------------------------------- |
-| `interiorPoint` / `core/src/lib.rs`                       | Dispatcher — routes by geometry dimension |
-| `interiorPointArea` / `core/src/interior_point_area.rs`   | Scanline algorithm for polygons           |
-| `interiorPointLine` / `core/src/interior_point_line.rs`   | Nearest vertex to centroid for lines      |
-| `interiorPointPoint` / `core/src/interior_point_point.rs` | Nearest point to centroid for points      |
+| Module                                                                        | Purpose                                   |
+| ----------------------------------------------------------------------------- | ----------------------------------------- |
+| `algorithm/InteriorPoint` / `core/src/algorithm/interior_point.rs`            | Dispatcher — routes by geometry dimension |
+| `algorithm/InteriorPointArea` / `core/src/algorithm/interior_point_area.rs`   | Scanline algorithm for polygons           |
+| `algorithm/InteriorPointLine` / `core/src/algorithm/interior_point_line.rs`   | Nearest vertex to centroid for lines      |
+| `algorithm/InteriorPointPoint` / `core/src/algorithm/interior_point_point.rs` | Nearest point to centroid for points      |
 
 ### Supporting Ports
 
 Reached from the dispatcher through `Centroid`, which `InteriorPointLine` and
 `InteriorPointPoint` call. Both languages carry the same set:
 
-| Module                                                                  | Purpose                                                      |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `centroid` / `core/src/centroid.rs`                                     | `Centroid` — weighted centroid for any dimension             |
-| `orientation` / `core/src/orientation.rs`                               | `Orientation.isCCW` and `index`                              |
-| `cgAlgorithmsDD` / `core/src/cg_algorithms_dd.rs`                       | Robust orientation predicate via double-double               |
-| `dd` / `core/src/dd.rs`                                                 | The `DD` extended-precision subset those predicates need     |
-| `geometryAdapter` / `core/src/geometry_adapter.rs`                      | The geometry-model boundary — see below                      |
-| `assert` / — (Rust uses `assert!`)                                      | Shim for JTS's `Assert`                                      |
-| `location` / `core/src/location.rs`                                     | `Location` — the INTERIOR/BOUNDARY/EXTERIOR constants        |
-| `pointLocation` / `core/src/point_location.rs`                          | `PointLocation.locateInRing` and `isInRing`                  |
-| `rayCrossingCounter` / `core/src/ray_crossing_counter.rs`               | `RayCrossingCounter` — the crossing count and `countSegment` |
-| `simplePointInAreaLocator` / `core/src/simple_point_in_area_locator.rs` | `SimplePointInAreaLocator` — point-in-area location          |
+| Module                                                                                                    | Purpose                                                      |
+| --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `algorithm/Centroid` / `core/src/algorithm/centroid.rs`                                                   | `Centroid` — weighted centroid for any dimension             |
+| `algorithm/Orientation` / `core/src/algorithm/orientation.rs`                                             | `Orientation.isCCW` and `index`                              |
+| `algorithm/CGAlgorithmsDD` / `core/src/algorithm/cg_algorithms_dd.rs`                                     | Robust orientation predicate via double-double               |
+| `math/DD` / `core/src/math/dd.rs`                                                                         | The `DD` extended-precision subset those predicates need     |
+| `GeometryAdapter` / `core/src/geometry_adapter.rs`                                                        | The geometry-model boundary — see below                      |
+| `Assert` / — (Rust uses `assert!`)                                                                        | Shim for JTS's `Assert`                                      |
+| `geom/Location` / `core/src/geom/location.rs`                                                             | `Location` — the INTERIOR/BOUNDARY/EXTERIOR constants        |
+| `algorithm/PointLocation` / `core/src/algorithm/point_location.rs`                                        | `PointLocation.locateInRing` and `isInRing`                  |
+| `algorithm/RayCrossingCounter` / `core/src/algorithm/ray_crossing_counter.rs`                             | `RayCrossingCounter` — the crossing count and `countSegment` |
+| `algorithm/locate/SimplePointInAreaLocator` / `core/src/algorithm/locate/simple_point_in_area_locator.rs` | `SimplePointInAreaLocator` — point-in-area location          |
 
 Those four are the point-in-polygon stack. Unlike every other supporting port they are
 **not reachable from the dispatcher**: they exist so both languages' world tests assert
@@ -189,12 +190,13 @@ removal — 263,944 probes over all 8,397 rings of `world.wkt` against real JTS 
 0 mismatches for both ports and for `geo::Contains`, 2 mismatches for
 `point-in-polygon-hao` traced to an inexact IEEE 754 subtraction in its translated
 `orient2d` call — lives as a comment in both world tests
-(`js/test/interiorPointWorld.test.ts`, `rs/core/src/interior_point_world_test.rs`).
+(`js/test/algorithm/InteriorPointWorldTest.ts`, `rs/core/src/test/algorithm/interior_point_world_test.rs`).
 
 Because the Rust locator is `#[cfg(test)]`, an integration test cannot see it:
-`rs/core/tests/interior_point_world_test.rs` therefore lives at
-`rs/core/src/interior_point_world_test.rs` as a `#[cfg(test)] mod`, recorded with
-`@jts-deviate`, the same arrangement `centroid.rs` uses. The TypeScript world test stays
+the world test therefore lives at `rs/core/src/test/algorithm/interior_point_world_test.rs`
+as a `#[cfg(test)] mod`, recorded with `@jts-deviate`, the same arrangement
+`rs/core/src/test/algorithm/centroid_test.rs` uses. `rs/core/tests/` holds only
+`algorithm/interior_point_test.rs` plus `utils/`. The TypeScript world test stays
 in `js/test/`, since TypeScript tests can import unexported `js/src` modules directly.
 
 Every one is reachable from the crate root, so `rs/core/src` carries no file-level
@@ -209,9 +211,9 @@ reads `get_location`), and `PointLocation::is_in_ring` (`SimplePointInAreaLocato
 
 ### Adapter Boundary
 
-`js/src/geometryAdapter.ts` and `rs/core/src/geometry_adapter.rs` are the only places a
+`js/src/GeometryAdapter.ts` and `rs/core/src/geometry_adapter.rs` are the only places a
 geometry-model helper may be defined; nothing else in `js/src` or `rs/core/src` may add one.
-`js/src/assert.ts` shims JTS's `Assert`; Rust maps it onto `assert!` directly.
+`js/src/Assert.ts` shims JTS's `Assert`; Rust maps it onto `assert!` directly.
 
 ### Type Mapping (JTS → TS / Rust)
 
@@ -228,8 +230,8 @@ geometry-model helper may be defined; nothing else in `js/src` or `rs/core/src` 
 | `LinearRing.getEnvelopeInternal()` | `envelopeInternal`                                 | `envelope_internal`              |
 | `Envelope.intersects(Coordinate)`  | `envelopeIntersectsCoordinate`                     | `envelope_intersects_coordinate` |
 | `Geometry.getEnvelopeInternal()`   | `envelopeInternalGeometry`                         | `envelope_internal_geometry`     |
-| `Assert.isTrue`                    | `assertTrue` (`js/src/assert.ts`)                  | `assert!`                        |
-| `Orientation`                      | `orientation.ts`                                   | `orientation.rs`                 |
+| `Assert.isTrue`                    | `assertTrue` (`js/src/Assert.ts`)                  | `assert!`                        |
+| `Orientation`                      | `algorithm/Orientation.ts`                         | `algorithm/orientation.rs`       |
 | `List<Double>`                     | `number[]`                                         | `Vec<f64>` / `&mut [f64]`        |
 
 `getEnvelopeInternal()` is one method on `Geometry` that `LinearRing` inherits, not a Java
@@ -252,22 +254,22 @@ envelope JTS returns for an empty ring; both take the "intersects nothing" path.
 
 Both languages share the same test structure:
 
-- `interiorPoint.test.ts` / `interior_point_test.rs` — unit tests for all geometry types
-- `interiorPointWorld.test.ts` / `interior_point_world_test.rs` — integration tests using the `world.wkt` fixture from `upstream/jts/resources/`
-- `interiorPoint.bench.ts` / `benches/` — benchmarks (vitest bench / cargo bench)
+- `algorithm/InteriorPointTest.ts` / `tests/algorithm/interior_point_test.rs` — unit tests for all geometry types
+- `algorithm/InteriorPointWorldTest.ts` / `src/test/algorithm/interior_point_world_test.rs` — integration tests using the `world.wkt` fixture from `upstream/jts/resources/`
+- `InteriorPointAreaPerfTest.bench.ts` / `benches/` — benchmarks (vitest bench / cargo bench)
 
 `Centroid` is the exception: it is crate-internal in Rust, so `rs/core/tests/` cannot reach
-it and its `TestCentroid.xml` test lives in a `#[cfg(test)] mod tests` inside `centroid.rs`,
-recorded with `@jts-deviate`. That module reaches the shared XML parser with
-`include!("../tests/utils/xml_test_parser.rs")` — `#[path] mod` cannot, because its base
-directory would be the non-existent `core/src/centroid/`.
+it and its `TestCentroid.xml` test lives in its own sibling file,
+`rs/core/src/test/algorithm/centroid_test.rs`, recorded with `@jts-deviate`. That file reaches
+the shared XML parser with `include!("../../../tests/utils/xml_test_parser.rs")` — `#[path] mod`
+cannot, because its base directory would be a directory that does not exist.
 
 The Rust world test is the second exception, for the same underlying reason: the point-in-polygon
 locator it now asserts containment through is `#[cfg(test)]` (see Supporting Ports above), so
-`rs/core/tests/interior_point_world_test.rs` cannot reach it either. It lives instead at
-`rs/core/src/interior_point_world_test.rs` as a `#[cfg(test)] mod`, recorded with
-`@jts-deviate`, and `rs/core/tests/` now holds only `interior_point_test.rs`. The TypeScript
-world test is unaffected and stays in `js/test/`.
+`rs/core/tests/` cannot reach it either. It lives instead at
+`rs/core/src/test/algorithm/interior_point_world_test.rs` as a `#[cfg(test)] mod`, recorded with
+`@jts-deviate`, and `rs/core/tests/` now holds only `algorithm/interior_point_test.rs` plus
+`utils/`. The TypeScript world test is unaffected and stays in `js/test/`.
 
 ## Development Approach
 

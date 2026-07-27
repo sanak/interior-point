@@ -168,7 +168,7 @@ describe("scanJavaDir against the vendored JTS sources", () => {
   });
 
   it("scans a vendored file that lives outside algorithm/", () => {
-    // DD.java is org.locationtech.jts.math.DD, so it vendors to upstream/jts/math/.
+    // DD.java is org.locationtech.jts.math.DD, so it vendors to upstream/jts/main/math/.
     assert.ok(members.some((m) => m.file === "DD.java" && m.signature === "DD#selfAdd(double,double)"));
   });
 

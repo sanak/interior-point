@@ -109,7 +109,7 @@ describe("scanCitations", () => {
   it("exempts RFC 7946 §3.1.6 only in the two files where it is cited", () => {
     const root = fixtureRoot({
       "js/CHANGELOG.md": "RFC 7946 §3.1.6 requires polygon rings to be closed.\n",
-      "js/test/interiorPoint.test.ts": "// §3.1.6 requires polygon rings to be closed.\n",
+      "js/test/algorithm/InteriorPointTest.ts": "// §3.1.6 requires polygon rings to be closed.\n",
       "js/src/other.ts": "// §3.1.6 requires polygon rings to be closed.\n",
     });
     const violations = scanCitations(root);

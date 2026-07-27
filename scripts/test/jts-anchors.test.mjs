@@ -103,28 +103,28 @@ describe("scanPortAnchors", () => {
     const byPath = new Map();
     for (const a of scanPortAnchors(REPO_ROOT)) byPath.set(a.path, (byPath.get(a.path) ?? 0) + 1);
     for (const path of [
-      "js/src/dd.ts",
-      "js/src/cgAlgorithmsDD.ts",
-      "js/src/orientation.ts",
-      "js/src/interiorPoint.ts",
-      "js/src/interiorPointArea.ts",
-      "js/src/interiorPointLine.ts",
-      "js/src/interiorPointPoint.ts",
-      "js/src/location.ts",
-      "js/src/rayCrossingCounter.ts",
-      "js/src/pointLocation.ts",
-      "js/src/simplePointInAreaLocator.ts",
-      "rs/core/src/dd.rs",
-      "rs/core/src/cg_algorithms_dd.rs",
-      "rs/core/src/orientation.rs",
-      "rs/core/src/lib.rs",
-      "rs/core/src/interior_point_area.rs",
-      "rs/core/src/interior_point_line.rs",
-      "rs/core/src/interior_point_point.rs",
-      "rs/core/src/location.rs",
-      "rs/core/src/ray_crossing_counter.rs",
-      "rs/core/src/point_location.rs",
-      "rs/core/src/simple_point_in_area_locator.rs",
+      "js/src/math/DD.ts",
+      "js/src/algorithm/CGAlgorithmsDD.ts",
+      "js/src/algorithm/Orientation.ts",
+      "js/src/algorithm/InteriorPoint.ts",
+      "js/src/algorithm/InteriorPointArea.ts",
+      "js/src/algorithm/InteriorPointLine.ts",
+      "js/src/algorithm/InteriorPointPoint.ts",
+      "js/src/geom/Location.ts",
+      "js/src/algorithm/RayCrossingCounter.ts",
+      "js/src/algorithm/PointLocation.ts",
+      "js/src/algorithm/locate/SimplePointInAreaLocator.ts",
+      "rs/core/src/math/dd.rs",
+      "rs/core/src/algorithm/cg_algorithms_dd.rs",
+      "rs/core/src/algorithm/orientation.rs",
+      "rs/core/src/algorithm/interior_point.rs",
+      "rs/core/src/algorithm/interior_point_area.rs",
+      "rs/core/src/algorithm/interior_point_line.rs",
+      "rs/core/src/algorithm/interior_point_point.rs",
+      "rs/core/src/geom/location.rs",
+      "rs/core/src/algorithm/ray_crossing_counter.rs",
+      "rs/core/src/algorithm/point_location.rs",
+      "rs/core/src/algorithm/locate/simple_point_in_area_locator.rs",
     ]) {
       assert.ok((byPath.get(path) ?? 0) > 0, `${path} should carry @jts anchors`);
     }
@@ -144,8 +144,10 @@ describe("scanPortAnchors", () => {
     // plus the locator port's four: SimplePointInAreaLocator#locateInGeometry's
     // GeometryCollectionIterator-to-recursion note and its MultiPolygon note,
     // in both languages. The world-test port adds one: the Rust world test's placement note
-    // after its move into `rs/core/src/` to reach the gated locator modules.
-    assert.equal(kinds["jts-deviate"], 27);
+    // after its move into `rs/core/src/` to reach the gated locator modules. Plus one more:
+    // `rs/core/src/test/mod.rs`'s module-placement note explaining why these tests
+    // cannot live in `rs/core/tests/`.
+    assert.equal(kinds["jts-deviate"], 28);
     // The geometry adapters (6 in TypeScript, 4 in Rust — Rust needs no
     // Coordinate or Envelope alias but does define its own ring envelope, since
     // geo's BoundingRect is a dev-dependency), the Assert shim's 3,

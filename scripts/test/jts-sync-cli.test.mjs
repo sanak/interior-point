@@ -234,8 +234,8 @@ describe("locate", () => {
     // of `locate`.
     const { out } = await run(["locate", "InteriorPointArea.java:262"]);
     assert.ok(!/no ported counterpart/.test(out), out);
-    assert.match(out, /js\/src\/interiorPointArea\.ts:\d+/);
-    assert.match(out, /rs\/core\/src\/interior_point_area\.rs:\d+/);
+    assert.match(out, /js\/src\/algorithm\/InteriorPointArea\.ts:\d+/);
+    assert.match(out, /rs\/core\/src\/algorithm\/interior_point_area\.rs:\d+/);
   });
 
   it("exits 1 when the line falls outside every member", async () => {

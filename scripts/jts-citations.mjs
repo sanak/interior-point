@@ -40,7 +40,7 @@ const EXEMPT_FILES = new Set(["scripts/jts-citations.mjs", "scripts/test/jts-cit
  * where it belongs. Anywhere else, `§3.1.6` is still a violation.
  */
 const RFC_7946_SECTION_RE = /§3\.1\.6\b/;
-const RFC_7946_FILES = new Set(["js/CHANGELOG.md", "js/test/interiorPoint.test.ts"]);
+const RFC_7946_FILES = new Set(["js/CHANGELOG.md", "js/test/algorithm/InteriorPointTest.ts"]);
 
 function isRfcExempt(path, line) {
   return RFC_7946_FILES.has(path) && RFC_7946_SECTION_RE.test(line);
