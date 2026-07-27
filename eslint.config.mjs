@@ -54,7 +54,7 @@ export default tseslint.config(
             {
               name: "geojson",
               importNames: ["Position"],
-              message: "Use Coordinate from ./GeometryAdapter (JTS name).",
+              message: "Use Coordinate from GeometryAdapter (JTS name).",
             },
           ],
         },

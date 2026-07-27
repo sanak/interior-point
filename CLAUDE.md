@@ -259,7 +259,7 @@ Both languages share the same test structure:
 - `InteriorPointAreaPerfTest.bench.ts` / `benches/` — benchmarks (vitest bench / cargo bench)
 
 `Centroid` is the exception: it is crate-internal in Rust, so `rs/core/tests/` cannot reach
-it and its `TestCentroid.xml` test lives in its own sibling file,
+it and its `TestCentroid.xml` test lives in its own file under `src/test/algorithm/`,
 `rs/core/src/test/algorithm/centroid_test.rs`, recorded with `@jts-deviate`. That file reaches
 the shared XML parser with `include!("../../../tests/utils/xml_test_parser.rs")` — `#[path] mod`
 cannot, because its base directory would be a directory that does not exist.
@@ -270,6 +270,10 @@ locator it now asserts containment through is `#[cfg(test)]` (see Supporting Por
 `rs/core/src/test/algorithm/interior_point_world_test.rs` as a `#[cfg(test)] mod`, recorded with
 `@jts-deviate`, and `rs/core/tests/` now holds only `algorithm/interior_point_test.rs` plus
 `utils/`. The TypeScript world test is unaffected and stays in `js/test/`.
+
+`js/vitest.config.ts` only collects `test/**/*Test.ts`, so a test file not matching that pattern
+is silently skipped. `rs/core/Cargo.toml` needs a hand-written `[[test]]` entry per integration
+test, since cargo auto-discovers only `tests/*.rs` and nothing under `tests/algorithm/` otherwise.
 
 ## Development Approach
 

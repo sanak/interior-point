@@ -2,9 +2,8 @@
 //!
 //! @jts-deviate CentroidTest — `Centroid` is crate-internal, so `rs/core/tests/`
 //!   (an external crate) cannot reach it. The `TestCentroid.xml`-driven test lives
-//!   under `src/test/algorithm/` instead, in its own file: an integration test
-//!   links against the library built without `cfg(test)`, so it cannot see the
-//!   `#[cfg(test)]` locator stack this test needs.
+//!   under `src/test/algorithm/` instead, in its own file, beside the other
+//!   `src/`-hosted ported tests.
 
 use geo_types::{Coord, Geometry, LineString, MultiLineString, MultiPoint, MultiPolygon, Polygon};
 

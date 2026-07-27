@@ -342,8 +342,9 @@ never the baseline.
 TypeScript, tests already import from `../src/*` directly, so nothing extra is needed. In Rust,
 `tests/` is an external crate and cannot see a crate-internal type, so the `TestCentroid.xml`-driven
 test lives in its own `#[cfg(test)] mod` file, `rs/core/src/test/algorithm/centroid_test.rs`, rather
-than alongside `algorithm/centroid.rs` itself. This departs from the one-JTS-test-file-to-one-port-
-test-file mapping every other ported test follows, and is recorded with `@jts-deviate`.
+than alongside `algorithm/centroid.rs` itself. The file mapping is still one-JTS-test-file-to-one-
+port-test-file, as every other ported test follows; what departs is the directory — `src/test/`
+rather than `rs/core/tests/` — and that is recorded with `@jts-deviate`.
 
 The Rust world test follows the same rule for the same underlying reason: the point-in-polygon
 locator stack it asserts containment through is also `#[cfg(test)]`-only (see `CLAUDE.md`'s
