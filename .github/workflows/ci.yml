@@ -26,6 +26,14 @@ jobs:
       - run: pnpm test:scripts
       - run: pnpm test:js
       - run: pnpm build:js
+      - name: Smoke-test the packed CLI via npx
+        run: |
+          cd js && pnpm pack --pack-destination "$RUNNER_TEMP" && cd ..
+          mkdir "$RUNNER_TEMP/cli-smoke" && cd "$RUNNER_TEMP/cli-smoke" && npm init -y
+          npm install --no-audit --no-fund "$RUNNER_TEMP"/interior-point-*.tgz
+          test "$(npx --no-install interior-point -i 'POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))')" = '{"type":"Point","coordinates":[5,5]}'
+          test "$(echo '{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,10],[0,10],[0,0]]]}' | npx --no-install interior-point -f wkt)" = 'POINT (5 5)'
+          ! npx --no-install interior-point -i 'NOTAGEOM' 2>/dev/null
       - name: Check JTS anchor integrity
         run: node scripts/jts-sync.mjs anchors
       - name: Check for out-of-repo citations
