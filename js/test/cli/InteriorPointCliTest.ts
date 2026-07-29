@@ -6,11 +6,12 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HELP_TEXT, parseCliArgs, UsageError } from "../../src/cli/args.ts";
 import { InputError, readInput, serialize, writeOutput } from "../../src/cli/io.ts";
+import { run } from "../../src/cli/run.ts";
 
 const readStdinUnused = (): string => {
   throw new Error("stdin must not be read");
@@ -217,5 +218,174 @@ describe("io output", () => {
 
   it("serialises zero records in WKT mode as zero lines", () => {
     assert.equal(serialize("featureCollection", [], "wkt"), "");
+  });
+});
+
+function capture() {
+  let text = "";
+  return {
+    sink: (chunk: string) => {
+      text += chunk;
+    },
+    get text() {
+      return text;
+    },
+  };
+}
+
+const BOX_WKT = "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))";
+const BOX2_JSON = {
+  type: "Polygon",
+  coordinates: [
+    [
+      [20, 0],
+      [30, 0],
+      [30, 10],
+      [20, 10],
+      [20, 0],
+    ],
+  ],
+};
+const EMPTY_POLYGON_JSON = { type: "Polygon", coordinates: [] };
+const MIXED_FC = JSON.stringify({
+  type: "FeatureCollection",
+  bbox: [0, 0, 30, 10],
+  features: [
+    { type: "Feature", id: "a", properties: { n: 1 }, geometry: BOX2_JSON },
+    { type: "Feature", id: "b", properties: { n: 2 }, geometry: EMPTY_POLYGON_JSON },
+  ],
+});
+
+describe("run", () => {
+  it("WKT literal in, GeoJSON out by default", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", BOX_WKT], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(out.text, '{"type":"Point","coordinates":[5,5]}\n');
+    assert.equal(err.text, "");
+  });
+
+  it("GeoJSON Geometry literal in, WKT out", () => {
+    const out = capture();
+    const err = capture();
+    const literal = '{"type":"LineString","coordinates":[[0,0],[10,10]]}';
+    assert.equal(run(["-i", literal, "-f", "wkt"], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(out.text, "POINT (0 0)\n");
+    assert.equal(err.text, "");
+  });
+
+  it("Feature in, Feature out — properties and id intact, bbox gone", () => {
+    const out = capture();
+    const err = capture();
+    const literal = JSON.stringify({
+      type: "Feature",
+      id: 7,
+      bbox: [0, 0, 10, 10],
+      properties: { name: "box" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [
+          [
+            [0, 0],
+            [10, 0],
+            [10, 10],
+            [0, 10],
+            [0, 0],
+          ],
+        ],
+      },
+    });
+    assert.equal(run(["-i", literal], out.sink, err.sink, readStdinUnused), 0);
+    assert.deepEqual(JSON.parse(out.text), {
+      type: "Feature",
+      id: 7,
+      properties: { name: "box" },
+      geometry: { type: "Point", coordinates: [5, 5] },
+    });
+  });
+
+  it("FeatureCollection file in, FeatureCollection out — order kept, bbox gone", () => {
+    const dir = mkdtempSync(join(tmpdir(), "interior-point-cli-"));
+    const path = join(dir, "fc.geojson");
+    writeFileSync(path, MIXED_FC);
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["--input", path], out.sink, err.sink, readStdinUnused), 0);
+    assert.deepEqual(JSON.parse(out.text), {
+      type: "FeatureCollection",
+      features: [
+        { type: "Feature", id: "a", properties: { n: 1 }, geometry: { type: "Point", coordinates: [25, 5] } },
+        { type: "Feature", id: "b", properties: { n: 2 }, geometry: null },
+      ],
+    });
+  });
+
+  it("FeatureCollection in with --format wkt: one line per Feature, in order", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", MIXED_FC, "-f", "wkt"], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(out.text, "POINT (25 5)\nPOINT EMPTY\n");
+  });
+
+  it("reads stdin when --input is absent", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(
+      run([], out.sink, err.sink, () => "POINT (1 2)"),
+      0,
+    );
+    assert.equal(out.text, '{"type":"Point","coordinates":[1,2]}\n');
+  });
+
+  it("--output writes the file and nothing reaches stdout", () => {
+    const dir = mkdtempSync(join(tmpdir(), "interior-point-cli-"));
+    const path = join(dir, "result.geojson");
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", BOX_WKT, "-o", path], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(readFileSync(path, "utf-8"), '{"type":"Point","coordinates":[5,5]}\n');
+    assert.equal(out.text, "");
+  });
+
+  it("--quiet suppresses the result entirely, and beats --output", () => {
+    const dir = mkdtempSync(join(tmpdir(), "interior-point-cli-"));
+    const path = join(dir, "never-written.geojson");
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", BOX_WKT, "-q", "-o", path], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(out.text, "");
+    assert.equal(existsSync(path), false);
+  });
+
+  it("--help prints usage to out and exits 0", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["--help"], out.sink, err.sink, readStdinUnused), 0);
+    assert.ok(out.text.startsWith("Usage: interior-point"));
+    assert.equal(err.text, "");
+  });
+
+  it("unparseable geometry: exit 1, stdout empty, stderr non-empty", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", "NOTAGEOM (1 2)"], out.sink, err.sink, readStdinUnused), 1);
+    assert.equal(out.text, "");
+    assert.ok(err.text.length > 0);
+  });
+
+  it("missing file: exit 1, stdout empty, stderr non-empty", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", "no/such/file.geojson"], out.sink, err.sink, readStdinUnused), 1);
+    assert.equal(out.text, "");
+    assert.ok(err.text.length > 0);
+  });
+
+  it("unknown flag: exit 1, stdout empty, usage on stderr", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["--bogus"], out.sink, err.sink, readStdinUnused), 1);
+    assert.equal(out.text, "");
+    assert.ok(err.text.includes("Usage: interior-point"));
   });
 });
