@@ -137,7 +137,7 @@ export interface OutputRecord {
 /**
  * Serialises the computed points back into the envelope the input arrived in.
  * GeoJSON output preserves the envelope; WKT output ignores it and emits one
- * line per record. The returned text ends with exactly one newline.
+ * newline-terminated line per record, with zero records yielding an empty string.
  */
 export function serialize(kind: InputKind, records: OutputRecord[], format: OutputFormat): string {
   if (format === "wkt") {

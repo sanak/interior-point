@@ -214,4 +214,8 @@ describe("io output", () => {
     });
     assert.equal(sunk, "null\n");
   });
+
+  it("serialises zero records in WKT mode as zero lines", () => {
+    assert.equal(serialize("featureCollection", [], "wkt"), "");
+  });
 });
