@@ -32,12 +32,15 @@
       "require": "./dist/interior-point.cjs"
     }
   },
+  "bin": {
+    "interior-point": "dist/bin/interior-point.js"
+  },
   "files": [
     "dist",
     "LICENSE_EDLv1.txt"
   ],
   "scripts": {
-    "build": "vite build && tsc -p tsconfig.build.json",
+    "build": "vite build && tsc -p tsconfig.build.json && tsc -p tsconfig.cli.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prepack": "cp ../LICENSE . && cp ../LICENSE_EDLv1.txt .",
     "test": "node --test \"test/**/*Test.ts\"",
@@ -45,11 +48,11 @@
     "bench": "node test/InteriorPointAreaPerfTest.bench.ts"
   },
   "dependencies": {
-    "@types/geojson": "^7946.0.16"
+    "@types/geojson": "^7946.0.16",
+    "betterknown": "^1.2.0"
   },
   "devDependencies": {
     "@types/node": "^22",
-    "betterknown": "^1.2.0",
     "fast-xml-parser": "^5.10.1",
     "tinybench": "^6.1.2",
     "typescript": "^5.9.3",

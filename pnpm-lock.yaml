@@ -53,13 +53,13 @@ importers:
       '@types/geojson':
         specifier: ^7946.0.16
         version: 7946.0.16
+      betterknown:
+        specifier: ^1.2.0
+        version: 1.2.0
     devDependencies:
       '@types/node':
         specifier: ^22
         version: 22.20.1
-      betterknown:
-        specifier: ^1.2.0
-        version: 1.2.0
       fast-xml-parser:
         specifier: ^5.10.1
         version: 5.10.1

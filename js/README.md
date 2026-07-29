@@ -2,7 +2,7 @@
 
 Compute an interior point (representative point) of any GeoJSON geometry.
 
-Ported from the [JTS Topology Suite](https://github.com/locationtech/jts) `InteriorPoint` algorithm. GeoJSON-native, zero runtime dependencies.
+Ported from the [JTS Topology Suite](https://github.com/locationtech/jts) `InteriorPoint` algorithm. GeoJSON-native. The library itself has no runtime dependencies; the bundled `interior-point` CLI uses [betterknown](https://github.com/placemark/betterknown) for WKT conversion.
 
 ## Installation
 
