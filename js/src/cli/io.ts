@@ -7,9 +7,11 @@
  * @jts-adapter JTSOpCmd — jtsop (org.locationtech.jtstest.cmd.JTSOpCmd) is the
  *   prior art; the code is original, nothing is ported.
  */
-import { existsSync, readFileSync } from "node:fs";
-import { wktToGeoJSON } from "betterknown";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { geoJSONToWkt, wktToGeoJSON } from "betterknown";
 import type { Geometry } from "geojson";
+import type { OutputFormat } from "./args.ts";
+import type { Coordinate } from "../GeometryAdapter.ts";
 
 /** Which envelope the input arrived in; GeoJSON output preserves it. */
 export type InputKind = "geometry" | "feature" | "featureCollection";
@@ -122,4 +124,56 @@ function featureRecord(feature: unknown): InputRecord {
     }
   }
   return { geometry, meta };
+}
+
+/** Where output text goes; `bin/` binds this to stdout, tests to a buffer. */
+export type Sink = (text: string) => void;
+
+export interface OutputRecord {
+  point: Coordinate | null;
+  meta: Record<string, unknown> | null;
+}
+
+/**
+ * Serialises the computed points back into the envelope the input arrived in.
+ * GeoJSON output preserves the envelope; WKT output ignores it and emits one
+ * line per record. The returned text ends with exactly one newline.
+ */
+export function serialize(kind: InputKind, records: OutputRecord[], format: OutputFormat): string {
+  if (format === "wkt") {
+    return records.map((record) => pointToWkt(record.point) + "\n").join("");
+  }
+  switch (kind) {
+    case "geometry":
+      return JSON.stringify(pointGeometry(records[0].point)) + "\n";
+    case "feature":
+      return JSON.stringify(toFeature(records[0])) + "\n";
+    case "featureCollection":
+      return JSON.stringify({ type: "FeatureCollection", features: records.map(toFeature) }) + "\n";
+  }
+}
+
+/** Writes to `outputPath` when given, otherwise through the caller's sink. */
+export function writeOutput(text: string, outputPath: string | undefined, out: Sink): void {
+  if (outputPath === undefined) {
+    out(text);
+  } else {
+    writeFileSync(outputPath, text);
+  }
+}
+
+function pointGeometry(point: Coordinate | null): { type: "Point"; coordinates: Coordinate } | null {
+  return point === null ? null : { type: "Point", coordinates: point };
+}
+
+function toFeature(record: OutputRecord): Record<string, unknown> {
+  return { type: "Feature", ...(record.meta ?? {}), geometry: pointGeometry(record.point) };
+}
+
+/**
+ * An empty result goes through the same call as every other point: GeoJSON can
+ * hold a Point with no coordinates, and betterknown renders it as POINT EMPTY.
+ */
+function pointToWkt(point: Coordinate | null): string {
+  return geoJSONToWkt({ type: "Point", coordinates: point ?? [] });
 }

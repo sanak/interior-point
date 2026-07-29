@@ -6,11 +6,11 @@
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { HELP_TEXT, parseCliArgs, UsageError } from "../../src/cli/args.ts";
-import { InputError, readInput } from "../../src/cli/io.ts";
+import { InputError, readInput, serialize, writeOutput } from "../../src/cli/io.ts";
 
 const readStdinUnused = (): string => {
   throw new Error("stdin must not be read");
@@ -143,5 +143,75 @@ describe("io input", () => {
 
   it("throws InputError on an unsupported type member", () => {
     assert.throws(() => readInput('{"type":"Circle"}', readStdinUnused), InputError);
+  });
+});
+
+describe("io output", () => {
+  it("serialises a geometry-kind point as bare GeoJSON", () => {
+    const text = serialize("geometry", [{ point: [5, 5], meta: null }], "geojson");
+    assert.equal(text, '{"type":"Point","coordinates":[5,5]}\n');
+  });
+
+  it("serialises a geometry-kind empty result as JSON null", () => {
+    assert.equal(serialize("geometry", [{ point: null, meta: null }], "geojson"), "null\n");
+  });
+
+  it("serialises WKT one line per record, POINT EMPTY for an empty result", () => {
+    const text = serialize(
+      "featureCollection",
+      [
+        { point: [5, 5], meta: { properties: {} } },
+        { point: null, meta: { properties: {} } },
+      ],
+      "wkt",
+    );
+    assert.equal(text, "POINT (5 5)\nPOINT EMPTY\n");
+  });
+
+  it("rebuilds a Feature around the point with meta intact", () => {
+    const text = serialize("feature", [{ point: [5, 5], meta: { id: 7, properties: { name: "box" } } }], "geojson");
+    assert.deepEqual(JSON.parse(text), {
+      type: "Feature",
+      id: 7,
+      properties: { name: "box" },
+      geometry: { type: "Point", coordinates: [5, 5] },
+    });
+  });
+
+  it("rebuilds a FeatureCollection in record order, null geometries kept", () => {
+    const text = serialize(
+      "featureCollection",
+      [
+        { point: [5, 5], meta: { properties: { n: 1 } } },
+        { point: null, meta: { properties: { n: 2 } } },
+      ],
+      "geojson",
+    );
+    assert.deepEqual(JSON.parse(text), {
+      type: "FeatureCollection",
+      features: [
+        { type: "Feature", properties: { n: 1 }, geometry: { type: "Point", coordinates: [5, 5] } },
+        { type: "Feature", properties: { n: 2 }, geometry: null },
+      ],
+    });
+  });
+
+  it("writeOutput writes the file instead of the sink when a path is given", () => {
+    const dir = mkdtempSync(join(tmpdir(), "interior-point-cli-"));
+    const path = join(dir, "out.geojson");
+    let sunk = "";
+    writeOutput("null\n", path, (t) => {
+      sunk += t;
+    });
+    assert.equal(readFileSync(path, "utf-8"), "null\n");
+    assert.equal(sunk, "");
+  });
+
+  it("writeOutput uses the sink when no path is given", () => {
+    let sunk = "";
+    writeOutput("null\n", undefined, (t) => {
+      sunk += t;
+    });
+    assert.equal(sunk, "null\n");
   });
 });
