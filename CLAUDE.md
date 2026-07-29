@@ -9,13 +9,9 @@ Port of JTS (Java Topology Suite) InteriorPoint algorithm to **TypeScript** and 
 ## Monorepo Structure (pnpm workspace)
 
 - `js/` — TypeScript library (`interior-point`), GeoJSON-native, zero dependencies
-- `rs/` — Rust workspace
-  - `rs/core/` — Core Rust crate (`interior-point`), uses `geo-types` crates
-  - `rs/wasm/` — WASM bindings crate (`interior-point-wasm`)
 - `docs/` — All project documentation. **Only `docs/site/` is published.**
   - `docs/site/` — VitePress source directory (`srcDir`), deployed to GitHub Pages (base: `/interior-point/`)
   - `docs/site/public/` — Static assets copied to the site root
-- `examples/` — Sample apps
 - `upstream/jts/` — Verbatim copies of the tracked JTS sources and test resources, pinned by `upstream/jts/pin.json`. Never edit these files; see `upstream/jts/NOTICE.md`.
   `upstream/jts/main/`, `upstream/jts/test/`, and `upstream/jts/resources/` mirror JTS's Maven layout, and `js/src`/`rs/core/src` mirror `upstream/jts/main/` while `js/test`/`rs/core/tests`+`rs/core/src/test` mirror `upstream/jts/test/`, so each pair can be folder-diffed directly.
 - `testdata/` — Locally generated test fixtures only (upstream fixtures live under `upstream/jts/resources/`)
@@ -24,99 +20,12 @@ Anything under `docs/` outside `docs/site/` is invisible to VitePress. To publis
 
 ## Commands
 
-### TypeScript (from repo root)
-
-```bash
-pnpm install              # install dependencies
-pnpm test:js              # run TS tests (node --test)
-pnpm typecheck:js         # typecheck src + test (tsc --noEmit)
-pnpm build:js             # build TS library (tsc)
-pnpm lint                 # eslint
-pnpm lint:fix             # eslint --fix
-pnpm format               # prettier --write
-pnpm format:check         # prettier --check
-```
-
-Single file: `cd js && node --test test/algorithm/InteriorPointTest.ts`
-Single case: `cd js && node --test --test-name-pattern "^zero-area polygon$" test/algorithm/InteriorPointTest.ts`
-Watch mode: `cd js && pnpm test:watch`
-
-### Rust (from repo root)
-
-```bash
-pnpm test:rs              # cargo test --workspace
-cd rs && cargo test -p interior-point -- test_name   # single test
-cd rs && cargo clippy --workspace --all-targets -- -D warnings
-cd rs && cargo fmt --all --check
-```
-
-WASM build: `cd rs/wasm && wasm-pack build`
-
-### Both
-
-```bash
-pnpm test                 # runs test:scripts && test:js && test:rs
-pnpm bench                # runs bench:js && bench:rs
-```
-
-### Docs
-
-```bash
-pnpm docs:dev             # dev server
-pnpm docs:build           # production build
-```
-
 ### Upstream JTS sync
 
-`scripts/jts-sync.mjs` keeps `upstream/jts/` honest. Node only, no dependencies.
-
-```bash
-node scripts/jts-sync.mjs check [--ref master] [--diff]  # verify hashes, compare against upstream
-node scripts/jts-sync.mjs pull --ref <tag|sha>           # refresh upstream/jts/ and pin.json
-node scripts/jts-sync.mjs anchors                        # check @jts anchor integrity
-node scripts/jts-sync.mjs locate <file>:<line>           # Java line -> ported counterpart
-node scripts/jts-sync.mjs scaffold --lang ts|rs          # anchored skeletons from the Java
-pnpm test:scripts                                        # unit tests for the above
-```
-
-Exit codes: `0` clean, `1` findings, `2` operational failure.
-
-`--ref` defaults to `master`: that is upstream's default branch name, not `main`.
-
-Following an upstream change:
-
-1. `node scripts/jts-sync.mjs pull --ref <tag|sha>`
-2. `git diff upstream/` — this diff is the work order
-3. apply each hunk to the anchored counterpart in `js/src` and `rs/core/src`
-4. `pnpm test && pnpm bench`
-5. `node scripts/jts-sync.mjs anchors`
-
-`.github/workflows/jts-drift.yml` runs `check` weekly and opens or updates an issue
-labelled `jts-drift`. `anchors` runs in `ci.yml` on every push: every one of the 97
-in-scope members across the 20 pinned files carries a `@jts` anchor, so the check exits 0
-and a future member added upstream without a counterpart fails the build.
-
-A `pin.json` file entry may declare `portedMembers`, listing the only members required to
-carry a `@jts` anchor — that is how a deliberately partial port (`DD`: 10 of 74 members)
-avoids 64 spurious `@jts-omit` tags. A file entry without the field requires full coverage.
-Twelve of the twenty entries declare one.
-
-`Location.java` is the limiting case: its entry lists three **constants**. `scanJavaDir`
-only ever yields method declarations, so a `portedMembers` entry naming a field matches
-nothing and is never validated — the narrowing comes from the field being present at all,
-which drops the unported `toLocationSymbol(int)` out of the coverage denominator. Anchors
-in the _port_ that name a constant are validated separately, by a field-declaration probe.
-
-Ported JTS _tests_ are pinned the same way: `CentroidTest.java` (2 ported members) and
-`InteriorPointTest.java` (3) are vendored with a `portedMembers` list, because an `@jts`
-anchor must name a vendored file and the ported test methods carry anchors like any other
-port. `AbstractPointInRingTest.java` (6 ported members), `RayCrossingCounterTest.java` (1),
-and `SimplePointInAreaLocatorTest.java` (1) are vendored the same way. A JTS test class with
-no ported counterpart is not vendored and gets `@jts-adapter` instead: `GeometryTestCase`,
-whose XML runner node:test and the XML parsers stand in for, and `InteriorPointAreaPerfTest`,
-whose timing loop tinybench and criterion stand in for. `PointLocationTest`,
-`IndexedPointInAreaLocatorTest`, `PointLocatorTest`, `PointLocationOn4DLineTest`, and
-`SimpleRayCrossingStressTest` are deliberately not vendored: nothing in them is ported.
+Every ported member carries a `@jts` anchor; `node scripts/jts-sync.mjs anchors` enforces this in
+CI on every push, and `.github/workflows/jts-drift.yml` checks upstream drift weekly. For the full
+sync workflow, `pin.json`/`portedMembers` semantics, and the vendored-test rules, invoke the
+`jts-upstream-sync` skill.
 
 ### Citation guard
 
@@ -126,39 +35,15 @@ it runs in `ci.yml` beside `anchors` and is covered by `pnpm test:scripts`.
 
 ## Public API
 
-### TypeScript
-
-```ts
-interiorPoint(geometry: Geometry | null): Coordinate | null
-```
-
-Single dispatcher function exported from `js/src/index.ts`, alongside the `Coordinate` type.
 `Coordinate` is `js/src/GeometryAdapter.ts`'s alias of GeoJSON's `Position` and carries JTS's
 name for it; an ESLint rule bans importing `Position` inside `js/src/**` so the adapter stays
 the single place the GeoJSON name appears. The rule has no exemptions.
 
-### Rust
-
-```rust
-pub fn interior_point(geometry: &Geometry<f64>) -> Option<Coord<f64>>
-```
-
 ## Architecture
-
-### Core Algorithm (4 modules per language)
-
-Each language implements the same 4 files mirroring JTS:
-
-| Module                                                                        | Purpose                                   |
-| ----------------------------------------------------------------------------- | ----------------------------------------- |
-| `algorithm/InteriorPoint` / `core/src/algorithm/interior_point.rs`            | Dispatcher — routes by geometry dimension |
-| `algorithm/InteriorPointArea` / `core/src/algorithm/interior_point_area.rs`   | Scanline algorithm for polygons           |
-| `algorithm/InteriorPointLine` / `core/src/algorithm/interior_point_line.rs`   | Nearest vertex to centroid for lines      |
-| `algorithm/InteriorPointPoint` / `core/src/algorithm/interior_point_point.rs` | Nearest point to centroid for points      |
 
 ### Supporting Ports
 
-Reached from the dispatcher through `Centroid`, which `InteriorPointLine` and
+Reached from the `interiorPoint`/`interior_point` dispatcher through `Centroid`, which `InteriorPointLine` and
 `InteriorPointPoint` call. Both languages carry the same set:
 
 | Module                                                                                                    | Purpose                                                      |
@@ -242,21 +127,9 @@ Rust computes the ring envelope in the adapter rather than through `geo`'s `Boun
 `geo-types`. It returns `Option<Rect<f64>>`, since `Rect` cannot represent the empty
 envelope JTS returns for an empty ring; both take the "intersects nothing" path.
 
-### Scanline Algorithm (Area)
-
-1. Pick Y-coordinate that bisects bbox without hitting vertices (`ScanLineYOrdinateFinder`)
-2. Compute edge intersections at that Y for each ring
-3. Sort intersections, find longest interior interval, return its midpoint
-
 ### Test Structure
 
-Both languages share the same test structure:
-
-- `algorithm/InteriorPointTest.ts` / `tests/algorithm/interior_point_test.rs` — unit tests for all geometry types
-- `algorithm/InteriorPointWorldTest.ts` / `src/test/algorithm/interior_point_world_test.rs` — integration tests using the `world.wkt` fixture from `upstream/jts/resources/`
-- `InteriorPointAreaPerfTest.bench.ts` / `benches/` — benchmarks (tinybench / cargo bench)
-
-`Centroid` is the exception: it is crate-internal in Rust, so `rs/core/tests/` cannot reach
+Both languages mirror the same test structure. `Centroid` is the exception: it is crate-internal in Rust, so `rs/core/tests/` cannot reach
 it and its `TestCentroid.xml` test lives in its own file under `src/test/algorithm/`,
 `rs/core/src/test/algorithm/centroid_test.rs`, recorded with `@jts-deviate`. That file reaches
 the shared XML parser with `include!("../../../tests/utils/xml_test_parser.rs")` — `#[path] mod`
@@ -287,17 +160,7 @@ the only command covering `js/test`; `pnpm build:js` typechecks `src` alone.
 
 - All deliverables in **English** (code, comments, docs, commits)
 - Commit messages: English, Conventional Commits format, single line
-- TS style: 2-space indent, double quotes, semicolons, trailing commas, 120 char width (JTS-aligned)
-- Rust style: standard `rustfmt` (core: edition 2024, wasm: edition 2021)
-- Pre-commit hooks: `simple-git-hooks` + `lint-staged` (auto-runs eslint/prettier on TS, rustfmt on Rust)
-
-## CI
-
-GitHub Actions (`.github/workflows/ci.yml`):
-
-- **test-js**: pnpm install → lint → format:check → typecheck:js → test:js
-- **test-rs**: cargo test --workspace → clippy --workspace --all-targets -D warnings → fmt --all --check
-- **docs**: VitePress build → GitHub Pages deploy (main branch only)
+- The `printWidth` of 120 in `.prettierrc` is JTS-aligned, not a default — keep it
 
 ## Reference
 

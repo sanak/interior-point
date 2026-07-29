@@ -36,6 +36,7 @@ js/LICENSE_EDLv1.txt
 
 # Claude
 .claude/
+!.claude/skills/
 tmp/
 
 # superpowers scratch workspace — machine-local, never committed
