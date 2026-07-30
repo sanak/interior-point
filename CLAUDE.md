@@ -8,7 +8,8 @@ Port of JTS (Java Topology Suite) InteriorPoint algorithm to **TypeScript** and 
 
 ## Monorepo Structure (pnpm workspace)
 
-- `js/` — TypeScript library (`interior-point`), GeoJSON-native, zero dependencies
+- `js/` — TypeScript library (`interior-point`), GeoJSON-native; the library has no runtime
+  dependencies, and the bundled CLI uses `betterknown`
 - `docs/` — All project documentation. **Only `docs/site/` is published.**
   - `docs/site/` — VitePress source directory (`srcDir`), deployed to GitHub Pages (base: `/interior-point/`)
   - `docs/site/public/` — Static assets copied to the site root
@@ -32,6 +33,17 @@ sync workflow, `pin.json`/`portedMembers` semantics, and the vendored-test rules
 `node scripts/jts-citations.mjs` scans tracked files for comments citing something outside this
 repository — a design doc, a numbered task, a numbered rule — and exits non-zero if it finds one;
 it runs in `ci.yml` beside `anchors` and is covered by `pnpm test:scripts`.
+
+### CLI
+
+`cargo test --workspace` alone does **not** exercise the Rust CLI: the `cli` feature is off by
+default, so the binary is not built and `tests/cli/` is not run. Pass `--all-features` to
+`cargo test`, `cargo clippy --all-targets` and `cargo build` — `--all-targets` does not imply it —
+which is what `ci.yml` and the root `test:rs` script do. `cargo fmt` walks the module tree rather
+than the feature graph and needs no flag.
+
+Run the binary from a checkout with `cargo run -p interior-point --features cli -- -i "POINT (1 2)"`,
+and install it with `cargo install interior-point --features cli`.
 
 ## Public API
 
@@ -64,8 +76,11 @@ Those four are the point-in-polygon stack. Unlike every other supporting port th
 containment with JTS-derived code instead of a third-party predicate. They are not
 exported from `js/src/index.ts`, and in Rust they are declared `#[cfg(test)] mod` — which
 is what keeps `rs/core/src` free of file-level `#![allow(dead_code)]` while they have no
-runtime caller. The gate is that `js/src`'s four locator modules are the only modules
-unreachable from `index.ts`; TypeScript cannot enforce that, so it is recorded here.
+runtime caller. The gate is that `js/src`'s four locator modules are the only modules unreachable from the two
+roots, `index.ts` and `bin/interior-point.ts`; TypeScript cannot enforce that, so it is recorded
+here. Rust has the same two roots — the library's `lib.rs` and the `interior-point` binary — and
+its CLI modules hang off a `#[cfg(feature = "cli")] pub mod cli`, so they are reachable whenever
+the feature is on and compiled out entirely when it is not.
 
 This stack replaced two third-party point-in-polygon dependencies
 (`point-in-polygon-hao` in TS, `geo`'s `Contains` in Rust). The evidence for that
@@ -97,6 +112,36 @@ reads `get_location`), and `PointLocation::is_in_ring` (`SimplePointInAreaLocato
 `js/src/GeometryAdapter.ts` and `rs/core/src/geometry_adapter.rs` are the only places a
 geometry-model helper may be defined; nothing else in `js/src` or `rs/core/src` may add one.
 `js/src/Assert.ts` shims JTS's `Assert`; Rust maps it onto `assert!` directly.
+
+### CLI
+
+Both languages ship a CLI inside the existing package/crate. It is an original surface tagged
+`@jts-adapter`, taking JTS's `jtsop` (`org.locationtech.jtstest.cmd.JTSOpCmd`) as prior art;
+nothing is ported from it, so `upstream/jts/pin.json` and the drift check are unaffected.
+
+| Module                                            | Responsibility                                             |
+| ------------------------------------------------- | ---------------------------------------------------------- |
+| `cli/args.ts` / `cli/args.rs`                     | flag declarations and parsing → an options record          |
+| `cli/io.ts` / `cli/io.rs`                         | read input, detect its format, parse to records, serialise |
+| `cli/run.ts` / `cli/run.rs`                       | `run(argv, out, err, readStdin) -> exit code`              |
+| `bin/interior-point.ts` / `bin/interior_point.rs` | process wiring only: argv, stdin, stdout/stderr, exit code |
+| — / `cli/mod.rs`                                  | submodule declarations; ES modules need no counterpart     |
+
+`run` writes to caller-supplied sinks and returns the exit code, so both languages test the CLI
+in-process — no subprocess, no stdout scraping. `bin/` holds the only process access and is not
+unit-tested. Both halves of format knowledge sit in `io`; `run` never names a format.
+
+In TypeScript the CLI is emitted by a dedicated `tsc` pass (`js/tsconfig.cli.json`) and
+`betterknown` is a runtime dependency of the package. In Rust the whole `cli` module is
+`#[cfg(feature = "cli")]` and the `[[bin]]` target carries `required-features = ["cli"]`; `cli`
+is **not** in `default`, so a library consumer pulls none of `wkt`, `geojson` or `clap`. The
+`[[bin]]` entry is written out rather than left to cargo's `src/bin/` auto-discovery, because
+the inferred target would be named `interior_point` while the published command is
+`interior-point`.
+
+`wkt` is declared twice in `rs/core/Cargo.toml` on purpose — optional under `[dependencies]` for
+the CLI, and plain under `[dev-dependencies]` so the WKT test helpers still build with the
+feature off.
 
 ### Type Mapping (JTS → TS / Rust)
 
