@@ -8,12 +8,14 @@
 
 use std::fmt;
 use std::fs;
-use std::io;
+use std::io::{self, Write};
 use std::path::Path;
 use std::str::FromStr;
 
-use geo_types::Geometry;
-use geojson::{Feature, GeoJson};
+use geo_types::{Coord, Geometry};
+use geojson::{Feature, FeatureCollection, GeoJson};
+
+use super::args::OutputFormat;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InputKind {
@@ -133,4 +135,88 @@ fn split_feature(mut feature: Feature) -> Result<InputRecord, InputError> {
         geometry,
         meta: Some(feature),
     })
+}
+
+/// One computed interior point with the envelope metadata its input arrived in.
+#[derive(Debug)]
+pub struct OutputRecord {
+    pub point: Option<Coord<f64>>,
+    pub meta: Option<Feature>,
+}
+
+/// GeoJSON output preserves the envelope the input arrived in; WKT output
+/// ignores the envelope and emits one line per record.
+pub fn serialize(kind: InputKind, records: Vec<OutputRecord>, format: OutputFormat) -> String {
+    match format {
+        OutputFormat::Wkt => records
+            .iter()
+            .map(|r| format!("{}\n", point_wkt(r.point)))
+            .collect(),
+        OutputFormat::Geojson => match kind {
+            InputKind::Geometry => {
+                let text = match records.first().and_then(|r| r.point) {
+                    None => "null".to_string(),
+                    Some(p) => point_geometry(p).to_string(),
+                };
+                format!("{text}\n")
+            }
+            InputKind::Feature => {
+                let feature = records
+                    .into_iter()
+                    .map(feature_for)
+                    .next()
+                    .unwrap_or_else(empty_feature);
+                format!("{feature}\n")
+            }
+            InputKind::FeatureCollection => {
+                let collection = FeatureCollection {
+                    bbox: None,
+                    features: records.into_iter().map(feature_for).collect(),
+                    foreign_members: None,
+                };
+                format!("{collection}\n")
+            }
+        },
+    }
+}
+
+fn point_geometry(point: Coord<f64>) -> geojson::Geometry {
+    // Wrapping in `Geometry::new` rather than serialising the `Value` directly
+    // is what puts the `type` member first.
+    geojson::Geometry::new(geojson::Value::Point(vec![point.x, point.y]))
+}
+
+/// @jts-adapter WKTWriter — JTS writes a space between the type name and the
+///   coordinate list, and writes `POINT EMPTY` for an empty point. The `wkt`
+///   crate writes neither: it omits the space, and `geo_types::Point<f64>` has
+///   no empty value to hand it. Both shapes are produced here instead.
+fn point_wkt(point: Option<Coord<f64>>) -> String {
+    match point {
+        Some(p) => format!("POINT ({} {})", p.x, p.y),
+        None => "POINT EMPTY".to_string(),
+    }
+}
+
+fn feature_for(record: OutputRecord) -> Feature {
+    let mut feature = record.meta.unwrap_or_else(empty_feature);
+    feature.bbox = None;
+    feature.geometry = record.point.map(point_geometry);
+    feature
+}
+
+fn empty_feature() -> Feature {
+    Feature {
+        bbox: None,
+        geometry: None,
+        id: None,
+        properties: None,
+        foreign_members: None,
+    }
+}
+
+pub fn write_output(text: &str, output_path: Option<&str>, out: &mut dyn Write) -> io::Result<()> {
+    match output_path {
+        Some(path) => fs::write(path, text),
+        None => out.write_all(text.as_bytes()),
+    }
 }

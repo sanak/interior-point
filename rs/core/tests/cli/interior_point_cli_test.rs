@@ -4,7 +4,9 @@
 //!   prior art for the surface under test; the cases are original.
 
 use interior_point::cli::args::{CliOptions, OutputFormat, help_text, parse_cli_args};
-use interior_point::cli::io::{Input, InputKind, read_input};
+use interior_point::cli::io::{
+    Input, InputKind, OutputRecord, read_input, serialize, write_output,
+};
 
 fn args(argv: &[&str]) -> Vec<String> {
     argv.iter().map(|a| a.to_string()).collect()
@@ -211,5 +213,138 @@ mod io_input_tests {
         // typo surfaces as an unparseable geometry rather than a stat error.
         let error = read_input(Some("/nope/missing.geojson"), &mut no_stdin()).unwrap_err();
         assert!(!error.to_string().is_empty());
+    }
+}
+
+mod io_output_tests {
+    use super::*;
+    use geo_types::coord;
+    use std::fs;
+
+    fn feature_with(id: &str, key: &str, value: i64) -> geojson::Feature {
+        let mut properties = geojson::JsonObject::new();
+        properties.insert(key.to_string(), geojson::JsonValue::from(value));
+        geojson::Feature {
+            bbox: None,
+            geometry: None,
+            id: Some(geojson::feature::Id::String(id.to_string())),
+            properties: Some(properties),
+            foreign_members: None,
+        }
+    }
+
+    #[test]
+    fn serialises_a_geometry_kind_point_as_bare_geojson() {
+        let records = vec![OutputRecord {
+            point: Some(coord! { x: 5.0, y: 5.0 }),
+            meta: None,
+        }];
+        assert_eq!(
+            serialize(InputKind::Geometry, records, OutputFormat::Geojson),
+            "{\"type\":\"Point\",\"coordinates\":[5.0,5.0]}\n"
+        );
+    }
+
+    #[test]
+    fn serialises_a_geometry_kind_empty_result_as_json_null() {
+        let records = vec![OutputRecord {
+            point: None,
+            meta: None,
+        }];
+        assert_eq!(
+            serialize(InputKind::Geometry, records, OutputFormat::Geojson),
+            "null\n"
+        );
+    }
+
+    #[test]
+    fn serialises_wkt_one_line_per_record_point_empty_for_an_empty_result() {
+        let records = vec![
+            OutputRecord {
+                point: Some(coord! { x: 5.0, y: 5.0 }),
+                meta: None,
+            },
+            OutputRecord {
+                point: None,
+                meta: None,
+            },
+        ];
+        assert_eq!(
+            serialize(InputKind::FeatureCollection, records, OutputFormat::Wkt),
+            "POINT (5 5)\nPOINT EMPTY\n"
+        );
+    }
+
+    #[test]
+    fn rebuilds_a_feature_around_the_point_with_meta_intact() {
+        let records = vec![OutputRecord {
+            point: Some(coord! { x: 5.0, y: 5.0 }),
+            meta: Some(feature_with("a", "n", 1)),
+        }];
+        assert_eq!(
+            serialize(InputKind::Feature, records, OutputFormat::Geojson),
+            "{\"type\":\"Feature\",\"geometry\":{\"type\":\"Point\",\"coordinates\":[5.0,5.0]},\
+             \"properties\":{\"n\":1},\"id\":\"a\"}\n"
+        );
+    }
+
+    #[test]
+    fn rebuilds_a_feature_collection_in_record_order_null_geometries_kept() {
+        let records = vec![
+            OutputRecord {
+                point: Some(coord! { x: 5.0, y: 5.0 }),
+                meta: Some(feature_with("a", "n", 1)),
+            },
+            OutputRecord {
+                point: None,
+                meta: Some(feature_with("b", "n", 2)),
+            },
+        ];
+        let text = serialize(InputKind::FeatureCollection, records, OutputFormat::Geojson);
+        assert!(
+            text.starts_with("{\"type\":\"FeatureCollection\",\"features\":["),
+            "{text}"
+        );
+        assert!(text.contains("\"id\":\"a\""), "{text}");
+        assert!(text.contains("\"geometry\":null"), "{text}");
+        assert!(text.ends_with("}\n"), "{text}");
+        assert!(
+            text.find("\"id\":\"a\"").unwrap() < text.find("\"id\":\"b\"").unwrap(),
+            "{text}"
+        );
+    }
+
+    #[test]
+    fn serialises_zero_records_in_wkt_mode_as_zero_lines() {
+        assert_eq!(
+            serialize(InputKind::FeatureCollection, vec![], OutputFormat::Wkt),
+            ""
+        );
+    }
+
+    #[test]
+    fn serialises_zero_records_in_geojson_mode_as_an_empty_collection() {
+        assert_eq!(
+            serialize(InputKind::FeatureCollection, vec![], OutputFormat::Geojson),
+            "{\"type\":\"FeatureCollection\",\"features\":[]}\n"
+        );
+    }
+
+    #[test]
+    fn write_output_writes_the_file_instead_of_the_sink_when_a_path_is_given() {
+        let path = temp_path("output.txt");
+        let mut sink: Vec<u8> = Vec::new();
+        write_output("POINT (5 5)\n", Some(path.to_str().unwrap()), &mut sink).unwrap();
+        let written = fs::read_to_string(&path).unwrap();
+        let _ = fs::remove_file(&path);
+        assert_eq!(written, "POINT (5 5)\n");
+        assert!(sink.is_empty());
+    }
+
+    #[test]
+    fn write_output_uses_the_sink_when_no_path_is_given() {
+        let mut sink: Vec<u8> = Vec::new();
+        write_output("POINT (5 5)\n", None, &mut sink).unwrap();
+        assert_eq!(String::from_utf8(sink).unwrap(), "POINT (5 5)\n");
     }
 }
