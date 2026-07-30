@@ -1,0 +1,81 @@
+//! Flag declarations and parsing for the interior-point CLI. The surface is
+//! `-i/--input`, `-f/--format`, `-o/--output`, `-q/--quiet` and `-h/--help`;
+//! there are no positional arguments and no version flag.
+//!
+//! @jts-adapter JTSOpCmd — jtsop (org.locationtech.jtstest.cmd.JTSOpCmd) is the
+//!   prior art for this CLI's surface; the code is original, nothing is ported.
+
+use std::fmt;
+
+use clap::{CommandFactory, Parser, ValueEnum};
+
+/// A bad command line: an unknown flag, a positional argument, or an
+/// unrecognised value. Carries the message already rendered by `clap`.
+#[derive(Debug)]
+pub struct UsageError(pub String);
+
+impl fmt::Display for UsageError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for UsageError {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
+pub enum OutputFormat {
+    Geojson,
+    Wkt,
+}
+
+/// The parsed command line. Mirrors the TypeScript CLI's options record field
+/// for field, including `help` as a plain flag rather than an early exit.
+#[derive(Debug, PartialEq)]
+pub struct CliOptions {
+    pub input: Option<String>,
+    pub format: OutputFormat,
+    pub output: Option<String>,
+    pub quiet: bool,
+    pub help: bool,
+}
+
+#[derive(Debug, Parser)]
+#[command(
+    name = "interior-point",
+    about = "Compute an interior point of each input geometry.",
+    disable_help_flag = true,
+    disable_version_flag = true
+)]
+struct Cli {
+    /// WKT literal, GeoJSON literal, or a path. Defaults to stdin
+    #[arg(short, long, value_name = "geom|file")]
+    input: Option<String>,
+    /// Output format: geojson (default) or wkt
+    #[arg(short, long, value_name = "fmt", value_enum, default_value_t = OutputFormat::Geojson)]
+    format: OutputFormat,
+    /// Write to a file instead of stdout
+    #[arg(short, long, value_name = "file")]
+    output: Option<String>,
+    /// Suppress the result; exit code only
+    #[arg(short, long)]
+    quiet: bool,
+    /// Print this help
+    #[arg(short, long)]
+    help: bool,
+}
+
+pub fn help_text() -> String {
+    Cli::command().render_help().to_string()
+}
+
+pub fn parse_cli_args(argv: &[String]) -> Result<CliOptions, UsageError> {
+    let with_name = std::iter::once("interior-point").chain(argv.iter().map(String::as_str));
+    let cli = Cli::try_parse_from(with_name).map_err(|e| UsageError(e.to_string()))?;
+    Ok(CliOptions {
+        input: cli.input,
+        format: cli.format,
+        output: cli.output,
+        quiet: cli.quiet,
+        help: cli.help,
+    })
+}

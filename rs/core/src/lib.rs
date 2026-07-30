@@ -7,6 +7,9 @@ mod algorithm;
 mod geometry_adapter;
 mod math;
 
+#[cfg(feature = "cli")]
+pub mod cli;
+
 #[cfg(test)]
 mod geom;
 #[cfg(test)]

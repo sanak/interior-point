@@ -15,8 +15,20 @@ include = ["src/**/*", "Cargo.toml", "LICENSE", "LICENSE_EDLv1.txt", "README.md"
 [lib]
 crate-type = ["rlib"]
 
+[features]
+cli = ["dep:wkt", "dep:geojson", "dep:clap"]
+
 [dependencies]
 geo-types.workspace = true
+wkt = { version = "0.11", optional = true }
+geojson = { version = "0.24", optional = true }
+clap = { version = "4", optional = true, default-features = false, features = [
+  "std",
+  "help",
+  "usage",
+  "error-context",
+  "derive",
+] }
 
 [dev-dependencies]
 wkt = "0.11"
@@ -26,6 +38,11 @@ criterion = { version = "0.5", features = ["html_reports"] }
 [[test]]
 name = "interior_point_test"
 path = "tests/algorithm/interior_point_test.rs"
+
+[[test]]
+name = "interior_point_cli_test"
+path = "tests/cli/interior_point_cli_test.rs"
+required-features = ["cli"]
 
 [[bench]]
 name = "interior_point_area_perf_test"
