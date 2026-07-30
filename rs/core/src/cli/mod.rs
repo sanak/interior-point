@@ -5,3 +5,4 @@
 //!   prior art for this CLI's surface; the code is original, nothing is ported.
 
 pub mod args;
+pub mod io;
