@@ -12,7 +12,7 @@
     "typecheck:js": "pnpm --filter ./js run typecheck",
     "test:scripts": "node --test \"scripts/test/*.test.mjs\"",
     "test:js": "pnpm --filter ./js run test",
-    "test:rs": "cd rs && cargo test --workspace",
+    "test:rs": "cd rs && cargo test --workspace --all-features",
     "test": "pnpm test:scripts && pnpm test:js && pnpm test:rs",
     "bench:js": "pnpm --filter ./js run bench",
     "bench:rs": "cd rs && cargo bench -p interior-point",

@@ -159,10 +159,12 @@ describe("scanPortAnchors", () => {
     // four more: RayCrossingCounter#locatePointInRing(Coordinate,CoordinateSequence)
     // in both languages, and AbstractPointInRingTest's JUnit-shape note in both
     // languages' case-table test files. The locator port adds none: its two @jts-deviate
-    // records are @jts-deviate, not @jts-adapter. The CLI adds five, in TypeScript
-    // only: its three cli modules, its bin stub, and its test file, all taking
-    // jtsop as prior art.
-    assert.equal(kinds["jts-adapter"], 43);
+    // records are @jts-deviate, not @jts-adapter. The CLI adds twelve: in TypeScript its three cli
+    // modules, its bin stub and its test file, and in Rust the same five plus
+    // a cli/mod.rs the module layout requires and a WKTWriter note where the
+    // wkt crate's output shape and geo_types' lack of an empty point force the
+    // point text to be written here.
+    assert.equal(kinds["jts-adapter"], 44);
   });
 });
 

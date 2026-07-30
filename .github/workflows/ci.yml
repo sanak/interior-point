@@ -48,10 +48,16 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rs
-      - run: cd rs && cargo test --workspace
-      - run: cd rs && cargo clippy --workspace --all-targets -- -D warnings
+      - run: cd rs && cargo test --workspace --all-features
+      - run: cd rs && cargo clippy --workspace --all-targets --all-features -- -D warnings
       - run: cd rs && cargo fmt --all --check
-      - run: cd rs && cargo build --workspace
+      - run: cd rs && cargo build --workspace --all-features
+      - name: Smoke-test the CLI binary
+        run: |
+          cd rs
+          output=$(./target/debug/interior-point -i 'POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))')
+          echo "$output"
+          test "$output" = '{"type":"Point","coordinates":[5.0,5.0]}'
 
   docs:
     name: Build Docs
