@@ -28,15 +28,16 @@ flag is what turns the binary on.
 
 ## Usage
 
-```
-Usage: interior-point [options]
-  -i, --input <geom|file>   WKT literal, GeoJSON literal, or a path.
-                            Defaults to stdin.
-  -f, --format <fmt>        Output format: geojson (default) or wkt.
-  -o, --output <file>       Write to a file instead of stdout.
-  -q, --quiet               Suppress the result; exit code only.
-  -h, --help                Print this help.
-```
+| Short | Long       | Argument       | Meaning                                                    |
+| ----- | ---------- | -------------- | ---------------------------------------------------------- |
+| `-i`  | `--input`  | `<geom\|file>` | WKT literal, GeoJSON literal, or a path. Defaults to stdin |
+| `-f`  | `--format` | `<fmt>`        | Output format: geojson (default) or wkt                    |
+| `-o`  | `--output` | `<file>`       | Write to a file instead of stdout                          |
+| `-q`  | `--quiet`  | —              | Suppress the result; exit code only                        |
+| `-h`  | `--help`   | —              | Print this help                                            |
+
+The exact `--help` layout differs between the two CLIs: each language renders it with its own
+standard argument parser rather than a shared template.
 
 ```sh
 interior-point -i "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))"
@@ -74,9 +75,21 @@ either way.
 and carrying it past a substitution would wrap a single point in a continent-sized box.
 `properties`, `id` and a Feature's foreign members are preserved.
 
-The two implementations agree byte for byte except that the Rust CLI prints an integral
-coordinate as `5.0` where the TypeScript CLI prints `5`, and orders a Feature's JSON members
-differently. Both forms are valid GeoJSON.
+The two implementations agree byte for byte on result output, with these divergences:
+
+- The Rust CLI prints an integral coordinate as `5.0` where the TypeScript CLI prints `5`, and
+  orders a Feature's JSON members differently. Both forms are valid GeoJSON.
+- `--help` output and error messages differ, because each language uses its own standard
+  argument parser.
+- Z coordinates: `{"type":"Point","coordinates":[1,2,3]}` gives `[1,2,3]` / `POINT Z (1 2 3)` in
+  TypeScript and `[1.0,2.0]` / `POINT (1 2)` in Rust, because `geo_types::Coord` is
+  two-dimensional.
+- A Feature with no `properties` member gains `"properties":null` in Rust output, where
+  TypeScript omits the key. Rust's form is the one RFC 7946 prescribes.
+- At extreme magnitudes the WKT number format differs: Rust never uses exponent notation, so
+  `POINT (1e30 2e-8)` comes back as `POINT (1000000000000000000000000000000 0.00000002)` where
+  TypeScript gives `POINT (1e+30 2e-8)`. Rust's form matches JTS's own `WKTWriter`. No real
+  geographic coordinate reaches this range.
 
 ## Exit codes
 

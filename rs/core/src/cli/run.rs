@@ -24,7 +24,13 @@ pub fn run(
         Ok(options) => options,
         Err(e) => {
             // clap's own exit code for a usage error is 2; this CLI answers 1.
-            let _ = write!(err, "{e}\n{}", help_text());
+            // clap's rendered error already carries its own `Usage:` paragraph
+            // after a blank line; keep only the message paragraph ahead of it
+            // and follow with the help block once, so `Usage:` doesn't print
+            // twice.
+            let message = e.to_string();
+            let first_paragraph = message.split("\n\n").next().unwrap_or(&message);
+            let _ = writeln!(err, "{first_paragraph}\n\n{}", help_text());
             return 1;
         }
     };

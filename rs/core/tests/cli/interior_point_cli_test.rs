@@ -534,10 +534,20 @@ mod run_tests {
     }
 
     #[test]
+    fn unwritable_output_path_exit_one_stdout_empty_stderr_non_empty() {
+        let path = temp_path("no-such-dir").join("output.txt");
+        let (code, out, err) = drive(&["-o", path.to_str().unwrap(), "-i", "POINT (1 2)"], "");
+        assert_eq!(code, 1);
+        assert!(out.is_empty());
+        assert!(!err.is_empty());
+    }
+
+    #[test]
     fn unknown_flag_exit_one_stdout_empty_usage_on_stderr() {
         let (code, out, err) = drive(&["--bogus"], "");
         assert_eq!(code, 1);
         assert!(out.is_empty());
         assert!(err.contains("--input"), "{err}");
+        assert_eq!(err.matches("Usage:").count(), 1, "{err}");
     }
 }

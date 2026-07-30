@@ -45,6 +45,18 @@ assert!(pt.is_some());
 
 Returns a coordinate guaranteed to lie inside area geometries, or on linear/point geometries. Returns `None` for empty geometries.
 
+## CLI
+
+This crate also bundles an `interior-point` command-line binary, behind a `cli` feature that is
+not in `default`; `cargo install interior-point` alone installs nothing, so build or install it
+with `--features cli`:
+
+```sh
+cargo install interior-point --features cli
+```
+
+See the [CLI page](https://sanak.github.io/interior-point/cli) for the flags and examples.
+
 ## License
 
 [MIT](./LICENSE)
