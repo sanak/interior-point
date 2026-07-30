@@ -7,6 +7,7 @@ use interior_point::cli::args::{CliOptions, OutputFormat, help_text, parse_cli_a
 use interior_point::cli::io::{
     Input, InputKind, OutputRecord, read_input, serialize, write_output,
 };
+use interior_point::cli::run::run;
 
 fn args(argv: &[&str]) -> Vec<String> {
     argv.iter().map(|a| a.to_string()).collect()
@@ -346,5 +347,197 @@ mod io_output_tests {
         let mut sink: Vec<u8> = Vec::new();
         write_output("POINT (5 5)\n", None, &mut sink).unwrap();
         assert_eq!(String::from_utf8(sink).unwrap(), "POINT (5 5)\n");
+    }
+}
+
+mod run_tests {
+    use super::*;
+    use std::fs;
+
+    /// Drives `run` against in-memory sinks and returns (exit code, stdout, stderr).
+    fn drive(argv: &[&str], stdin: &str) -> (i32, String, String) {
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+        let mut read_stdin = || Ok(stdin.to_string());
+        let code = run(&args(argv), &mut out, &mut err, &mut read_stdin);
+        (
+            code,
+            String::from_utf8(out).unwrap(),
+            String::from_utf8(err).unwrap(),
+        )
+    }
+
+    #[test]
+    fn wkt_literal_in_geojson_out_by_default() {
+        let (code, out, err) = drive(&["-i", "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))"], "");
+        assert_eq!(code, 0);
+        assert_eq!(out, "{\"type\":\"Point\",\"coordinates\":[5.0,5.0]}\n");
+        assert!(err.is_empty());
+    }
+
+    #[test]
+    fn geojson_geometry_literal_in_wkt_out() {
+        let (code, out, _) = drive(
+            &[
+                "-i",
+                r#"{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,10],[0,10],[0,0]]]}"#,
+                "-f",
+                "wkt",
+            ],
+            "",
+        );
+        assert_eq!(code, 0);
+        assert_eq!(out, "POINT (5 5)\n");
+    }
+
+    #[test]
+    fn feature_in_feature_out_properties_and_id_intact_bbox_gone() {
+        let (code, out, _) = drive(
+            &[
+                "-i",
+                r#"{"type":"Feature","bbox":[0,0,10,10],"id":"a","properties":{"name":"x"},
+                    "geometry":{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,10],[0,10],[0,0]]]}}"#,
+            ],
+            "",
+        );
+        assert_eq!(code, 0);
+        assert!(!out.contains("bbox"), "{out}");
+        assert!(out.contains("\"id\":\"a\""), "{out}");
+        assert!(out.contains("\"name\":\"x\""), "{out}");
+        assert!(out.contains("\"coordinates\":[5.0,5.0]"), "{out}");
+    }
+
+    #[test]
+    fn feature_collection_file_in_feature_collection_out_order_kept_bbox_gone() {
+        let path = temp_path("collection.geojson");
+        fs::write(
+            &path,
+            r#"{"type":"FeatureCollection","bbox":[0,0,30,10],"features":[
+                {"type":"Feature","id":1,"properties":{"n":1},
+                 "geometry":{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,10],[0,10],[0,0]]]}},
+                {"type":"Feature","id":2,"properties":{"n":2},
+                 "geometry":{"type":"Polygon","coordinates":[[[20,0],[30,0],[30,10],[20,10],[20,0]]]}}]}"#,
+        )
+        .unwrap();
+        let (code, out, _) = drive(&["-i", path.to_str().unwrap()], "");
+        let _ = fs::remove_file(&path);
+        assert_eq!(code, 0);
+        assert!(!out.contains("bbox"), "{out}");
+        assert!(out.contains("\"coordinates\":[5.0,5.0]"), "{out}");
+        assert!(out.contains("\"coordinates\":[25.0,5.0]"), "{out}");
+        assert!(
+            out.find("[5.0,5.0]").unwrap() < out.find("[25.0,5.0]").unwrap(),
+            "{out}"
+        );
+    }
+
+    #[test]
+    fn feature_collection_in_with_format_wkt_one_line_per_feature_in_order() {
+        let (code, out, _) = drive(
+            &[
+                "-f",
+                "wkt",
+                "-i",
+                r#"{"type":"FeatureCollection","features":[
+                    {"type":"Feature","properties":null,
+                     "geometry":{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,10],[0,10],[0,0]]]}},
+                    {"type":"Feature","properties":null,
+                     "geometry":{"type":"Polygon","coordinates":[]}}]}"#,
+            ],
+            "",
+        );
+        assert_eq!(code, 0);
+        assert_eq!(out, "POINT (5 5)\nPOINT EMPTY\n");
+    }
+
+    #[test]
+    fn an_empty_result_stays_inside_the_envelope() {
+        let (code, out, _) = drive(
+            &[
+                "-i",
+                r#"{"type":"FeatureCollection","features":[
+                    {"type":"Feature","properties":{"n":1},
+                     "geometry":{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,10],[0,10],[0,0]]]}},
+                    {"type":"Feature","properties":{"n":2},
+                     "geometry":{"type":"Polygon","coordinates":[]}}]}"#,
+            ],
+            "",
+        );
+        assert_eq!(code, 0);
+        assert!(out.contains("\"geometry\":null"), "{out}");
+        assert_eq!(out.matches("\"type\":\"Feature\"").count(), 2, "{out}");
+    }
+
+    #[test]
+    fn reads_stdin_when_input_is_absent() {
+        let (code, out, _) = drive(&[], "POINT (1 2)");
+        assert_eq!(code, 0);
+        assert_eq!(out, "{\"type\":\"Point\",\"coordinates\":[1.0,2.0]}\n");
+    }
+
+    #[test]
+    fn output_writes_the_file_and_nothing_reaches_stdout() {
+        let path = temp_path("run-output.txt");
+        let (code, out, _) = drive(
+            &[
+                "-f",
+                "wkt",
+                "-o",
+                path.to_str().unwrap(),
+                "-i",
+                "POINT (1 2)",
+            ],
+            "",
+        );
+        let written = fs::read_to_string(&path).unwrap();
+        let _ = fs::remove_file(&path);
+        assert_eq!(code, 0);
+        assert!(out.is_empty());
+        assert_eq!(written, "POINT (1 2)\n");
+    }
+
+    #[test]
+    fn quiet_suppresses_the_result_entirely_and_beats_output() {
+        let path = temp_path("must-not-exist.txt");
+        let _ = fs::remove_file(&path);
+        let (code, out, err) = drive(
+            &["-q", "-o", path.to_str().unwrap(), "-i", "POINT (1 2)"],
+            "",
+        );
+        assert_eq!(code, 0);
+        assert!(out.is_empty());
+        assert!(err.is_empty());
+        assert!(!path.exists(), "--quiet must beat --output");
+    }
+
+    #[test]
+    fn help_prints_usage_to_out_and_exits_zero() {
+        let (code, out, err) = drive(&["--help"], "");
+        assert_eq!(code, 0);
+        assert!(out.contains("--input"), "{out}");
+        assert!(err.is_empty());
+    }
+
+    #[test]
+    fn unparseable_geometry_exit_one_stdout_empty_stderr_non_empty() {
+        let (code, out, err) = drive(&["-i", "NOTAGEOM (1 2)"], "");
+        assert_eq!(code, 1);
+        assert!(out.is_empty());
+        assert!(!err.is_empty());
+    }
+
+    #[test]
+    fn missing_file_exit_one_stdout_empty_stderr_non_empty() {
+        let (code, out, err) = drive(&["-i", "/nope/missing.geojson"], "");
+        assert_eq!(code, 1);
+        assert!(out.is_empty());
+        assert!(!err.is_empty());
+    }
+
+    #[test]
+    fn unknown_flag_exit_one_stdout_empty_usage_on_stderr() {
+        let (code, out, err) = drive(&["--bogus"], "");
+        assert_eq!(code, 1);
+        assert!(out.is_empty());
+        assert!(err.contains("--input"), "{err}");
     }
 }

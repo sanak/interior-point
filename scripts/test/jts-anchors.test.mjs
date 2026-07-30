@@ -162,7 +162,7 @@ describe("scanPortAnchors", () => {
     // records are @jts-deviate, not @jts-adapter. The CLI adds five, in TypeScript
     // only: its three cli modules, its bin stub, and its test file, all taking
     // jtsop as prior art.
-    assert.equal(kinds["jts-adapter"], 42);
+    assert.equal(kinds["jts-adapter"], 43);
   });
 });
 
