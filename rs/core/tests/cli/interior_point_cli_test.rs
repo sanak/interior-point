@@ -240,7 +240,68 @@ mod io_output_tests {
         }];
         assert_eq!(
             serialize(InputKind::Geometry, records, OutputFormat::Geojson),
-            "{\"type\":\"Point\",\"coordinates\":[5.0,5.0]}\n"
+            "{\"type\":\"Point\",\"coordinates\":[5,5]}\n"
+        );
+    }
+
+    /// The three number shapes `JSON.stringify` writes: plain decimal, and the
+    /// exponential form it switches to above 1e21 and below 1e-6.
+    #[test]
+    fn serialises_coordinates_outside_the_plain_decimal_band_in_exponential_form() {
+        let records = vec![OutputRecord {
+            point: Some(coord! { x: 1e21, y: 1e-7 }),
+            meta: None,
+        }];
+        assert_eq!(
+            serialize(InputKind::Geometry, records, OutputFormat::Geojson),
+            "{\"type\":\"Point\",\"coordinates\":[1e+21,1e-7]}\n"
+        );
+    }
+
+    /// Two seventeen-digit strings round-trip to this double and sit equally
+    /// close to it. ECMAScript takes the one ending in an even digit, and so
+    /// must this; the standard library's own shortest form ends in `3`.
+    #[test]
+    fn breaks_a_tie_between_equally_short_forms_towards_the_even_digit() {
+        let records = vec![OutputRecord {
+            point: Some(coord! { x: 1186772172624852.2, y: 0.0 }),
+            meta: None,
+        }];
+        assert_eq!(
+            serialize(InputKind::Geometry, records, OutputFormat::Geojson),
+            "{\"type\":\"Point\",\"coordinates\":[1186772172624852.2,0]}\n"
+        );
+    }
+
+    #[test]
+    fn serialises_negative_zero_as_zero() {
+        let records = vec![OutputRecord {
+            point: Some(coord! { x: -0.0, y: 0.0 }),
+            meta: None,
+        }];
+        assert_eq!(
+            serialize(InputKind::Geometry, records, OutputFormat::Geojson),
+            "{\"type\":\"Point\",\"coordinates\":[0,0]}\n"
+        );
+    }
+
+    /// A number carried through from the input is rendered the same way, so a
+    /// property that arrived as `1.0` leaves as `1`, as it would from
+    /// `JSON.parse` and back out through `JSON.stringify`.
+    #[test]
+    fn serialises_a_whole_pass_through_property_without_a_decimal_point() {
+        let mut properties = Members::new();
+        properties.insert("n".to_string(), 1.0.into());
+        let mut meta = Members::new();
+        meta.insert("properties".to_string(), properties.into());
+        let records = vec![OutputRecord {
+            point: Some(coord! { x: 5.0, y: 5.0 }),
+            meta: Some(meta),
+        }];
+        assert_eq!(
+            serialize(InputKind::Feature, records, OutputFormat::Geojson),
+            "{\"type\":\"Feature\",\"properties\":{\"n\":1},\
+             \"geometry\":{\"type\":\"Point\",\"coordinates\":[5,5]}}\n"
         );
     }
 
@@ -283,7 +344,7 @@ mod io_output_tests {
         assert_eq!(
             serialize(InputKind::Feature, records, OutputFormat::Geojson),
             "{\"type\":\"Feature\",\"id\":\"a\",\"properties\":{\"n\":1},\
-             \"geometry\":{\"type\":\"Point\",\"coordinates\":[5.0,5.0]}}\n"
+             \"geometry\":{\"type\":\"Point\",\"coordinates\":[5,5]}}\n"
         );
     }
 
@@ -368,8 +429,27 @@ mod run_tests {
     fn wkt_literal_in_geojson_out_by_default() {
         let (code, out, err) = drive(&["-i", "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))"], "");
         assert_eq!(code, 0);
-        assert_eq!(out, "{\"type\":\"Point\",\"coordinates\":[5.0,5.0]}\n");
+        assert_eq!(out, "{\"type\":\"Point\",\"coordinates\":[5,5]}\n");
         assert!(err.is_empty());
+    }
+
+    /// A coordinate has to survive the read as well as the write. Both JSON
+    /// readers on this path are only exact because they carry `float_roundtrip`;
+    /// without it this value comes back one ULP away, as `…456e-51`.
+    #[test]
+    fn reads_a_coordinate_back_as_the_double_it_was_written_as() {
+        let (code, out, _) = drive(
+            &[
+                "-i",
+                r#"{"type":"Point","coordinates":[-7.464683915807455e-51,1.1867721726248522e15]}"#,
+            ],
+            "",
+        );
+        assert_eq!(code, 0);
+        assert_eq!(
+            out,
+            "{\"type\":\"Point\",\"coordinates\":[-7.464683915807455e-51,1186772172624852.2]}\n"
+        );
     }
 
     #[test]
@@ -401,7 +481,7 @@ mod run_tests {
         assert!(!out.contains("bbox"), "{out}");
         assert!(out.contains("\"id\":\"a\""), "{out}");
         assert!(out.contains("\"name\":\"x\""), "{out}");
-        assert!(out.contains("\"coordinates\":[5.0,5.0]"), "{out}");
+        assert!(out.contains("\"coordinates\":[5,5]"), "{out}");
     }
 
     #[test]
@@ -420,10 +500,10 @@ mod run_tests {
         let _ = fs::remove_file(&path);
         assert_eq!(code, 0);
         assert!(!out.contains("bbox"), "{out}");
-        assert!(out.contains("\"coordinates\":[5.0,5.0]"), "{out}");
-        assert!(out.contains("\"coordinates\":[25.0,5.0]"), "{out}");
+        assert!(out.contains("\"coordinates\":[5,5]"), "{out}");
+        assert!(out.contains("\"coordinates\":[25,5]"), "{out}");
         assert!(
-            out.find("[5.0,5.0]").unwrap() < out.find("[25.0,5.0]").unwrap(),
+            out.find("[5,5]").unwrap() < out.find("[25,5]").unwrap(),
             "{out}"
         );
     }
@@ -465,11 +545,33 @@ mod run_tests {
         assert_eq!(out.matches("\"type\":\"Feature\"").count(), 2, "{out}");
     }
 
+    /// Numbers survive the round trip in `JSON.stringify` form at every depth,
+    /// whatever shape they were written in.
+    #[test]
+    fn property_numbers_come_back_out_the_way_json_stringify_writes_them() {
+        let (code, out, _) = drive(
+            &[
+                "-i",
+                r#"{"type":"Feature","properties":{"a":1.0,"b":2.50,"c":1e2,"d":3,"e":-0,
+                    "nest":{"x":4.0,"y":[1.0,1e21]}},
+                    "geometry":{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,10],[0,10],[0,0]]]}}"#,
+            ],
+            "",
+        );
+        assert_eq!(code, 0);
+        assert_eq!(
+            out,
+            "{\"type\":\"Feature\",\"properties\":{\"a\":1,\"b\":2.5,\"c\":100,\"d\":3,\"e\":0,\
+             \"nest\":{\"x\":4,\"y\":[1,1e+21]}},\
+             \"geometry\":{\"type\":\"Point\",\"coordinates\":[5,5]}}\n"
+        );
+    }
+
     #[test]
     fn reads_stdin_when_input_is_absent() {
         let (code, out, _) = drive(&[], "POINT (1 2)");
         assert_eq!(code, 0);
-        assert_eq!(out, "{\"type\":\"Point\",\"coordinates\":[1.0,2.0]}\n");
+        assert_eq!(out, "{\"type\":\"Point\",\"coordinates\":[1,2]}\n");
     }
 
     #[test]

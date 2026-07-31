@@ -80,12 +80,10 @@ out as they came.
 
 The two implementations agree byte for byte on result output, with these divergences:
 
-- The Rust CLI prints an integral coordinate as `5.0` where the TypeScript CLI prints `5`. Both
-  forms are valid GeoJSON.
 - `--help` output and error messages differ, because each language uses its own standard
   argument parser.
 - Z coordinates: `{"type":"Point","coordinates":[1,2,3]}` gives `[1,2,3]` / `POINT Z (1 2 3)` in
-  TypeScript and `[1.0,2.0]` / `POINT (1 2)` in Rust, because `geo_types::Coord` is
+  TypeScript and `[1,2]` / `POINT (1 2)` in Rust, because `geo_types::Coord` is
   two-dimensional.
 - At extreme magnitudes the WKT number format differs: Rust never uses exponent notation, so
   `POINT (1e30 2e-8)` comes back as `POINT (1000000000000000000000000000000 0.00000002)` where

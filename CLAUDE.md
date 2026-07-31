@@ -134,8 +134,8 @@ unit-tested. Both halves of format knowledge sit in `io`; `run` never names a fo
 In TypeScript the CLI is emitted by a dedicated `tsc` pass (`js/tsconfig.cli.json`) and
 `betterknown` is a runtime dependency of the package. In Rust the whole `cli` module is
 `#[cfg(feature = "cli")]` and the `[[bin]]` target carries `required-features = ["cli"]`; `cli`
-is **not** in `default`, so a library consumer pulls none of `wkt`, `geojson`, `clap`, `serde` or
-`serde_json_lenient`. The
+is **not** in `default`, so a library consumer pulls none of `wkt`, `geojson`, `clap`, `ryu`,
+`serde`, `serde_json` or `serde_json_lenient`. The
 `[[bin]]` entry is written out rather than left to cargo's `src/bin/` auto-discovery, because
 the inferred target would be named `interior_point` while the published command is
 `interior-point`.
@@ -146,7 +146,10 @@ feature off.
 
 The Rust CLI reads the GeoJSON Feature envelope through `serde_json_lenient`'s `preserve_order`
 rather than `geojson`, so member order survives parsing; `geojson` still owns every geometry
-shape. `cli/io.rs` records why no `serde_json` configuration reaches the same place.
+shape. `cli/io.rs` records why no `serde_json` configuration reaches the same place. Its GeoJSON
+numbers are written by hand from `ryu`'s digits, because JavaScript has no integer type and the
+two CLIs are held to byte-for-byte agreement; `float_roundtrip` on both JSON crates is what keeps
+the read side exact.
 
 ### Type Mapping (JTS → TS / Rust)
 

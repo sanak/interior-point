@@ -16,7 +16,15 @@ include = ["src/**/*", "Cargo.toml", "LICENSE", "LICENSE_EDLv1.txt", "README.md"
 crate-type = ["rlib"]
 
 [features]
-cli = ["dep:wkt", "dep:geojson", "dep:clap", "dep:serde", "dep:serde_json_lenient"]
+cli = [
+  "dep:wkt",
+  "dep:geojson",
+  "dep:clap",
+  "dep:ryu",
+  "dep:serde",
+  "dep:serde_json",
+  "dep:serde_json_lenient",
+]
 
 [dependencies]
 geo-types.workspace = true
@@ -26,8 +34,17 @@ geojson = { version = "0.24", optional = true }
 # `Deserialize` trait has to be in scope, and `serde_json_lenient` re-exports
 # neither it nor the `serde` crate.
 serde = { version = "1", optional = true }
+# `float_roundtrip` is not optional on either of these: without it the parser is
+# allowed to land one ULP away from the nearest double, so a coordinate read back
+# out would not be the one written in. `serde_json` is declared only to carry
+# that feature — `geojson` reads geometry through it, and cargo unifies the two.
+# `ryu` supplies the shortest round-tripping digits, breaking a tie the way
+# ECMAScript does; `cli::io` records why the standard library cannot.
+ryu = { version = "1", optional = true }
+serde_json = { version = "1", optional = true, features = ["float_roundtrip"] }
 serde_json_lenient = { version = "0.2", optional = true, features = [
   "preserve_order",
+  "float_roundtrip",
 ] }
 clap = { version = "4", optional = true, default-features = false, features = [
   "std",

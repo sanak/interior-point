@@ -166,8 +166,10 @@ fn type_member(value: &Value) -> Option<&str> {
 
 /// Hands one geometry member to `geojson`, whose own reader owns every geometry
 /// shape. The member is re-rendered rather than passed as a value because
-/// `geojson` reads `serde_json`'s tree and this module reads an ordered one;
-/// both writers are exact for `f64`, so no coordinate moves in the process.
+/// `geojson` reads `serde_json`'s tree and this module reads an ordered one.
+/// No coordinate moves in the process, but only because both crates carry
+/// `float_roundtrip`: writing is exact either way, and without that feature the
+/// second read is free to land one ULP off. `Cargo.toml` records the same.
 fn parse_geometry(value: &Value) -> Result<Geometry<f64>, InputError> {
     let text = serde_json_lenient::to_string(value).map_err(|e| InputError(e.to_string()))?;
     let parsed = geojson::Geometry::from_str(&text).map_err(|e| InputError(e.to_string()))?;
@@ -241,9 +243,114 @@ pub fn serialize(kind: InputKind, records: Vec<OutputRecord>, format: OutputForm
                     Value::Object(collection)
                 }
             };
-            format!("{value}\n")
+            let mut text = String::new();
+            write_json(&value, &mut text);
+            text.push('\n');
+            text
         }
     }
+}
+
+/// Writes `value` as JSON text, the way `JSON.stringify` writes it.
+///
+/// Every number goes through `json_number` instead of serde's writer because
+/// JavaScript has no integer type: the TypeScript CLI's `JSON.parse` turns
+/// `1.0`, `1e2` and `3` alike into doubles, and `JSON.stringify` writes them
+/// back as `1`, `100` and `3`. Rust keeps a whole `f64` whole and a JSON integer
+/// an integer, so without this the two CLIs would disagree on every round
+/// coordinate and on every round number carried through from a Feature's
+/// `properties`. Null, booleans and strings are handed to serde, so escaping
+/// stays its business and no hand-written escape appears here.
+fn write_json(value: &Value, out: &mut String) {
+    match value {
+        // A parsed number always has an `f64`; `NaN` renders as `null`, which is
+        // what `JSON.stringify` writes for a number it cannot express.
+        Value::Number(number) => out.push_str(&json_number(number.as_f64().unwrap_or(f64::NAN))),
+        Value::Array(items) => {
+            out.push('[');
+            for (i, item) in items.iter().enumerate() {
+                if i > 0 {
+                    out.push(',');
+                }
+                write_json(item, out);
+            }
+            out.push(']');
+        }
+        Value::Object(members) => {
+            out.push('{');
+            for (i, (key, member)) in members.iter().enumerate() {
+                if i > 0 {
+                    out.push(',');
+                }
+                write_json(&Value::from(key.as_str()), out);
+                out.push(':');
+                write_json(member, out);
+            }
+            out.push('}');
+        }
+        scalar => out.push_str(&scalar.to_string()),
+    }
+}
+
+/// Renders `v` as ECMAScript's `Number::toString` does, which is the decimal
+/// form `JSON.stringify` emits.
+///
+/// The digits come from `ryu` rather than from `{:e}`. Both write the shortest
+/// string that round-trips, but where two equally short strings are equally
+/// close to `v` the standard library keeps one and ECMAScript takes the one
+/// ending in an even digit — `ryu` breaks the tie the same way ECMAScript does,
+/// so `1186772172624852.2` stays itself instead of becoming `…3`. Plain `{}`
+/// cannot stand in at all: `Display` for `f64` never goes exponential, and
+/// writes `1e30` as `1000000000000000019884624838656`.
+///
+/// `ryu` chooses its own point between plain and exponential notation, so only
+/// its digits and its exponent are taken; where the decimal point lands is
+/// decided below by the ECMAScript rule.
+fn json_number(v: f64) -> String {
+    if !v.is_finite() {
+        return "null".to_string();
+    }
+    if v == 0.0 {
+        // Covers `-0.0` too, which `JSON.stringify` also writes as `0`.
+        return "0".to_string();
+    }
+    if v < 0.0 {
+        return format!("-{}", json_number(-v));
+    }
+    let mut buffer = ryu::Buffer::new();
+    let shortest = buffer.format_finite(v);
+    let (mantissa, exponent) = match shortest.split_once('e') {
+        Some((mantissa, exponent)) => (
+            mantissa,
+            exponent
+                .parse::<i32>()
+                .expect("ryu writes a decimal exponent"),
+        ),
+        None => (shortest, 0),
+    };
+    let (whole, fraction) = mantissa.split_once('.').unwrap_or((mantissa, ""));
+    // `k` significant digits, with the decimal point `n` places from their left.
+    let mut digits = format!("{whole}{fraction}");
+    let mut n = whole.len() as i32 + exponent;
+    let leading = digits.len() - digits.trim_start_matches('0').len();
+    digits.drain(..leading);
+    n -= leading as i32;
+    digits.truncate(digits.trim_end_matches('0').len());
+    let k = digits.len() as i32;
+    if n > 21 || n <= -6 {
+        let sign = if n > 1 { "+" } else { "" };
+        return match k {
+            1 => format!("{digits}e{sign}{}", n - 1),
+            _ => format!("{}.{}e{sign}{}", &digits[..1], &digits[1..], n - 1),
+        };
+    }
+    if k <= n {
+        return format!("{digits}{}", "0".repeat((n - k) as usize));
+    }
+    if n > 0 {
+        return format!("{}.{}", &digits[..n as usize], &digits[n as usize..]);
+    }
+    format!("0.{}{digits}", "0".repeat(-n as usize))
 }
 
 /// `type` leads and `geometry` trails, with the metadata the input carried in
