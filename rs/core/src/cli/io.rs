@@ -13,9 +13,21 @@ use std::path::Path;
 use std::str::FromStr;
 
 use geo_types::{Coord, Geometry};
-use geojson::{Feature, FeatureCollection, GeoJson};
+use serde::Deserialize;
+use serde_json_lenient::{Map, Value};
 
 use super::args::OutputFormat;
+
+/// The members of a JSON object, in the order they were read.
+///
+/// `serde_json::Value` cannot carry that order here. Its `Map` is a `BTreeMap`
+/// unless serde_json's `preserve_order` feature is on, that feature is additive
+/// across the whole dependency graph, and it also turns `Map::remove` into
+/// `swap_remove` — which `geojson` 0.24's Feature parser calls for `type`,
+/// `geometry`, `properties`, `id` and `bbox`, so turning it on would scramble
+/// the remaining members rather than order them. `serde_json_lenient` is a
+/// separate crate whose own `preserve_order` feature reaches nothing else.
+pub type Members = Map<String, Value>;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InputKind {
@@ -24,13 +36,13 @@ pub enum InputKind {
     FeatureCollection,
 }
 
-/// One input geometry with the envelope metadata it arrived in. `meta` is the
-/// source Feature with its geometry and bbox cleared, and is `None` when the
-/// input was a bare geometry.
+/// One input geometry with the envelope metadata it arrived in. `meta` is every
+/// member of the source Feature except `type`, `bbox` and `geometry`, in input
+/// order, and is `None` when the input was a bare geometry.
 #[derive(Debug)]
 pub struct InputRecord {
     pub geometry: Option<Geometry<f64>>,
-    pub meta: Option<Feature>,
+    pub meta: Option<Members>,
 }
 
 #[derive(Debug)]
@@ -50,6 +62,16 @@ impl fmt::Display for InputError {
 }
 
 impl std::error::Error for InputError {}
+
+const GEOMETRY_TYPES: [&str; 7] = [
+    "Point",
+    "MultiPoint",
+    "LineString",
+    "MultiLineString",
+    "Polygon",
+    "MultiPolygon",
+    "GeometryCollection",
+];
 
 /// A leading `{` marks a GeoJSON literal, an existing path marks a file, and
 /// anything else is a WKT literal. A file's contents are classified by the
@@ -89,51 +111,96 @@ fn parse_wkt(text: &str) -> Result<Input, InputError> {
     })
 }
 
+/// Parses strict JSON — what `JSON.parse`, and so the TypeScript CLI, accepts.
+///
+/// `serde_json_lenient::from_str` is not that: its `Deserializer` is built with
+/// `ignore_trailing_commas` and `allow_comments` both on, so it would take input
+/// the other CLI rejects. Both are switched off here, and `end()` reproduces the
+/// consumed-the-whole-input check `from_str` makes once the value is read.
+fn parse_json(text: &str) -> Result<Value, serde_json_lenient::Error> {
+    let mut deserializer = serde_json_lenient::Deserializer::from_str(text);
+    deserializer.set_ignore_trailing_commas(false);
+    deserializer.set_allow_comments(false);
+    let value = Value::deserialize(&mut deserializer)?;
+    deserializer.end()?;
+    Ok(value)
+}
+
 fn parse_geojson(text: &str) -> Result<Input, InputError> {
-    let parsed: GeoJson = text
-        .parse()
-        .map_err(|e: geojson::Error| InputError(e.to_string()))?;
-    match parsed {
-        GeoJson::Geometry(g) => {
-            let geometry = Geometry::<f64>::try_from(g).map_err(|e| InputError(e.to_string()))?;
-            Ok(Input {
-                kind: InputKind::Geometry,
-                records: vec![InputRecord {
-                    geometry: Some(geometry),
-                    meta: None,
-                }],
-            })
-        }
-        GeoJson::Feature(f) => Ok(Input {
-            kind: InputKind::Feature,
-            records: vec![split_feature(f)?],
-        }),
-        GeoJson::FeatureCollection(fc) => {
-            let records = fc
-                .features
-                .into_iter()
-                .map(split_feature)
-                .collect::<Result<Vec<_>, _>>()?;
+    let value = parse_json(text).map_err(|e| InputError(format!("Invalid JSON: {e}")))?;
+    match type_member(&value) {
+        Some("FeatureCollection") => {
+            let features = value
+                .get("features")
+                .and_then(Value::as_array)
+                .ok_or_else(|| InputError("FeatureCollection has no features array".to_string()))?;
             Ok(Input {
                 kind: InputKind::FeatureCollection,
-                records,
+                records: features
+                    .iter()
+                    .map(split_feature)
+                    .collect::<Result<Vec<_>, _>>()?,
             })
         }
+        Some("Feature") => Ok(Input {
+            kind: InputKind::Feature,
+            records: vec![split_feature(&value)?],
+        }),
+        Some(name) if GEOMETRY_TYPES.contains(&name) => Ok(Input {
+            kind: InputKind::Geometry,
+            records: vec![InputRecord {
+                geometry: Some(parse_geometry(&value)?),
+                meta: None,
+            }],
+        }),
+        other => Err(InputError(format!(
+            "Unsupported GeoJSON type '{}'",
+            other.unwrap_or("undefined")
+        ))),
     }
 }
 
-/// Splits a Feature into its geometry and the envelope that carried it. `bbox`
-/// is dropped here rather than at output: it described the input geometry, and
-/// nothing downstream would catch it surviving a substitution.
-fn split_feature(mut feature: Feature) -> Result<InputRecord, InputError> {
-    let geometry = match feature.geometry.take() {
-        None => None,
-        Some(g) => Some(Geometry::<f64>::try_from(g).map_err(|e| InputError(e.to_string()))?),
+fn type_member(value: &Value) -> Option<&str> {
+    value.get("type").and_then(Value::as_str)
+}
+
+/// Hands one geometry member to `geojson`, whose own reader owns every geometry
+/// shape. The member is re-rendered rather than passed as a value because
+/// `geojson` reads `serde_json`'s tree and this module reads an ordered one;
+/// both writers are exact for `f64`, so no coordinate moves in the process.
+fn parse_geometry(value: &Value) -> Result<Geometry<f64>, InputError> {
+    let text = serde_json_lenient::to_string(value).map_err(|e| InputError(e.to_string()))?;
+    let parsed = geojson::Geometry::from_str(&text).map_err(|e| InputError(e.to_string()))?;
+    Geometry::<f64>::try_from(parsed).map_err(|e| InputError(e.to_string()))
+}
+
+/// Splits a Feature into its geometry and everything worth carrying to the
+/// output. `properties`, `id` and foreign members survive in input order;
+/// `bbox` is dropped deliberately — it described the input geometry, and
+/// carrying it past the substitution would wrap a box around a single point.
+fn split_feature(value: &Value) -> Result<InputRecord, InputError> {
+    let members = match (type_member(value), value.as_object()) {
+        (Some("Feature"), Some(members)) => members,
+        _ => return Err(InputError("Expected a Feature".to_string())),
     };
-    feature.bbox = None;
+    let mut meta = Members::new();
+    let mut geometry = None;
+    for (key, member) in members {
+        match key.as_str() {
+            "geometry" => {
+                if !member.is_null() {
+                    geometry = Some(parse_geometry(member)?);
+                }
+            }
+            "type" | "bbox" => {}
+            _ => {
+                meta.insert(key.clone(), member.clone());
+            }
+        }
+    }
     Ok(InputRecord {
         geometry,
-        meta: Some(feature),
+        meta: Some(meta),
     })
 }
 
@@ -141,7 +208,7 @@ fn split_feature(mut feature: Feature) -> Result<InputRecord, InputError> {
 #[derive(Debug)]
 pub struct OutputRecord {
     pub point: Option<Coord<f64>>,
-    pub meta: Option<Feature>,
+    pub meta: Option<Members>,
 }
 
 /// GeoJSON output preserves the envelope the input arrived in; WKT output
@@ -152,38 +219,60 @@ pub fn serialize(kind: InputKind, records: Vec<OutputRecord>, format: OutputForm
             .iter()
             .map(|r| format!("{}\n", point_wkt(r.point)))
             .collect(),
-        OutputFormat::Geojson => match kind {
-            InputKind::Geometry => {
-                let text = match records.first().and_then(|r| r.point) {
-                    None => "null".to_string(),
-                    Some(p) => point_geometry(p).to_string(),
-                };
-                format!("{text}\n")
-            }
-            InputKind::Feature => {
-                let feature = records
-                    .into_iter()
-                    .map(feature_for)
-                    .next()
-                    .unwrap_or_else(empty_feature);
-                format!("{feature}\n")
-            }
-            InputKind::FeatureCollection => {
-                let collection = FeatureCollection {
-                    bbox: None,
-                    features: records.into_iter().map(feature_for).collect(),
-                    foreign_members: None,
-                };
-                format!("{collection}\n")
-            }
-        },
+        OutputFormat::Geojson => {
+            let value = match kind {
+                InputKind::Geometry => {
+                    point_geometry(records.first().and_then(|record| record.point))
+                }
+                InputKind::Feature => {
+                    let record = records.into_iter().next().unwrap_or(OutputRecord {
+                        point: None,
+                        meta: None,
+                    });
+                    feature_for(record)
+                }
+                InputKind::FeatureCollection => {
+                    let mut collection = Members::new();
+                    collection.insert("type".to_string(), Value::from("FeatureCollection"));
+                    collection.insert(
+                        "features".to_string(),
+                        Value::Array(records.into_iter().map(feature_for).collect()),
+                    );
+                    Value::Object(collection)
+                }
+            };
+            format!("{value}\n")
+        }
     }
 }
 
-fn point_geometry(point: Coord<f64>) -> geojson::Geometry {
-    // Wrapping in `Geometry::new` rather than serialising the `Value` directly
-    // is what puts the `type` member first.
-    geojson::Geometry::new(geojson::Value::Point(vec![point.x, point.y]))
+/// `type` leads and `geometry` trails, with the metadata the input carried in
+/// between, in its original order.
+fn feature_for(record: OutputRecord) -> Value {
+    let mut members = Members::new();
+    members.insert("type".to_string(), Value::from("Feature"));
+    if let Some(meta) = record.meta {
+        for (key, value) in meta {
+            members.insert(key, value);
+        }
+    }
+    members.insert("geometry".to_string(), point_geometry(record.point));
+    Value::Object(members)
+}
+
+fn point_geometry(point: Option<Coord<f64>>) -> Value {
+    match point {
+        None => Value::Null,
+        Some(p) => {
+            let mut members = Members::new();
+            members.insert("type".to_string(), Value::from("Point"));
+            members.insert(
+                "coordinates".to_string(),
+                Value::Array(vec![Value::from(p.x), Value::from(p.y)]),
+            );
+            Value::Object(members)
+        }
+    }
 }
 
 /// @jts-adapter WKTWriter — JTS writes a space between the type name and the
@@ -194,23 +283,6 @@ fn point_wkt(point: Option<Coord<f64>>) -> String {
     match point {
         Some(p) => format!("POINT ({} {})", p.x, p.y),
         None => "POINT EMPTY".to_string(),
-    }
-}
-
-fn feature_for(record: OutputRecord) -> Feature {
-    let mut feature = record.meta.unwrap_or_else(empty_feature);
-    feature.bbox = None;
-    feature.geometry = record.point.map(point_geometry);
-    feature
-}
-
-fn empty_feature() -> Feature {
-    Feature {
-        bbox: None,
-        geometry: None,
-        id: None,
-        properties: None,
-        foreign_members: None,
     }
 }
 

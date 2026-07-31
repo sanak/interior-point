@@ -5,7 +5,7 @@
 
 use interior_point::cli::args::{CliOptions, OutputFormat, help_text, parse_cli_args};
 use interior_point::cli::io::{
-    Input, InputKind, OutputRecord, read_input, serialize, write_output,
+    Input, InputKind, Members, OutputRecord, read_input, serialize, write_output,
 };
 use interior_point::cli::run::run;
 
@@ -138,13 +138,13 @@ mod io_input_tests {
         );
         assert_eq!(input.kind, InputKind::Feature);
         let meta = input.records[0].meta.as_ref().unwrap();
-        assert!(meta.bbox.is_none());
-        assert!(meta.geometry.is_none());
-        assert_eq!(meta.id, Some(geojson::feature::Id::String("a".to_string())));
-        assert_eq!(
-            meta.properties.as_ref().unwrap()["name"],
-            geojson::JsonValue::from("x")
-        );
+        assert!(!meta.contains_key("bbox"));
+        assert!(!meta.contains_key("geometry"));
+        assert!(!meta.contains_key("type"));
+        assert_eq!(meta["id"], "a");
+        assert_eq!(meta["properties"]["name"], "x");
+        // The two surviving members keep the order they were read in.
+        assert_eq!(meta.keys().collect::<Vec<_>>(), ["id", "properties"]);
     }
 
     #[test]
@@ -159,10 +159,9 @@ mod io_input_tests {
         assert_eq!(input.records.len(), 2);
         assert!(input.records[0].geometry.is_some());
         assert!(input.records[1].geometry.is_none());
-        assert!(matches!(
-            input.records[0].meta.as_ref().unwrap().id,
-            Some(geojson::feature::Id::Number(_))
-        ));
+        assert_eq!(input.records[0].meta.as_ref().unwrap()["id"], 1);
+        // `"properties": null` is kept as null, not dropped.
+        assert!(input.records[1].meta.as_ref().unwrap()["properties"].is_null());
     }
 
     #[test]
@@ -222,16 +221,15 @@ mod io_output_tests {
     use geo_types::coord;
     use std::fs;
 
-    fn feature_with(id: &str, key: &str, value: i64) -> geojson::Feature {
-        let mut properties = geojson::JsonObject::new();
-        properties.insert(key.to_string(), geojson::JsonValue::from(value));
-        geojson::Feature {
-            bbox: None,
-            geometry: None,
-            id: Some(geojson::feature::Id::String(id.to_string())),
-            properties: Some(properties),
-            foreign_members: None,
-        }
+    /// Metadata in the order a Feature carrying `id` before `properties`
+    /// would have been read in.
+    fn feature_with(id: &str, key: &str, value: i64) -> Members {
+        let mut properties = Members::new();
+        properties.insert(key.to_string(), value.into());
+        let mut meta = Members::new();
+        meta.insert("id".to_string(), id.into());
+        meta.insert("properties".to_string(), properties.into());
+        meta
     }
 
     #[test]
@@ -284,8 +282,8 @@ mod io_output_tests {
         }];
         assert_eq!(
             serialize(InputKind::Feature, records, OutputFormat::Geojson),
-            "{\"type\":\"Feature\",\"geometry\":{\"type\":\"Point\",\"coordinates\":[5.0,5.0]},\
-             \"properties\":{\"n\":1},\"id\":\"a\"}\n"
+            "{\"type\":\"Feature\",\"id\":\"a\",\"properties\":{\"n\":1},\
+             \"geometry\":{\"type\":\"Point\",\"coordinates\":[5.0,5.0]}}\n"
         );
     }
 

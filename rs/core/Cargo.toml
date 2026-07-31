@@ -16,12 +16,19 @@ include = ["src/**/*", "Cargo.toml", "LICENSE", "LICENSE_EDLv1.txt", "README.md"
 crate-type = ["rlib"]
 
 [features]
-cli = ["dep:wkt", "dep:geojson", "dep:clap"]
+cli = ["dep:wkt", "dep:geojson", "dep:clap", "dep:serde", "dep:serde_json_lenient"]
 
 [dependencies]
 geo-types.workspace = true
 wkt = { version = "0.11", optional = true }
 geojson = { version = "0.24", optional = true }
+# For `Value::deserialize`, which the strict-JSON parse in `cli::io` needs: the
+# `Deserialize` trait has to be in scope, and `serde_json_lenient` re-exports
+# neither it nor the `serde` crate.
+serde = { version = "1", optional = true }
+serde_json_lenient = { version = "0.2", optional = true, features = [
+  "preserve_order",
+] }
 clap = { version = "4", optional = true, default-features = false, features = [
   "std",
   "help",
