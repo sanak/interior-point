@@ -55,7 +55,7 @@ jobs:
       - name: Smoke-test the CLI binary
         run: |
           cd rs
-          test "$(./target/debug/interior-point -i 'POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))')" = '{"type":"Point","coordinates":[5.0,5.0]}'
+          test "$(./target/debug/interior-point -i 'POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))')" = '{"type":"Point","coordinates":[5,5]}'
           test "$(echo '{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,10],[0,10],[0,0]]]}' | ./target/debug/interior-point -f wkt)" = 'POINT (5 5)'
           ! ./target/debug/interior-point -i 'NOTAGEOM' 2>/dev/null
 
