@@ -47,6 +47,29 @@ mod args_tests {
         );
     }
 
+    /// A flag given twice is its last occurrence, not an error. A wrapper script
+    /// that appends its own `-f` to a command line the caller already wrote is
+    /// the ordinary way to arrive here, and it is what the TypeScript CLI does.
+    #[test]
+    fn takes_the_last_occurrence_of_a_repeated_flag() {
+        let parsed = parse_cli_args(&args(&[
+            "-i",
+            "POINT (9 9)",
+            "-i",
+            "POINT (1 2)",
+            "-f",
+            "wkt",
+            "--format",
+            "geojson",
+            "-q",
+            "-q",
+        ]))
+        .unwrap();
+        assert_eq!(parsed.input.as_deref(), Some("POINT (1 2)"));
+        assert_eq!(parsed.format, OutputFormat::Geojson);
+        assert!(parsed.quiet);
+    }
+
     #[test]
     fn carries_a_geojson_literal_through_long_input_unaltered() {
         let literal = r#"{"type":"Point","coordinates":[1,2]}"#;

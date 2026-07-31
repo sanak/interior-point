@@ -39,6 +39,11 @@ pub struct CliOptions {
     pub help: bool,
 }
 
+/// Every flag overrides itself, which is what turns a repetition into its last
+/// occurrence rather than an error. `clap` rejects a repeated flag by default,
+/// where later-wins is both the ordinary command-line convention and what the
+/// TypeScript CLI's `parseArgs` does, so a command line accepted by one CLI is
+/// accepted by the other.
 #[derive(Debug, Parser)]
 #[command(
     name = "interior-point",
@@ -48,19 +53,19 @@ pub struct CliOptions {
 )]
 struct Cli {
     /// WKT literal, GeoJSON literal, or a path. Defaults to stdin
-    #[arg(short, long, value_name = "geom|file")]
+    #[arg(short, long, value_name = "geom|file", overrides_with = "input")]
     input: Option<String>,
     /// Output format: geojson (default) or wkt
-    #[arg(short, long, value_name = "fmt", value_enum, default_value_t = OutputFormat::Geojson)]
+    #[arg(short, long, value_name = "fmt", value_enum, default_value_t = OutputFormat::Geojson, overrides_with = "format")]
     format: OutputFormat,
     /// Write to a file instead of stdout
-    #[arg(short, long, value_name = "file")]
+    #[arg(short, long, value_name = "file", overrides_with = "output")]
     output: Option<String>,
     /// Suppress the result; exit code only
-    #[arg(short, long)]
+    #[arg(short, long, overrides_with = "quiet")]
     quiet: bool,
     /// Print this help
-    #[arg(short, long)]
+    #[arg(short, long, overrides_with = "help")]
     help: bool,
 }
 
