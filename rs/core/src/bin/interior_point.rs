@@ -12,7 +12,14 @@ use std::process::ExitCode;
 use interior_point::cli::run::run;
 
 fn main() -> ExitCode {
-    let argv: Vec<String> = std::env::args().skip(1).collect();
+    // `args()` panics on an argument that is not UTF-8, which is a crash on
+    // input rather than the usage error such an argument deserves. `args_os()`
+    // hands the bytes over intact, and the replacement character then travels
+    // into the message naming the bad argument.
+    let argv: Vec<String> = std::env::args_os()
+        .skip(1)
+        .map(|arg| arg.to_string_lossy().into_owned())
+        .collect();
     let mut out = io::stdout().lock();
     let mut err = io::stderr().lock();
     let mut read_stdin = || -> io::Result<String> {
