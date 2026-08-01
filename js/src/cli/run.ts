@@ -10,8 +10,22 @@
  */
 import { readFileSync } from "node:fs";
 import { interiorPoint } from "../algorithm/InteriorPoint.ts";
+import { InteriorPointVerification, verifyInteriorPoint } from "../VerifyInteriorPoint.ts";
 import { HELP_TEXT, parseCliArgs, type CliOptions } from "./args.ts";
 import { readInput, serialize, writeOutput, type Sink } from "./io.ts";
+
+/**
+ * The four outcomes in the order the summary line lists them, which is the order
+ * they are declared in. Both language ports print the same line for the same
+ * input, so this order is part of the surface rather than an implementation
+ * detail.
+ */
+const OUTCOME_ORDER = [
+  InteriorPointVerification.Interior,
+  InteriorPointVerification.OnGeometry,
+  InteriorPointVerification.OffGeometry,
+  InteriorPointVerification.Unverifiable,
+];
 
 export function run(
   argv: string[],
@@ -37,14 +51,48 @@ export function run(
       point: interiorPoint(record.geometry),
       meta: record.meta,
     }));
+    // Computed from the records this module already holds, before serialisation,
+    // so nothing about what reaches `out` depends on the flag.
+    const outcomes = options.verify
+      ? input.records.map((record, index) => verifyInteriorPoint(results[index].point, record.geometry))
+      : [];
     // --quiet beats --output: nothing is written anywhere; the exit code is
     // the whole result.
     if (!options.quiet) {
       writeOutput(serialize(input.kind, results, options.format), options.output, out);
     }
-    return 0;
+    if (!options.verify) return 0;
+    return reportVerification(outcomes, options.quiet, err);
   } catch (e) {
     err(`${e instanceof Error ? e.message : String(e)}\n`);
     return 1;
   }
+}
+
+/**
+ * Writes the verification messages to `err` and returns the exit code.
+ *
+ * The summary counts every outcome that occurred; the detail lines name only the
+ * records that failed, which is why they survive `--quiet` — a failure notice is
+ * not the result. Only an off-geometry record fails: an unverifiable one is the
+ * absence of an answer rather than a wrong one, and an empty result already
+ * exits 0 without the flag. The count noun stays `records` at every count, so
+ * the two language ports cannot drift on the singular case.
+ */
+function reportVerification(outcomes: InteriorPointVerification[], quiet: boolean, err: Sink): number {
+  if (!quiet) {
+    let summary = `verify: ${outcomes.length} records`;
+    for (const outcome of OUTCOME_ORDER) {
+      const count = outcomes.filter((o) => o === outcome).length;
+      if (count > 0) summary += `, ${count} ${outcome}`;
+    }
+    err(`${summary}\n`);
+  }
+  let failed = false;
+  outcomes.forEach((outcome, index) => {
+    if (outcome !== InteriorPointVerification.OffGeometry) return;
+    failed = true;
+    err(`verify: record ${index + 1}: ${outcome}\n`);
+  });
+  return failed ? 2 : 0;
 }

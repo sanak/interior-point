@@ -250,6 +250,10 @@ function capture() {
 }
 
 const BOX_WKT = "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))";
+// A hole larger than its shell. The scan line's widest interior interval falls
+// between the two rings, outside the polygon, so the computed point [-2.5, 5]
+// is the one input in this file that fails verification.
+const OFF_GEOMETRY_WKT = "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0), (-5 -5, 15 -5, 15 15, -5 15, -5 -5))";
 const BOX2_JSON = {
   type: "Polygon",
   coordinates: [
@@ -403,5 +407,171 @@ describe("run", () => {
     assert.equal(run(["--bogus"], out.sink, err.sink, readStdinUnused), 1);
     assert.equal(out.text, "");
     assert.ok(err.text.includes("Usage: interior-point"));
+  });
+});
+
+const LINE_JSON = {
+  type: "LineString",
+  coordinates: [
+    [0, 0],
+    [10, 10],
+  ],
+};
+const BOX_JSON = {
+  type: "Polygon",
+  coordinates: [
+    [
+      [0, 0],
+      [10, 0],
+      [10, 10],
+      [0, 10],
+      [0, 0],
+    ],
+  ],
+};
+const OFF_GEOMETRY_JSON = {
+  type: "Polygon",
+  coordinates: [
+    [
+      [0, 0],
+      [10, 0],
+      [10, 10],
+      [0, 10],
+      [0, 0],
+    ],
+    [
+      [-5, -5],
+      [15, -5],
+      [15, 15],
+      [-5, 15],
+      [-5, -5],
+    ],
+  ],
+};
+
+/** stdout of the same argv without --verify, which --verify must not alter. */
+function stdoutWithoutVerify(argv: string[]): string {
+  const out = capture();
+  const err = capture();
+  run(argv, out.sink, err.sink, readStdinUnused);
+  return out.text;
+}
+
+describe("run --verify", () => {
+  it("exit 0 with a summary on stderr, stdout unchanged", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", BOX_WKT, "--verify"], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(out.text, stdoutWithoutVerify(["-i", BOX_WKT]));
+    assert.equal(out.text, '{"type":"Point","coordinates":[5,5]}\n');
+    assert.equal(err.text, "verify: 1 records, 1 interior\n");
+  });
+
+  it("counts a non-areal record as on-geometry", () => {
+    const out = capture();
+    const err = capture();
+    const literal = JSON.stringify(LINE_JSON);
+    assert.equal(run(["-i", literal, "-v"], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(err.text, "verify: 1 records, 1 on-geometry\n");
+  });
+
+  it("exit 2 with a detail line when a record is off-geometry, stdout unchanged", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", OFF_GEOMETRY_WKT, "-v"], out.sink, err.sink, readStdinUnused), 2);
+    assert.equal(out.text, stdoutWithoutVerify(["-i", OFF_GEOMETRY_WKT]));
+    assert.equal(out.text, '{"type":"Point","coordinates":[-2.5,5]}\n');
+    assert.equal(err.text, "verify: 1 records, 1 off-geometry\nverify: record 1: off-geometry\n");
+  });
+
+  it("lists every outcome it saw, in declaration order, and numbers records from 1", () => {
+    const literal = JSON.stringify({
+      type: "FeatureCollection",
+      features: [
+        { type: "Feature", properties: { n: 1 }, geometry: BOX_JSON },
+        { type: "Feature", properties: { n: 2 }, geometry: LINE_JSON },
+        { type: "Feature", properties: { n: 3 }, geometry: OFF_GEOMETRY_JSON },
+      ],
+    });
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", literal, "--verify"], out.sink, err.sink, readStdinUnused), 2);
+    assert.equal(out.text, stdoutWithoutVerify(["-i", literal]));
+    assert.equal(
+      err.text,
+      "verify: 3 records, 1 interior, 1 on-geometry, 1 off-geometry\nverify: record 3: off-geometry\n",
+    );
+  });
+
+  it("does not fail on an unverifiable record", () => {
+    const literal = JSON.stringify({
+      type: "FeatureCollection",
+      features: [
+        { type: "Feature", properties: { n: 1 }, geometry: BOX_JSON },
+        { type: "Feature", properties: { n: 2 }, geometry: null },
+      ],
+    });
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", literal, "--verify"], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(err.text, "verify: 2 records, 1 interior, 1 unverifiable\n");
+  });
+
+  it("prints the bare summary for zero records", () => {
+    const literal = '{"type":"FeatureCollection","features":[]}';
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", literal, "--verify"], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(out.text, stdoutWithoutVerify(["-i", literal]));
+    assert.equal(err.text, "verify: 0 records\n");
+  });
+
+  it("--quiet is completely silent on a verifying run", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", BOX_WKT, "--verify", "--quiet"], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(out.text, "");
+    assert.equal(err.text, "");
+  });
+
+  it("--quiet keeps the failure line and the exit code", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", OFF_GEOMETRY_WKT, "-v", "-q"], out.sink, err.sink, readStdinUnused), 2);
+    assert.equal(out.text, "");
+    assert.equal(err.text, "verify: record 1: off-geometry\n");
+  });
+
+  it("--format wkt does not change the verification lines", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", BOX_WKT, "-f", "wkt", "--verify"], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(out.text, "POINT (5 5)\n");
+    assert.equal(err.text, "verify: 1 records, 1 interior\n");
+  });
+
+  it("an unparseable geometry still exits 1 and never reaches verification", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", "NOTAGEOM (1 2)", "--verify"], out.sink, err.sink, readStdinUnused), 1);
+    assert.equal(out.text, "");
+    assert.ok(!err.text.includes("verify:"));
+  });
+
+  it("an unknown flag still exits 1 and never reaches verification", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["--bogus", "--verify"], out.sink, err.sink, readStdinUnused), 1);
+    assert.equal(out.text, "");
+    assert.ok(err.text.includes("Usage: interior-point"));
+    assert.ok(!err.text.includes("verify:"));
+  });
+
+  it("--help wins over --verify", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["--help", "--verify"], out.sink, err.sink, readStdinUnused), 0);
+    assert.ok(out.text.startsWith("Usage: interior-point"));
+    assert.equal(err.text, "");
   });
 });
