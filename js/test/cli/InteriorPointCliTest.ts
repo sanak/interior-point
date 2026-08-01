@@ -24,6 +24,7 @@ describe("args", () => {
       format: "geojson",
       output: undefined,
       quiet: false,
+      verify: false,
       help: false,
     });
   });
@@ -59,8 +60,23 @@ describe("args", () => {
     assert.equal(options.quiet, true);
   });
 
+  it("sets verify from -v and from --verify", () => {
+    assert.equal(parseCliArgs(["-v"]).verify, true);
+    assert.equal(parseCliArgs(["--verify"]).verify, true);
+  });
+
+  it("lists --verify between --quiet and --help in the help text", () => {
+    const lines = HELP_TEXT.split("\n");
+    const quiet = lines.findIndex((line) => line.includes("--quiet"));
+    const verify = lines.findIndex((line) => line.includes("--verify"));
+    const help = lines.findIndex((line) => line.includes("--help"));
+    assert.equal(verify, quiet + 1);
+    assert.equal(help, verify + 1);
+    assert.equal(lines[verify], "  -v, --verify              Check each result against its input geometry.");
+  });
+
   it("help text names every long flag", () => {
-    for (const flag of ["--input", "--format", "--output", "--quiet", "--help"]) {
+    for (const flag of ["--input", "--format", "--output", "--quiet", "--verify", "--help"]) {
       assert.ok(HELP_TEXT.includes(flag), flag);
     }
   });

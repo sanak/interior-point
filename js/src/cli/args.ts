@@ -17,6 +17,7 @@ export interface CliOptions {
   format: OutputFormat;
   output: string | undefined;
   quiet: boolean;
+  verify: boolean;
   help: boolean;
 }
 
@@ -26,6 +27,7 @@ export const HELP_TEXT = `Usage: interior-point [options]
   -f, --format <fmt>        Output format: geojson (default) or wkt.
   -o, --output <file>       Write to a file instead of stdout.
   -q, --quiet               Suppress the result; exit code only.
+  -v, --verify              Check each result against its input geometry.
   -h, --help                Print this help.
 `;
 
@@ -36,6 +38,7 @@ export function parseCliArgs(argv: string[]): CliOptions {
     format: parseFormat(values.format),
     output: values.output,
     quiet: values.quiet ?? false,
+    verify: values.verify ?? false,
     help: values.help ?? false,
   };
 }
@@ -51,6 +54,7 @@ function parsedArgs(argv: string[]) {
         format: { type: "string", short: "f" },
         output: { type: "string", short: "o" },
         quiet: { type: "boolean", short: "q" },
+        verify: { type: "boolean", short: "v" },
         help: { type: "boolean", short: "h" },
       },
       allowPositionals: false,
