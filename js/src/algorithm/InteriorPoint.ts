@@ -39,7 +39,7 @@ export function interiorPoint(geom: Geometry | null): Coordinate | null {
 }
 
 /** @jts InteriorPoint#dimensionNonEmpty(Geometry) */
-function dimensionNonEmpty(geom: Geometry): number {
+export function dimensionNonEmpty(geom: Geometry): number {
   // JTS builds the filter and applies it; here the filter is the traversal,
   // so this is a single call.
   return dimensionNonEmptyFilter(geom);
