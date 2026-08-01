@@ -178,6 +178,10 @@ the read side exact.
 | `Assert.isTrue`                    | `assertTrue` (`js/src/Assert.ts`)                  | `assert!`                        |
 | `Orientation`                      | `algorithm/Orientation.ts`                         | `algorithm/orientation.rs`       |
 | `List<Double>`                     | `number[]`                                         | `Vec<f64>` / `&mut [f64]`        |
+| —                                  | `verifyInteriorPoint`                              | `verify_interior_point`          |
+| —                                  | `isVerified`                                       | `is_verified`                    |
+| —                                  | `InteriorPointVerification`                        | `InteriorPointVerification`      |
+| —                                  | `coordinatesAtDimension`                           | `coordinates_at_dimension`       |
 
 `getEnvelopeInternal()` is one method on `Geometry` that `LinearRing` inherits, not a Java
 overload, so the overload-suffix rule does not apply; the split into two functions exists because
@@ -189,6 +193,22 @@ Rust computes the ring envelope in the adapter rather than through `geo`'s `Boun
 `geo-types`. It returns `Option<Rect<f64>>`, since `Rect` cannot represent the empty
 envelope JTS returns for an empty ring; both take the "intersects nothing" path.
 
+The last four rows have no JTS member behind them, so every one of them is tagged `@jts-adapter`
+rather than `@jts`. The nearest thing JTS has to `verifyInteriorPoint` is the private test helper
+`InteriorPointTest#checkInteriorPoint(Geometry)`, which asserts and throws instead of returning a
+verdict; that lineage is carried as the `@jts` anchor on the verify sweep test in both languages,
+not on the API modules. `isVerified` is a free function in TypeScript and an inherent method,
+`InteriorPointVerification::is_verified`, in Rust. `coordinatesAtDimension` has no counterpart to
+name at all: it collects the coordinates of every non-empty element whose own dimension equals the
+one it is given, which is a walk over the target geometry model rather than a ported member, and it
+lives in the adapter because that is where every geometry-model helper is defined.
+
+The vertex comparison those coordinates feed is the one place the two ports differ in width:
+`Coord<f64>` has no Z, so Rust matches on x and y alone, while TypeScript compares the whole
+`Position` array and a Z-bearing point matches only a Z-bearing vertex. That follows from each
+target's geometry model rather than from the port, and it reaches only dimensions 0 and 1 — at
+dimension 2 both hand the question to the locator, which is planar in both languages.
+
 ### Test Structure
 
 Both languages mirror the same test structure. `Centroid` is the exception: it is crate-internal in Rust, so `rs/core/tests/` cannot reach
@@ -198,11 +218,16 @@ the shared XML parser with `include!("../../../tests/utils/xml_test_parser.rs")`
 cannot, because its base directory would be a directory that does not exist.
 
 The Rust world test is the second exception, for the same underlying reason: the point-in-polygon
-locator it now asserts containment through is `#[cfg(test)]` (see Supporting Ports above), so
-`rs/core/tests/` cannot reach it either. It lives instead at
-`rs/core/src/test/algorithm/interior_point_world_test.rs` as a `#[cfg(test)] mod`, recorded with
-`@jts-deviate`, and `rs/core/tests/` now holds only `algorithm/interior_point_test.rs` plus
-`utils/`. The TypeScript world test is unaffected and stays in `js/test/`.
+locator it asserts containment through is `pub(crate)`, so `rs/core/tests/` cannot reach it either.
+An integration test links against the crate from outside and sees only what `lib.rs` publishes,
+which is `interior_point`, `verify_interior_point` and `InteriorPointVerification`. Making the
+locator reachable from `verify_interior_point` removed its `#[cfg(test)]` gate but left that wall
+standing, so the world test stays at `rs/core/src/test/algorithm/interior_point_world_test.rs` as a
+`#[cfg(test)] mod`, recorded with `@jts-deviate`, beside `abstract_point_in_ring_test.rs`.
+`rs/core/tests/` holds `algorithm/interior_point_test.rs`,
+`algorithm/verify_interior_point_sweep_test.rs`, `cli/interior_point_cli_test.rs` and `utils/`; the
+verify sweep belongs there because it reaches the crate through the published surface alone. The
+TypeScript world test is unaffected and stays in `js/test/`.
 
 `js/package.json`'s `test` script hands `node --import tsx --test` the glob `test/**/*Test.ts`, so a
 test file not matching that pattern is silently skipped. The glob is mandatory: without it the runner
