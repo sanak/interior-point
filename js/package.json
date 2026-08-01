@@ -43,9 +43,9 @@
     "build": "vite build && tsc -p tsconfig.build.json && tsc -p tsconfig.cli.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prepack": "cp ../LICENSE . && cp ../LICENSE_EDLv1.txt .",
-    "test": "node --test \"test/**/*Test.ts\"",
-    "test:watch": "node --test --watch \"test/**/*Test.ts\"",
-    "bench": "node test/InteriorPointAreaPerfTest.bench.ts"
+    "test": "node --import tsx --test \"test/**/*Test.ts\"",
+    "test:watch": "node --import tsx --test --watch \"test/**/*Test.ts\"",
+    "bench": "node --import tsx test/InteriorPointAreaPerfTest.bench.ts"
   },
   "dependencies": {
     "@types/geojson": "^7946.0.16",
@@ -55,6 +55,7 @@
     "@types/node": "^22",
     "fast-xml-parser": "^5.10.1",
     "tinybench": "^6.1.2",
+    "tsx": "^4.23.1",
     "typescript": "^5.9.3",
     "vite": "^8.1.5"
   }
