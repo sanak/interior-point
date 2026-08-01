@@ -180,6 +180,43 @@ export function dimension(geometry: Geometry): number {
 }
 
 /**
+ * The coordinates of every non-empty element whose own `dimension` equals `dim`,
+ * in traversal order, descending through a `GeometryCollection`. Empty elements
+ * contribute nothing, and neither does an element of any other dimension.
+ *
+ * Walking a geometry to collect coordinates is a geometry-model helper, so it
+ * lives here with the rest of them. The dimension is a parameter rather than
+ * something this function computes: the one its caller needs is
+ * `InteriorPoint`'s `dimensionNonEmpty`, which additionally skips empty
+ * elements and which lives in a module that already imports this one, so
+ * computing it here would close an import cycle.
+ *
+ * @jts-adapter Geometry.getCoordinates()
+ */
+export function coordinatesAtDimension(geometry: Geometry, dim: number): Coordinate[] {
+  if (geometry.type === "GeometryCollection") {
+    const found: Coordinate[] = [];
+    for (const g of geometry.geometries) {
+      found.push(...coordinatesAtDimension(g, dim));
+    }
+    return found;
+  }
+  if (isGeometryEmpty(geometry) || dimension(geometry) !== dim) return [];
+  switch (geometry.type) {
+    case "Point":
+      return [geometry.coordinates];
+    case "MultiPoint":
+    case "LineString":
+      return geometry.coordinates;
+    case "MultiLineString":
+    case "Polygon":
+      return geometry.coordinates.flat();
+    case "MultiPolygon":
+      return geometry.coordinates.flat(2);
+  }
+}
+
+/**
  * @jts-adapter Coordinate.distance(Coordinate)
  */
 export function distance(a: Coordinate, b: Coordinate): number {
