@@ -42,7 +42,8 @@
       "portedMembers": [
         "InteriorPointTest#testPolygonZeroArea()",
         "InteriorPointTest#testMultiLineWithEmpty()",
-        "InteriorPointTest#testAll()"
+        "InteriorPointTest#testAll()",
+        "InteriorPointTest#checkInteriorPoint(Geometry)"
       ]
     },
     {
