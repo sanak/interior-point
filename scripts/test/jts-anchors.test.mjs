@@ -148,7 +148,9 @@ describe("scanPortAnchors", () => {
     // `rs/core/src/test/mod.rs`'s module-placement note explaining why these tests
     // cannot live in `rs/core/tests/`. The verify surface adds one more: the verify sweep test's note that it
     // asserts `isVerified` where JTS's own helper asserts `contains`.
-    assert.equal(kinds["jts-deviate"], 29);
+    // The Rust verify port adds one: the fixture sweep's note that it asserts
+    // `is_verified()` where JTS asserts `contains`.
+    assert.equal(kinds["jts-deviate"], 30);
     // The geometry adapters (6 in TypeScript, 4 in Rust — Rust needs no
     // Coordinate or Envelope alias but does define its own ring envelope, since
     // geo's BoundingRect is a dev-dependency), the Assert shim's 3,
@@ -167,7 +169,9 @@ describe("scanPortAnchors", () => {
     // point text to be written here. The verify surface adds four, all in TypeScript so far: the adapter's
     // `coordinatesAtDimension`, and `VerifyInteriorPoint.ts`'s outcome enum, its
     // `verifyInteriorPoint` and its `isVerified`.
-    assert.equal(kinds["jts-adapter"], 48);
+    // The Rust verify port adds two: `verify_interior_point.rs`'s module tag and
+    // the adapter's `coordinates_at_dimension`.
+    assert.equal(kinds["jts-adapter"], 50);
   });
 });
 
