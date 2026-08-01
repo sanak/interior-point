@@ -5,11 +5,11 @@
 //! InteriorPointTest.testAll().
 //!
 //! @jts-deviate test placement — this lives in `rs/core/src/test/algorithm/`
-//!   instead of `rs/core/tests/`. An integration test links against the library
-//!   built without `cfg(test)`, so it cannot see the `#[cfg(test)]` locator
-//!   modules that supply the containment predicate. The TypeScript world test
-//!   stays in `js/test/`, since TypeScript tests can import unexported `js/src`
-//!   modules directly.
+//!   instead of `rs/core/tests/`. An integration test links against the crate
+//!   from outside, and the locator modules that supply the containment predicate
+//!   are `pub(crate)`, so no integration test can name them. The TypeScript world
+//!   test stays in `js/test/`, since TypeScript tests can import unexported
+//!   `js/src` modules directly.
 //!
 //! Why hand-roll point-in-polygon instead of keeping a maintained dependency: this port was
 //! cross-checked against real JTS 1.19.0 over 263,944 probes across all

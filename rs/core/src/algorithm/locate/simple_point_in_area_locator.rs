@@ -118,10 +118,18 @@ fn locate_point_in_ring(p: Coord<f64>, ring: &[Coord<f64>]) -> i32 {
 /// with an instance method is a factory/getter pair, not an overload set. Rust
 /// cannot put both in one inherent `impl`, so the static one is the free function
 /// above; the two live in different namespaces and neither needs a suffix.
+///
+/// Nothing in the ported subset constructs it: `verify_interior_point` reaches
+/// the free `locate` directly, and the case-table test is the only caller. It is
+/// ported because `pin.json` names the constructor and the instance method in
+/// `portedMembers`.
+#[allow(dead_code)]
 pub(crate) struct SimplePointInAreaLocator<'a> {
     geom: &'a Geometry<f64>,
 }
 
+/// Both items are unreached for the reason given on the struct above.
+#[allow(dead_code)]
 impl<'a> SimplePointInAreaLocator<'a> {
     /// @jts SimplePointInAreaLocator#SimplePointInAreaLocator(Geometry)
     pub(crate) fn new(geom: &'a Geometry<f64>) -> Self {

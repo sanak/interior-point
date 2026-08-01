@@ -11,13 +11,11 @@ use geo_types::Coord;
 
 use crate::algorithm::cg_algorithms_dd::orientation_index_coordinate;
 
-// `CLOCKWISE` and `COLLINEAR` complete the ported constant set. Of the two,
-// only `CLOCKWISE` is truly uncalled: `COLLINEAR` is compared against by
-// `RayCrossingCounter::count_segment`, `#[cfg(test)]` in this crate, so a
-// build without `--all-targets` still sees no caller. They are anchored
-// members of `Orientation`, so a faithful port keeps them; the allow is on
-// the two constants rather than the file so that any genuinely dead code
-// added later is still caught.
+// `CLOCKWISE` completes the ported constant set and is the one truly uncalled
+// member of it: nothing in the ported subset turns right. It is an anchored
+// member of `Orientation`, so a faithful port keeps it; the allow is on the
+// constant rather than the file so that any genuinely dead code added later is
+// still caught.
 /// A value that indicates an orientation of clockwise, or a right turn.
 ///
 /// @jts Orientation#CLOCKWISE
@@ -31,11 +29,9 @@ pub(crate) const COUNTERCLOCKWISE: i32 = 1;
 
 /// A value that indicates an orientation of collinear, or no turn.
 ///
-/// `RayCrossingCounter::count_segment` reads it, but that module is
-/// `#[cfg(test)]`, so a build without `--all-targets` sees no caller.
+/// `RayCrossingCounter::count_segment` compares against it.
 ///
 /// @jts Orientation#COLLINEAR
-#[allow(dead_code)]
 pub(crate) const COLLINEAR: i32 = 0;
 
 /// A value that indicates an orientation of clockwise, or a right turn.
@@ -50,11 +46,9 @@ pub(crate) const RIGHT: i32 = CLOCKWISE;
 /// A value that indicates an orientation of counterclockwise, or a left turn.
 ///
 /// JTS's alias for [`COUNTERCLOCKWISE`]. `RayCrossingCounter::count_segment`
-/// reads it, but that module is `#[cfg(test)]`, so a build without
-/// `--all-targets` sees no caller.
+/// reads it.
 ///
 /// @jts Orientation#LEFT
-#[allow(dead_code)]
 pub(crate) const LEFT: i32 = COUNTERCLOCKWISE;
 
 /// A value that indicates an orientation of collinear, or no turn.

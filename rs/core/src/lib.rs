@@ -4,14 +4,13 @@
 //! The point is guaranteed to lie inside the geometry for area geometries.
 
 mod algorithm;
+mod geom;
 mod geometry_adapter;
 mod math;
 
 #[cfg(feature = "cli")]
 pub mod cli;
 
-#[cfg(test)]
-mod geom;
 #[cfg(test)]
 mod test;
 

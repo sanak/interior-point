@@ -61,9 +61,8 @@ pub(crate) fn envelope_internal(ring: &[Coord<f64>]) -> Option<Rect<f64>> {
 /// subclass's `computeEnvelopeInternal`, and the `Geometry.getEnvelopeInternal()`
 /// tag below records that substitution whole.
 ///
-/// `#[cfg(test)]` for the same reason as `envelope_internal_geometry` below: its
-/// only caller is that function.
-#[cfg(test)]
+/// Private to this module because that function is its only caller; it is not
+/// part of the adapter's named surface.
 fn union(a: Option<Rect<f64>>, b: Option<Rect<f64>>) -> Option<Rect<f64>> {
     match (a, b) {
         (None, other) | (other, None) => other,
@@ -94,14 +93,11 @@ fn union(a: Option<Rect<f64>>, b: Option<Rect<f64>>) -> Option<Rect<f64>> {
 /// Returns `None` for an empty geometry, the "intersects nothing" contract
 /// [`envelope_internal`] already uses.
 ///
+/// `SimplePointInAreaLocator::locate` is its only caller, and
+/// `verify_interior_point` is what reaches that, so this is compiled into every
+/// build. It stays `pub(crate)`: nothing outside the crate can name it.
+///
 /// @jts-adapter Geometry.getEnvelopeInternal()
-// `SimplePointInAreaLocator::locate` is this function's only non-test
-// caller, and it lives in a `#[cfg(test)] mod` — that is what keeps the whole
-// point-in-polygon stack out of the published API, per the note on
-// `rs/core/src/lib.rs`'s gated module group. That makes this function itself
-// unreachable outside test builds too, so it carries the same `#[cfg(test)]`
-// rather than an `#[allow(dead_code)]` CLAUDE.md bans.
-#[cfg(test)]
 pub(crate) fn envelope_internal_geometry(geometry: &Geometry<f64>) -> Option<Rect<f64>> {
     match geometry {
         Geometry::Point(p) => envelope_internal(&[p.0]),
@@ -133,13 +129,10 @@ pub(crate) fn envelope_internal_geometry(geometry: &Geometry<f64>) -> Option<Rec
 /// positive form below is the same predicate. `None` is the empty envelope and
 /// intersects nothing.
 ///
+/// Its callers are `locate` and `locate_point_in_ring` in
+/// `simple_point_in_area_locator`, which `verify_interior_point` reaches.
+///
 /// @jts-adapter Envelope.intersects(Coordinate)
-// Same reasoning as `envelope_internal_geometry` above: its only callers are
-// `locate` and `locate_point_in_ring` in `simple_point_in_area_locator`, and
-// that module is itself `#[cfg(test)]` — so this function is unreachable
-// outside test builds too, and carries the same gate rather than the
-// `#[allow(dead_code)]` CLAUDE.md bans.
-#[cfg(test)]
 pub(crate) fn envelope_intersects_coordinate(env: Option<Rect<f64>>, p: Coord<f64>) -> bool {
     match env {
         None => false,
