@@ -195,15 +195,19 @@ locator it now asserts containment through is `#[cfg(test)]` (see Supporting Por
 `@jts-deviate`, and `rs/core/tests/` now holds only `algorithm/interior_point_test.rs` plus
 `utils/`. The TypeScript world test is unaffected and stays in `js/test/`.
 
-`js/package.json`'s `test` script hands `node --test` the glob `test/**/*Test.ts`, so a test file
-not matching that pattern is silently skipped. `rs/core/Cargo.toml` needs a hand-written `[[test]]`
-entry per integration test, since cargo auto-discovers only `tests/*.rs` and nothing under
-`tests/algorithm/` otherwise.
+`js/package.json`'s `test` script hands `node --import tsx --test` the glob `test/**/*Test.ts`, so a
+test file not matching that pattern is silently skipped. The glob is mandatory: without it the runner
+also collects `test/InteriorPointAreaPerfTest.bench.ts` and executes the benchmark as a test.
+`rs/core/Cargo.toml` needs a hand-written `[[test]]` entry per integration test, since cargo
+auto-discovers only `tests/*.rs` and nothing under `tests/algorithm/` otherwise.
 
-Node runs the `.ts` files itself, so every relative import under `js/src` and `js/test` carries an
-explicit `.ts` extension and fixtures resolve from `import.meta.dirname`, not `__dirname`. Type
-stripping does not typecheck, and no type-aware ESLint rule is enabled, so `pnpm typecheck:js` is
-the only command covering `js/test`; `pnpm build:js` typechecks `src` alone.
+Every `js/` script that executes `.ts` — `test`, `test:watch`, `bench` — runs it through
+`node --import tsx`, and fixtures resolve from `import.meta.dirname`, not `__dirname`. Every relative
+import under `js/src` and `js/test` carries an explicit `.ts` extension, permitted by
+`js/tsconfig.json`'s `allowImportingTsExtensions` and turned into `.js` in the emitted CLI by
+`js/tsconfig.cli.json`'s `rewriteRelativeImportExtensions`. tsx does not typecheck, and no type-aware
+ESLint rule is enabled, so `pnpm typecheck:js` is the only command covering `js/test`;
+`pnpm build:js` typechecks `src` alone.
 
 ## Development Approach
 
