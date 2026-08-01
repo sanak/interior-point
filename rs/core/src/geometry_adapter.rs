@@ -177,6 +177,64 @@ pub(crate) fn dimension(geometry: &Geometry<f64>) -> i32 {
     }
 }
 
+/// The coordinates of every non-empty element whose own [`dimension`] equals
+/// `dim`, in traversal order, descending through a GeometryCollection.
+///
+/// `dim` is a parameter rather than something computed here because the
+/// dimension its caller needs is `InteriorPoint`'s non-empty one, which lives in
+/// `algorithm::interior_point`; computing it here would point the adapter back
+/// at a module that already imports it.
+///
+/// `Line`, `Rect` and `Triangle` contribute nothing and need no arm: they are
+/// empty under [`is_geometry_empty`], which is the same treatment they get from
+/// every other function here.
+///
+/// @jts-adapter Geometry.getCoordinates()
+pub(crate) fn coordinates_at_dimension(geometry: &Geometry<f64>, dim: i32) -> Vec<Coord<f64>> {
+    let mut coordinates = Vec::new();
+    collect_coordinates_at_dimension(geometry, dim, &mut coordinates);
+    coordinates
+}
+
+/// The traversal behind [`coordinates_at_dimension`], appending into one buffer
+/// so a nested collection does not allocate per level.
+fn collect_coordinates_at_dimension(geometry: &Geometry<f64>, dim: i32, out: &mut Vec<Coord<f64>>) {
+    if let Geometry::GeometryCollection(gc) = geometry {
+        for g in &gc.0 {
+            collect_coordinates_at_dimension(g, dim, out);
+        }
+        return;
+    }
+    if is_geometry_empty(geometry) || dimension(geometry) != dim {
+        return;
+    }
+    match geometry {
+        Geometry::Point(p) => out.push(p.0),
+        Geometry::MultiPoint(mp) => out.extend(mp.0.iter().map(|p| p.0)),
+        Geometry::LineString(ls) => out.extend(ls.0.iter().copied()),
+        Geometry::MultiLineString(mls) => {
+            for ls in &mls.0 {
+                out.extend(ls.0.iter().copied());
+            }
+        }
+        Geometry::Polygon(p) => {
+            out.extend(p.exterior().0.iter().copied());
+            for hole in p.interiors() {
+                out.extend(hole.0.iter().copied());
+            }
+        }
+        Geometry::MultiPolygon(mp) => {
+            for p in &mp.0 {
+                out.extend(p.exterior().0.iter().copied());
+                for hole in p.interiors() {
+                    out.extend(hole.0.iter().copied());
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
 /// @jts-adapter Coordinate.distance(Coordinate)
 pub(crate) fn distance(a: Coord<f64>, b: Coord<f64>) -> f64 {
     let dx = a.x - b.x;
@@ -187,12 +245,12 @@ pub(crate) fn distance(a: Coord<f64>, b: Coord<f64>) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::{
-        dimension, distance, envelope_internal, envelope_internal_geometry,
-        envelope_intersects_coordinate, is_geometry_empty,
+        coordinates_at_dimension, dimension, distance, envelope_internal,
+        envelope_internal_geometry, envelope_intersects_coordinate, is_geometry_empty,
     };
     use geo_types::{
-        Coord, Geometry, GeometryCollection, LineString, MultiPoint, MultiPolygon, Point, Polygon,
-        Rect,
+        Coord, Geometry, GeometryCollection, LineString, MultiLineString, MultiPoint, MultiPolygon,
+        Point, Polygon, Rect,
     };
 
     fn square() -> Polygon<f64> {
@@ -237,6 +295,85 @@ mod tests {
         assert!(is_geometry_empty(&Geometry::GeometryCollection(
             GeometryCollection(vec![])
         )));
+    }
+
+    fn coord(x: f64, y: f64) -> Coord<f64> {
+        Coord { x, y }
+    }
+
+    #[test]
+    fn collects_the_coordinates_of_every_element_of_the_asked_dimension() {
+        let points = Geometry::MultiPoint(MultiPoint(vec![
+            Point::new(0.0, 0.0),
+            Point::new(10.0, 10.0),
+        ]));
+        assert_eq!(
+            coordinates_at_dimension(&points, 0),
+            vec![coord(0.0, 0.0), coord(10.0, 10.0)]
+        );
+        // The dimension is asked for, not inferred: a MultiPoint contributes
+        // nothing to dimension 1.
+        assert_eq!(coordinates_at_dimension(&points, 1), vec![]);
+    }
+
+    #[test]
+    fn skips_empty_elements() {
+        let lines = Geometry::MultiLineString(MultiLineString::new(vec![
+            LineString(vec![]),
+            LineString::from(vec![(0.0, 0.0), (1.0, 1.0)]),
+        ]));
+        assert_eq!(
+            coordinates_at_dimension(&lines, 1),
+            vec![coord(0.0, 0.0), coord(1.0, 1.0)]
+        );
+
+        let only_empty = Geometry::MultiLineString(MultiLineString::new(vec![LineString(vec![])]));
+        assert_eq!(coordinates_at_dimension(&only_empty, 1), vec![]);
+    }
+
+    #[test]
+    fn descends_a_collection_in_traversal_order() {
+        let gc = Geometry::GeometryCollection(GeometryCollection(vec![
+            Geometry::Point(Point::new(5.0, 5.0)),
+            Geometry::LineString(LineString::from(vec![(0.0, 0.0), (10.0, 10.0)])),
+            Geometry::GeometryCollection(GeometryCollection(vec![Geometry::Point(Point::new(
+                7.0, 7.0,
+            ))])),
+        ]));
+        assert_eq!(
+            coordinates_at_dimension(&gc, 0),
+            vec![coord(5.0, 5.0), coord(7.0, 7.0)]
+        );
+        assert_eq!(
+            coordinates_at_dimension(&gc, 1),
+            vec![coord(0.0, 0.0), coord(10.0, 10.0)]
+        );
+    }
+
+    #[test]
+    fn takes_a_polygons_shell_and_holes_at_dimension_two() {
+        let poly = Polygon::new(
+            LineString::from(vec![(0.0, 0.0), (4.0, 0.0), (4.0, 4.0), (0.0, 0.0)]),
+            vec![LineString::from(vec![
+                (1.0, 1.0),
+                (2.0, 1.0),
+                (2.0, 2.0),
+                (1.0, 1.0),
+            ])],
+        );
+        assert_eq!(
+            coordinates_at_dimension(&Geometry::Polygon(poly), 2),
+            vec![
+                coord(0.0, 0.0),
+                coord(4.0, 0.0),
+                coord(4.0, 4.0),
+                coord(0.0, 0.0),
+                coord(1.0, 1.0),
+                coord(2.0, 1.0),
+                coord(2.0, 2.0),
+                coord(1.0, 1.0),
+            ]
+        );
     }
 
     #[test]
