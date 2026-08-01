@@ -49,7 +49,7 @@ pub fn interior_point(geom: &Geometry<f64>) -> Option<Coord<f64>> {
 }
 
 /// @jts InteriorPoint#dimensionNonEmpty(Geometry)
-fn dimension_non_empty(geom: &Geometry<f64>) -> i32 {
+pub(crate) fn dimension_non_empty(geom: &Geometry<f64>) -> i32 {
     // JTS builds the filter and applies it; here the filter is the traversal,
     // so this is a single call.
     dimension_non_empty_filter(geom)
