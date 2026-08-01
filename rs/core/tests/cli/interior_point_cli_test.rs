@@ -31,6 +31,7 @@ mod args_tests {
                 format: OutputFormat::Geojson,
                 output: None,
                 quiet: false,
+                verify: false,
                 help: false,
             }
         );
@@ -109,6 +110,13 @@ mod args_tests {
     }
 
     #[test]
+    fn sets_verify_from_either_spelling() {
+        assert!(parse_cli_args(&args(&["-v"])).unwrap().verify);
+        assert!(parse_cli_args(&args(&["--verify"])).unwrap().verify);
+        assert!(!parse_cli_args(&args(&["-q"])).unwrap().verify);
+    }
+
+    #[test]
     fn sets_help_and_quiet_from_short_flags() {
         let options = parse_cli_args(&args(&["-h", "-q"])).unwrap();
         assert!(options.help);
@@ -118,7 +126,9 @@ mod args_tests {
     #[test]
     fn help_text_names_every_long_flag() {
         let help = help_text();
-        for flag in ["--input", "--format", "--output", "--quiet", "--help"] {
+        for flag in [
+            "--input", "--format", "--output", "--quiet", "--verify", "--help",
+        ] {
             assert!(help.contains(flag), "{flag} missing from help text");
         }
     }

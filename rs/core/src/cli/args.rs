@@ -1,6 +1,6 @@
 //! Flag declarations and parsing for the interior-point CLI. The surface is
-//! `-i/--input`, `-f/--format`, `-o/--output`, `-q/--quiet` and `-h/--help`;
-//! there are no positional arguments and no version flag.
+//! `-i/--input`, `-f/--format`, `-o/--output`, `-q/--quiet`, `-v/--verify` and
+//! `-h/--help`; there are no positional arguments and no version flag.
 //!
 //! @jts-adapter JTSOpCmd — jtsop (org.locationtech.jtstest.cmd.JTSOpCmd) is the
 //!   prior art for this CLI's surface; the code is original, nothing is ported.
@@ -36,6 +36,7 @@ pub struct CliOptions {
     pub format: OutputFormat,
     pub output: Option<String>,
     pub quiet: bool,
+    pub verify: bool,
     pub help: bool,
 }
 
@@ -64,6 +65,9 @@ struct Cli {
     /// Suppress the result; exit code only
     #[arg(short, long, overrides_with = "quiet")]
     quiet: bool,
+    /// Check each result against its input geometry
+    #[arg(short, long, overrides_with = "verify")]
+    verify: bool,
     /// Print this help
     #[arg(short, long, overrides_with = "help")]
     help: bool,
@@ -81,6 +85,7 @@ pub fn parse_cli_args(argv: &[String]) -> Result<CliOptions, UsageError> {
         format: cli.format,
         output: cli.output,
         quiet: cli.quiet,
+        verify: cli.verify,
         help: cli.help,
     })
 }
