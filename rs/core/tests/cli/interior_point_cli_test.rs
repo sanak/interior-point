@@ -684,3 +684,124 @@ mod run_tests {
         assert_eq!(err.matches("Usage:").count(), 1, "{err}");
     }
 }
+
+mod verify_tests {
+    use super::*;
+
+    /// Drives `run` against in-memory sinks and returns (exit code, stdout, stderr).
+    fn drive(argv: &[&str]) -> (i32, String, String) {
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+        let mut read_stdin = || Ok(String::new());
+        let code = run(&args(argv), &mut out, &mut err, &mut read_stdin);
+        (
+            code,
+            String::from_utf8(out).unwrap(),
+            String::from_utf8(err).unwrap(),
+        )
+    }
+
+    /// A square, whose interior point is interior to it.
+    const SQUARE: &str = "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))";
+
+    /// A polygon whose hole encloses its shell. The widest scan-line section
+    /// then lies outside the shell, so the algorithm returns a point that is
+    /// genuinely off the geometry — the one input shape that reaches exit 2.
+    const HOLE_LARGER_THAN_SHELL: &str =
+        "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0), (-5 -5, 15 -5, 15 15, -5 15, -5 -5))";
+
+    /// One record per outcome. The zero-area polygon comes first and the square
+    /// second, so the input order is deliberately not the order the summary
+    /// declares its outcomes in: a summary built from first-seen order would
+    /// print `on-geometry` before `interior` and fail this.
+    const ONE_OF_EACH: &str = r#"{"type":"FeatureCollection","features":[
+        {"type":"Feature","properties":null,
+         "geometry":{"type":"Polygon","coordinates":[[[10,10],[10,10],[10,10],[10,10]]]}},
+        {"type":"Feature","properties":null,
+         "geometry":{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,10],[0,10],[0,0]]]}},
+        {"type":"Feature","properties":null,
+         "geometry":{"type":"Polygon","coordinates":[
+            [[0,0],[10,0],[10,10],[0,10],[0,0]],
+            [[-5,-5],[15,-5],[15,15],[-5,15],[-5,-5]]]}},
+        {"type":"Feature","properties":null,"geometry":null}]}"#;
+
+    #[test]
+    fn summarises_a_passing_run_on_stderr_and_exits_zero() {
+        let (code, out, err) = drive(&["--verify", "-i", SQUARE]);
+        assert_eq!(code, 0);
+        assert_eq!(out, "{\"type\":\"Point\",\"coordinates\":[5,5]}\n");
+        assert_eq!(err, "verify: 1 records, 1 interior\n");
+    }
+
+    #[test]
+    fn leaves_stdout_byte_identical_to_the_same_run_without_the_flag() {
+        let (_, plain, _) = drive(&["-i", SQUARE]);
+        let (_, verified, _) = drive(&["--verify", "-i", SQUARE]);
+        assert_eq!(plain, verified);
+
+        let (_, plain, _) = drive(&["-i", HOLE_LARGER_THAN_SHELL]);
+        let (_, verified, _) = drive(&["--verify", "-i", HOLE_LARGER_THAN_SHELL]);
+        assert_eq!(plain, verified);
+    }
+
+    #[test]
+    fn names_the_failing_record_and_exits_two() {
+        let (code, out, err) = drive(&["--verify", "-i", HOLE_LARGER_THAN_SHELL]);
+        assert_eq!(code, 2);
+        assert_eq!(out, "{\"type\":\"Point\",\"coordinates\":[-2.5,5]}\n");
+        assert_eq!(
+            err,
+            "verify: 1 records, 1 off-geometry\nverify: record 1: off-geometry\n"
+        );
+    }
+
+    #[test]
+    fn lists_each_outcome_that_occurred_in_declaration_order() {
+        let (code, _, err) = drive(&["--verify", "-i", ONE_OF_EACH]);
+        assert_eq!(code, 2);
+        assert_eq!(
+            err,
+            "verify: 4 records, 1 interior, 1 on-geometry, 1 off-geometry, 1 unverifiable\n\
+             verify: record 3: off-geometry\n"
+        );
+    }
+
+    /// An unverifiable record is not a failure: it gets no line of its own and
+    /// does not change the exit code.
+    #[test]
+    fn an_unverifiable_record_alone_still_exits_zero() {
+        let (code, _, err) = drive(&[
+            "--verify",
+            "-i",
+            r#"{"type":"Feature","properties":null,"geometry":null}"#,
+        ]);
+        assert_eq!(code, 0);
+        assert_eq!(err, "verify: 1 records, 1 unverifiable\n");
+    }
+
+    #[test]
+    fn reports_zero_records_without_any_outcome_words() {
+        let (code, _, err) = drive(&[
+            "--verify",
+            "-i",
+            r#"{"type":"FeatureCollection","features":[]}"#,
+        ]);
+        assert_eq!(code, 0);
+        assert_eq!(err, "verify: 0 records\n");
+    }
+
+    #[test]
+    fn quiet_makes_a_passing_verified_run_completely_silent() {
+        let (code, out, err) = drive(&["--verify", "--quiet", "-i", SQUARE]);
+        assert_eq!(code, 0);
+        assert!(out.is_empty());
+        assert!(err.is_empty());
+    }
+
+    #[test]
+    fn quiet_keeps_the_failure_line_and_the_exit_code() {
+        let (code, out, err) = drive(&["--verify", "--quiet", "-i", HOLE_LARGER_THAN_SHELL]);
+        assert_eq!(code, 2);
+        assert!(out.is_empty());
+        assert_eq!(err, "verify: record 1: off-geometry\n");
+    }
+}
