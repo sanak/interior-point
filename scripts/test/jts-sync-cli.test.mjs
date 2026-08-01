@@ -34,12 +34,12 @@ describe("usage", () => {
 describe("anchors", () => {
   // The locator port added PointLocation and SimplePointInAreaLocator, driving all 25 of
   // JTS's AbstractPointInRingTest assertions through entry point 2 as well. That
-  // closes the point-in-polygon port: all 97 in-scope members are now anchored,
+  // closes the point-in-polygon port: all 98 in-scope members are now anchored,
   // 0 unported, and the CLI exits 0.
   it("exits 0 now that the point-in-polygon stack is fully ported", async () => {
     const { code, out } = await run(["anchors"]);
     assert.equal(code, 0);
-    assert.match(out, /97 method declarations/);
+    assert.match(out, /98 method declarations/);
     assert.match(out, /0 unported/);
     assert.ok(!/has no @jts anchor/.test(out));
   });

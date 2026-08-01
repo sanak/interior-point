@@ -146,8 +146,9 @@ describe("scanPortAnchors", () => {
     // in both languages. The world-test port adds one: the Rust world test's placement note
     // after its move into `rs/core/src/` to reach the gated locator modules. Plus one more:
     // `rs/core/src/test/mod.rs`'s module-placement note explaining why these tests
-    // cannot live in `rs/core/tests/`.
-    assert.equal(kinds["jts-deviate"], 28);
+    // cannot live in `rs/core/tests/`. The verify surface adds one more: the verify sweep test's note that it
+    // asserts `isVerified` where JTS's own helper asserts `contains`.
+    assert.equal(kinds["jts-deviate"], 29);
     // The geometry adapters (6 in TypeScript, 4 in Rust — Rust needs no
     // Coordinate or Envelope alias but does define its own ring envelope, since
     // geo's BoundingRect is a dev-dependency), the Assert shim's 3,
@@ -163,8 +164,10 @@ describe("scanPortAnchors", () => {
     // modules, its bin stub and its test file, and in Rust the same five plus
     // a cli/mod.rs the module layout requires and a WKTWriter note where the
     // wkt crate's output shape and geo_types' lack of an empty point force the
-    // point text to be written here.
-    assert.equal(kinds["jts-adapter"], 44);
+    // point text to be written here. The verify surface adds four, all in TypeScript so far: the adapter's
+    // `coordinatesAtDimension`, and `VerifyInteriorPoint.ts`'s outcome enum, its
+    // `verifyInteriorPoint` and its `isVerified`.
+    assert.equal(kinds["jts-adapter"], 48);
   });
 });
 
@@ -342,9 +345,9 @@ describe("checkJavaToAnchors", () => {
 });
 
 describe("runAnchors", () => {
-  // In scope: 52 from the five fully tracked files, plus the 45 members the
+  // In scope: 52 from the five fully tracked files, plus the 46 members the
   // twelve partially ported files declare in portedMembers (Orientation 3,
-  // CGAlgorithmsDD 4, DD 10, CentroidTest 2, InteriorPointTest 3,
+  // CGAlgorithmsDD 4, DD 10, CentroidTest 2, InteriorPointTest 4,
   // SimplePointInAreaLocator 6, RayCrossingCounter 7, PointLocation 2,
   // AbstractPointInRingTest 6, RayCrossingCounterTest 1,
   // SimplePointInAreaLocatorTest 1; Location declares 3 constants, which
@@ -352,11 +355,15 @@ describe("runAnchors", () => {
   //
   // The locator port added PointLocation's 2 and SimplePointInAreaLocator's 6, and drove
   // all 25 of JTS's AbstractPointInRingTest assertions through entry point 2
-  // (SimplePointInAreaLocatorTest's 1), closing the port: 0 of the 97 in-scope
+  // (SimplePointInAreaLocatorTest's 1), closing the port: 0 of the 98 in-scope
   // members are unported.
-  it("reports the repository's current state: 97 in-scope members, 0 unported", () => {
+  //
+  // The verify surface added InteriorPointTest#checkInteriorPoint(Geometry), the
+  // member the verify sweep test anchors to, taking the in-scope total to 98 with
+  // still 0 unported.
+  it("reports the repository's current state: 98 in-scope members, 0 unported", () => {
     const { violations, counts } = runAnchors(REPO_ROOT);
-    assert.equal(counts.members, 97);
+    assert.equal(counts.members, 98);
     assert.equal(counts.unported, 0);
     assert.equal(violations.length, 0);
     assert.ok(counts.anchors > 0);
