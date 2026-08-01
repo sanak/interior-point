@@ -34,6 +34,7 @@ flag is what turns the binary on.
 | `-f`  | `--format` | `<fmt>`        | Output format: geojson (default) or wkt                    |
 | `-o`  | `--output` | `<file>`       | Write to a file instead of stdout                          |
 | `-q`  | `--quiet`  | —              | Suppress the result; exit code only                        |
+| `-v`  | `--verify` | —              | Check each result against its input geometry               |
 | `-h`  | `--help`   | —              | Print this help                                            |
 
 The exact `--help` layout differs between the two CLIs: each language renders it with its own
@@ -45,6 +46,49 @@ interior-point --input countries.geojson --output centres.geojson
 interior-point --input countries.geojson --format wkt --output centres.txt
 echo '{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,10],[0,10],[0,0]]]}' | interior-point
 ```
+
+`--verify` checks each result against the geometry it was computed from, using a point-in-polygon
+locator that shares no code with the algorithm that produced the point. It is a check on this
+command's own output: it says nothing about whether the input is simple, whether its rings are
+nested correctly, or whether a shell self-intersects, and a geometry that fails every one of those
+can still yield a point that verifies.
+
+stdout is byte-for-byte identical to the same run without the flag, because verification is a
+message and messages go to stderr. Each record gets one of four outcomes:
+
+| Outcome        | Meaning                                                                                        |
+| -------------- | ---------------------------------------------------------------------------------------------- |
+| `interior`     | an area geometry, and the point lies inside it                                                 |
+| `on-geometry`  | the point lies on the boundary of an area geometry, or is a vertex of a line or point geometry |
+| `off-geometry` | the point lies outside an area geometry, or matches no vertex of a line or point geometry      |
+| `unverifiable` | there was no point to check, or no geometry to check it against                                |
+
+`interior` and `on-geometry` both count as verified, and `off-geometry` is the only failure.
+`unverifiable` is neither: an empty result already exits 0 without the flag, and the flag does not
+change that.
+
+stderr carries one summary line, naming only the outcomes that occurred and in the order above,
+followed by one line for each record that came back `off-geometry`. Record numbers are 1-based and
+follow input order:
+
+```
+verify: 244 records, 244 interior
+verify: 3 records, 1 interior, 1 on-geometry, 1 off-geometry
+verify: record 2: off-geometry
+```
+
+The count noun is always `records`, so a single-record run reads `verify: 1 records` and an empty
+one reads `verify: 0 records`. Both CLIs emit these lines byte for byte alike.
+
+`--quiet` suppresses the summary line and keeps the failure lines, so a verifying run under both
+flags is silent while a failing one still names the offending record:
+
+| Flags                                   | stdout    | stderr                                      | Exit |
+| --------------------------------------- | --------- | ------------------------------------------- | ---- |
+| `--verify`, every record passes         | unchanged | the summary line                            | 0    |
+| `--verify`, some record fails           | unchanged | the summary line, then one line per failure | 2    |
+| `--verify --quiet`, every record passes | nothing   | nothing                                     | 0    |
+| `--verify --quiet`, some record fails   | nothing   | one line per failure                        | 2    |
 
 ## Input
 
@@ -92,9 +136,12 @@ The two implementations agree byte for byte on result output, with these diverge
 
 ## Exit codes
 
-| Code | Meaning                                                     |
-| ---- | ----------------------------------------------------------- |
-| 0    | success, including an empty result                          |
-| 1    | a usage error, unreadable input, or an unparseable geometry |
+| Code | Meaning                                                         |
+| ---- | --------------------------------------------------------------- |
+| 0    | success, including an empty result and an `unverifiable` record |
+| 1    | a usage error, unreadable input, or an unparseable geometry     |
+| 2    | `--verify` was given and at least one record is `off-geometry`  |
+
+Code 1 wins over code 2: a run that cannot parse its input never reaches verification.
 
 Messages go to stderr; only the result goes to stdout.
