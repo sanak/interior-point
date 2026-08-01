@@ -201,7 +201,7 @@ also collects `test/InteriorPointAreaPerfTest.bench.ts` and executes the benchma
 `rs/core/Cargo.toml` needs a hand-written `[[test]]` entry per integration test, since cargo
 auto-discovers only `tests/*.rs` and nothing under `tests/algorithm/` otherwise.
 
-Every `js/` script that executes `.ts` — `test`, `test:watch`, `bench` — runs it through
+Every `js/` script that hands a `.ts` file to Node — `test`, `test:watch`, `bench` — runs it through
 `node --import tsx`, and fixtures resolve from `import.meta.dirname`, not `__dirname`. Every relative
 import under `js/src` and `js/test` carries an explicit `.ts` extension, permitted by
 `js/tsconfig.json`'s `allowImportingTsExtensions` and turned into `.js` in the emitted CLI by
