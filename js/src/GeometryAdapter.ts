@@ -197,7 +197,7 @@ export function coordinatesAtDimension(geometry: Geometry, dim: number): Coordin
   if (geometry.type === "GeometryCollection") {
     const found: Coordinate[] = [];
     for (const g of geometry.geometries) {
-      found.push(...coordinatesAtDimension(g, dim));
+      for (const coordinate of coordinatesAtDimension(g, dim)) found.push(coordinate);
     }
     return found;
   }

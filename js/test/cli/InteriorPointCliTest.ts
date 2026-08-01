@@ -488,8 +488,8 @@ describe("run --verify", () => {
     const literal = JSON.stringify({
       type: "FeatureCollection",
       features: [
-        { type: "Feature", properties: { n: 1 }, geometry: BOX_JSON },
-        { type: "Feature", properties: { n: 2 }, geometry: LINE_JSON },
+        { type: "Feature", properties: { n: 1 }, geometry: LINE_JSON },
+        { type: "Feature", properties: { n: 2 }, geometry: BOX_JSON },
         { type: "Feature", properties: { n: 3 }, geometry: OFF_GEOMETRY_JSON },
       ],
     });

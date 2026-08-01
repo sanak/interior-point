@@ -404,4 +404,13 @@ describe("coordinatesAtDimension", () => {
   it("keeps the Z ordinate", () => {
     assert.deepEqual(coordinatesAtDimension({ type: "Point", coordinates: [1, 2, 3] }, 0), [[1, 2, 3]]);
   });
+
+  it("descends a GeometryCollection with 200,000 coordinates without overflowing the call stack", () => {
+    const coordinates = Array.from({ length: 200_000 }, (_, i) => [i, i]);
+    const gc: Geometry = {
+      type: "GeometryCollection",
+      geometries: [{ type: "MultiLineString", coordinates: [coordinates] }],
+    };
+    assert.equal(coordinatesAtDimension(gc, 1).length, 200_000);
+  });
 });
