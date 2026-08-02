@@ -73,6 +73,10 @@ name = "verify_interior_point_sweep_test"
 path = "tests/algorithm/verify_interior_point_sweep_test.rs"
 
 [[test]]
+name = "centroid_first_interior_point_sweep_test"
+path = "tests/algorithm/centroid_first_interior_point_sweep_test.rs"
+
+[[test]]
 name = "interior_point_cli_test"
 path = "tests/cli/interior_point_cli_test.rs"
 required-features = ["cli"]
