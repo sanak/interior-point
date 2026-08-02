@@ -173,7 +173,9 @@ describe("scanPortAnchors", () => {
     // the adapter's `coordinates_at_dimension`.
     // The centroid-first surface adds one, in TypeScript so far:
     // `CentroidFirstInteriorPoint.ts`'s `centroidFirstInteriorPoint`.
-    assert.equal(kinds["jts-adapter"], 51);
+    // The Rust half adds the second: `centroid_first_interior_point.rs`'s module
+    // tag, which is where Rust puts what TypeScript put on the function.
+    assert.equal(kinds["jts-adapter"], 52);
   });
 });
 
