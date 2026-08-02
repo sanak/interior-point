@@ -198,4 +198,4 @@ assert!(verify_interior_point(point, Some(&geometry)).is_verified());
 | `Coord<f64>`                | `geo_types::Coord { x: f64, y: f64 }`                            |
 | `InteriorPointVerification` | an enum: `Interior`, `OnGeometry`, `OffGeometry`, `Unverifiable` |
 
-`interior_point`, `verify_interior_point` and `InteriorPointVerification` are the crate's whole public surface; the locator behind the check is crate-internal and is not documented here as a callable item.
+With the default features, `interior_point`, `verify_interior_point` and `InteriorPointVerification` are the crate's whole public surface; the locator behind the check is crate-internal and is not documented here as a callable item.

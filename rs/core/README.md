@@ -70,7 +70,7 @@ assert!(verify_interior_point(pt, Some(&geometry)).is_verified());
 
 This verifies the crate's own output. It is not an OGC geometry validity check: an invalid geometry can still yield a point that verifies.
 
-`interior_point`, `verify_interior_point` and `InteriorPointVerification` are the crate's whole public surface.
+With the default features, `interior_point`, `verify_interior_point` and `InteriorPointVerification` are the crate's whole public surface.
 
 ## CLI
 
