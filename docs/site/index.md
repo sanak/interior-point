@@ -70,6 +70,15 @@ console.log(isVerified(verifyInteriorPoint(point, polygon)));
 // => true
 ```
 
+Or ask for the centroid instead, falling back to the algorithm above only when the centroid is not strictly inside:
+
+```typescript
+import { centroidFirstInteriorPoint } from "interior-point";
+
+console.log(centroidFirstInteriorPoint(polygon));
+// => [1, 5], because this polygon's centroid [2, 3] sits exactly on an edge and is rejected
+```
+
 ### Rust
 
 ```rust
@@ -101,6 +110,15 @@ use interior_point::{interior_point, verify_interior_point};
 let geometry: Geometry<f64> = poly.into();
 let point = interior_point(&geometry);
 assert!(verify_interior_point(point, Some(&geometry)).is_verified());
+```
+
+Or ask for the centroid instead, falling back to the algorithm above only when the centroid is not strictly inside:
+
+```rust
+use interior_point::centroid_first_interior_point;
+
+let point = centroid_first_interior_point(&geometry);
+// => Some(Coord { x: 1.0, y: 5.0 }), because this polygon's centroid (2, 3) sits exactly on an edge
 ```
 
 This verifies the library's own output. It is not an OGC geometry validity check: an invalid geometry can still yield a point that verifies. See the [API reference](/api/) for the four outcomes it distinguishes, and the [CLI page](/cli) for the same check as a flag.
