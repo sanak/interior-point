@@ -591,3 +591,122 @@ describe("run --verify", () => {
     assert.equal(err.text, "");
   });
 });
+
+const TRIANGLE_WKT = "POLYGON ((0 0, 10 0, 0 10, 0 0))";
+const TRIANGLE_CENTROID_JSON = '{"type":"Point","coordinates":[3.333333333333333,3.333333333333333]}\n';
+const DONUT_WKT = "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0), (3 3, 7 3, 7 7, 3 7, 3 3))";
+
+describe("run --centroid-first", () => {
+  it("returns the centroid where interiorPoint returns something else", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", TRIANGLE_WKT, "-c"], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(out.text, TRIANGLE_CENTROID_JSON);
+    assert.equal(err.text, "");
+  });
+
+  it("--centroid-first is the same flag as -c", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", TRIANGLE_WKT, "--centroid-first"], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(out.text, TRIANGLE_CENTROID_JSON);
+  });
+
+  it("without the flag the point is the algorithm's own", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", TRIANGLE_WKT], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(out.text, '{"type":"Point","coordinates":[2.5,5]}\n');
+  });
+
+  it("falls back when the centroid is in a hole", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", DONUT_WKT, "-c"], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(out.text, '{"type":"Point","coordinates":[1.5,5]}\n');
+  });
+
+  it("leaves a lineal record to the algorithm", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", "LINESTRING (0 0, 10 10)", "-c"], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(out.text, '{"type":"Point","coordinates":[0,0]}\n');
+  });
+
+  it("applies to every record of a FeatureCollection", () => {
+    const literal = JSON.stringify({
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          properties: { n: 1 },
+          geometry: {
+            type: "Polygon",
+            coordinates: [
+              [
+                [0, 0],
+                [10, 0],
+                [0, 10],
+                [0, 0],
+              ],
+            ],
+          },
+        },
+        { type: "Feature", properties: { n: 2 }, geometry: LINE_JSON },
+      ],
+    });
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", literal, "-c"], out.sink, err.sink, readStdinUnused), 0);
+    assert.deepEqual(JSON.parse(out.text), {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          properties: { n: 1 },
+          geometry: { type: "Point", coordinates: [3.333333333333333, 3.333333333333333] },
+        },
+        { type: "Feature", properties: { n: 2 }, geometry: { type: "Point", coordinates: [0, 0] } },
+      ],
+    });
+  });
+
+  it("--format wkt writes the centroid", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", TRIANGLE_WKT, "-c", "-f", "wkt"], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(out.text, "POINT (3.333333333333333 3.333333333333333)\n");
+  });
+
+  it("--quiet still suppresses the result", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", TRIANGLE_WKT, "-c", "-q"], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(out.text, "");
+    assert.equal(err.text, "");
+  });
+
+  it("--verify checks the centroid it produced, and stdout keeps its shape", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", TRIANGLE_WKT, "-c", "-v"], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(out.text, TRIANGLE_CENTROID_JSON);
+    assert.equal(err.text, "verify: 1 records, 1 interior\n");
+  });
+
+  it("--verify checks the fallback when the centroid was rejected", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", DONUT_WKT, "-c", "-v"], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(out.text, '{"type":"Point","coordinates":[1.5,5]}\n');
+    assert.equal(err.text, "verify: 1 records, 1 interior\n");
+  });
+
+  it("--verify still exits 2 on the polygon whose hole swallows its shell", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", OFF_GEOMETRY_WKT, "-c", "-v"], out.sink, err.sink, readStdinUnused), 2);
+    assert.equal(out.text, '{"type":"Point","coordinates":[-2.5,5]}\n');
+    assert.equal(err.text, "verify: 1 records, 1 off-geometry\nverify: record 1: off-geometry\n");
+  });
+});

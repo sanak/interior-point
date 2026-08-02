@@ -10,6 +10,7 @@
  */
 import { readFileSync } from "node:fs";
 import { interiorPoint } from "../algorithm/InteriorPoint.ts";
+import { centroidFirstInteriorPoint } from "../CentroidFirstInteriorPoint.ts";
 import { InteriorPointVerification, verifyInteriorPoint } from "../VerifyInteriorPoint.ts";
 import { HELP_TEXT, parseCliArgs, type CliOptions } from "./args.ts";
 import { readInput, serialize, writeOutput, type Sink } from "./io.ts";
@@ -47,8 +48,11 @@ export function run(
   }
   try {
     const input = readInput(options.input, readStdin);
+    // One function is chosen for the whole run, so every record of a collection
+    // is answered the same way and the flag cannot vary within one output.
+    const computePoint = options.centroidFirst ? centroidFirstInteriorPoint : interiorPoint;
     const results = input.records.map((record) => ({
-      point: interiorPoint(record.geometry),
+      point: computePoint(record.geometry),
       meta: record.meta,
     }));
     // Computed from the records this module already holds, before serialisation,
