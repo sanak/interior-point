@@ -62,7 +62,7 @@ Checks a point against the geometry it was computed from, using a point-in-polyg
 | `InteriorPointVerification.Interior`     | an area geometry, and the point lies inside it                                                 |
 | `InteriorPointVerification.OnGeometry`   | the point lies on the boundary of an area geometry, or is a vertex of a line or point geometry |
 | `InteriorPointVerification.OffGeometry`  | the point lies outside an area geometry, or matches no vertex of a line or point geometry      |
-| `InteriorPointVerification.Unverifiable` | `point` is `null`, or `geometry` is `null`                                                     |
+| `InteriorPointVerification.Unverifiable` | `point` is `null`, `geometry` is `null`, or every element of `geometry` is empty               |
 
 ```typescript
 import { interiorPoint, isVerified, verifyInteriorPoint, InteriorPointVerification } from "interior-point";
@@ -170,7 +170,7 @@ Checks a point against the geometry it was computed from, using a point-in-polyg
 | `InteriorPointVerification::Interior`     | an area geometry, and the point lies inside it                                                 |
 | `InteriorPointVerification::OnGeometry`   | the point lies on the boundary of an area geometry, or is a vertex of a line or point geometry |
 | `InteriorPointVerification::OffGeometry`  | the point lies outside an area geometry, or matches no vertex of a line or point geometry      |
-| `InteriorPointVerification::Unverifiable` | `point` is `None`, or `geometry` is `None`                                                     |
+| `InteriorPointVerification::Unverifiable` | `point` is `None`, `geometry` is `None`, or every element of `geometry` is empty               |
 
 `InteriorPointVerification::is_verified` collapses those to a `bool`: `true` for `Interior` and `OnGeometry`, `false` for `OffGeometry` and `Unverifiable`. `false` covers two different things — `OffGeometry` is a failed check, `Unverifiable` the absence of one — so read the value itself when that difference matters. Its `Display` output is the four kebab-case strings `interior`, `on-geometry`, `off-geometry` and `unverifiable`, which is what the CLI prints.
 
