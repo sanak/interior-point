@@ -4,6 +4,7 @@
 //! The point is guaranteed to lie inside the geometry for area geometries.
 
 mod algorithm;
+mod centroid_first_interior_point;
 mod geom;
 mod geometry_adapter;
 mod math;
@@ -16,4 +17,5 @@ pub mod cli;
 mod test;
 
 pub use algorithm::interior_point::interior_point;
+pub use centroid_first_interior_point::centroid_first_interior_point;
 pub use verify_interior_point::{InteriorPointVerification, verify_interior_point};
