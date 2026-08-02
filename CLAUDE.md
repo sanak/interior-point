@@ -56,7 +56,8 @@ the single place the GeoJSON name appears. The rule has no exemptions.
 ### Supporting Ports
 
 Reached from the `interiorPoint`/`interior_point` dispatcher through `Centroid`, which `InteriorPointLine` and
-`InteriorPointPoint` call. Both languages carry the same set:
+`InteriorPointPoint` call; `centroidFirstInteriorPoint`/`centroid_first_interior_point` calls `Centroid` directly as
+well. Both languages carry the same set:
 
 | Module                                                                                                    | Purpose                                                      |
 | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
@@ -72,14 +73,17 @@ Reached from the `interiorPoint`/`interior_point` dispatcher through `Centroid`,
 | `algorithm/locate/SimplePointInAreaLocator` / `core/src/algorithm/locate/simple_point_in_area_locator.rs` | `SimplePointInAreaLocator` — point-in-area location          |
 
 Those four are the point-in-polygon stack. Unlike every other supporting port they are
-**not reachable from the `interiorPoint`/`interior_point` dispatcher**: they are reached from
-`verifyInteriorPoint`/`verify_interior_point`, which checks a computed point against the geometry
-it came from using JTS-derived code instead of a third-party predicate. Both languages' world tests
+**not reachable from the `interiorPoint`/`interior_point` dispatcher**: they are reached from two other published
+entry points. `verifyInteriorPoint`/`verify_interior_point` checks a computed point against the geometry
+it came from using JTS-derived code instead of a third-party predicate, and
+`centroidFirstInteriorPoint`/`centroid_first_interior_point` asks the same locator whether a geometry's centroid
+lies strictly inside it. Both languages' world tests
 assert containment through the same stack. Reachable is not the same as published: they are still
 not exported from `js/src/index.ts`, and in Rust they are still `pub(crate)` — `interior_point`,
-`verify_interior_point` and `InteriorPointVerification` are the crate's entire public surface. What
+`centroid_first_interior_point`, `verify_interior_point` and `InteriorPointVerification` are the crate's entire
+public surface. What
 changed in Rust is the gate alone: these modules were declared `#[cfg(test)] mod` and are now
-compiled into every build, because a published library item calls them. So `js/src` now has no
+compiled into every build, because published library items call them. So `js/src` now has no
 module unreachable from its two roots, `index.ts` and `bin/interior-point.ts`; TypeScript cannot
 enforce that, so it is recorded here. Rust has the same two roots — the library's `lib.rs` and the
 `interior-point` binary — and its CLI modules hang off a `#[cfg(feature = "cli")] pub mod cli`, so
@@ -94,7 +98,7 @@ removal — 263,944 probes over all 8,397 rings of `world.wkt` against real JTS 
 (`js/test/algorithm/InteriorPointWorldTest.ts`, `rs/core/src/test/algorithm/interior_point_world_test.rs`).
 
 Because the Rust locator is `pub(crate)`, an integration test still cannot see it: such a test links
-against the crate from outside and reaches only the three published items. The world test therefore
+against the crate from outside and reaches only the four published items. The world test therefore
 stays at `rs/core/src/test/algorithm/interior_point_world_test.rs` as a `#[cfg(test)] mod`, recorded
 with `@jts-deviate`, the same arrangement `rs/core/src/test/algorithm/centroid_test.rs` uses. The
 TypeScript world test stays in `js/test/`, since TypeScript tests can import unexported `js/src`
@@ -112,7 +116,8 @@ subset: `RayCrossingCounter::get_count` and `is_point_in_polygon`
 (`locate_point_in_ring_*` reads `get_location`), and `PointLocation::is_in_ring`
 (`SimplePointInAreaLocator` reads `locate_in_ring`). The last two are
 `SimplePointInAreaLocator`'s struct and its `impl` block, which nothing constructs —
-`verify_interior_point` reaches the free `locate` directly — and which are ported
+`verify_interior_point` and `centroid_first_interior_point` both reach the free `locate` directly — and which are
+ported
 because `pin.json` names the constructor and the instance method in `portedMembers`.
 Each attribute names its member and its reason.
 
