@@ -1,6 +1,7 @@
 //! Flag declarations and parsing for the interior-point CLI. The surface is
-//! `-i/--input`, `-f/--format`, `-o/--output`, `-q/--quiet`, `-v/--verify` and
-//! `-h/--help`; there are no positional arguments and no version flag.
+//! `-i/--input`, `-f/--format`, `-o/--output`, `-c/--centroid-first`,
+//! `-q/--quiet`, `-v/--verify` and `-h/--help`; there are no positional
+//! arguments and no version flag.
 //!
 //! @jts-adapter JTSOpCmd — jtsop (org.locationtech.jtstest.cmd.JTSOpCmd) is the
 //!   prior art for this CLI's surface; the code is original, nothing is ported.
@@ -35,6 +36,7 @@ pub struct CliOptions {
     pub input: Option<String>,
     pub format: OutputFormat,
     pub output: Option<String>,
+    pub centroid_first: bool,
     pub quiet: bool,
     pub verify: bool,
     pub help: bool,
@@ -62,6 +64,9 @@ struct Cli {
     /// Write to a file instead of stdout
     #[arg(short, long, value_name = "file", overrides_with = "output")]
     output: Option<String>,
+    /// Prefer the centroid when it lies inside
+    #[arg(short, long, overrides_with = "centroid_first")]
+    centroid_first: bool,
     /// Suppress the result; exit code only
     #[arg(short, long, overrides_with = "quiet")]
     quiet: bool,
@@ -84,6 +89,7 @@ pub fn parse_cli_args(argv: &[String]) -> Result<CliOptions, UsageError> {
         input: cli.input,
         format: cli.format,
         output: cli.output,
+        centroid_first: cli.centroid_first,
         quiet: cli.quiet,
         verify: cli.verify,
         help: cli.help,

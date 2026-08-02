@@ -30,6 +30,7 @@ mod args_tests {
                 input: None,
                 format: OutputFormat::Geojson,
                 output: None,
+                centroid_first: false,
                 quiet: false,
                 verify: false,
                 help: false,
@@ -110,6 +111,46 @@ mod args_tests {
     }
 
     #[test]
+    fn sets_centroid_first_from_either_spelling() {
+        assert!(parse_cli_args(&args(&["-c"])).unwrap().centroid_first);
+        assert!(
+            parse_cli_args(&args(&["--centroid-first"]))
+                .unwrap()
+                .centroid_first
+        );
+        assert!(!parse_cli_args(&args(&["-q"])).unwrap().centroid_first);
+    }
+
+    /// Last occurrence wins, as it does for every other flag. Without
+    /// `overrides_with` clap would reject the repetition outright.
+    #[test]
+    fn takes_the_last_occurrence_of_a_repeated_centroid_first() {
+        assert!(
+            parse_cli_args(&args(&["-c", "--centroid-first"]))
+                .unwrap()
+                .centroid_first
+        );
+    }
+
+    #[test]
+    fn lists_centroid_first_between_output_and_quiet_in_the_help_text() {
+        let help = help_text();
+        let lines: Vec<&str> = help.lines().collect();
+        let index = |flag: &str| {
+            lines
+                .iter()
+                .position(|line| line.contains(flag))
+                .unwrap_or_else(|| panic!("{flag} missing from help text"))
+        };
+        assert_eq!(index("--centroid-first"), index("--output") + 1);
+        assert_eq!(index("--quiet"), index("--centroid-first") + 1);
+        assert_eq!(
+            lines[index("--centroid-first")],
+            "  -c, --centroid-first     Prefer the centroid when it lies inside"
+        );
+    }
+
+    #[test]
     fn sets_verify_from_either_spelling() {
         assert!(parse_cli_args(&args(&["-v"])).unwrap().verify);
         assert!(parse_cli_args(&args(&["--verify"])).unwrap().verify);
@@ -127,7 +168,13 @@ mod args_tests {
     fn help_text_names_every_long_flag() {
         let help = help_text();
         for flag in [
-            "--input", "--format", "--output", "--quiet", "--verify", "--help",
+            "--input",
+            "--format",
+            "--output",
+            "--centroid-first",
+            "--quiet",
+            "--verify",
+            "--help",
         ] {
             assert!(help.contains(flag), "{flag} missing from help text");
         }
