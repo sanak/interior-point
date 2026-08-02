@@ -27,3 +27,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Coordinate` is re-exported as the name of the coordinate type. It is an
   alias of GeoJSON's `Position`, so existing code naming `Position` is
   unaffected.
+- `verifyInteriorPoint`, `isVerified` and `InteriorPointVerification` check a
+  computed point against the geometry it came from, through a point-in-polygon
+  locator that shares no code with the algorithm that produced the point. The
+  four outcomes are `Interior`, `OnGeometry`, `OffGeometry` and `Unverifiable`,
+  whose values are the strings `"interior"`, `"on-geometry"`, `"off-geometry"`
+  and `"unverifiable"`; the first two are passes and the last means there was
+  no point to check or no geometry to check it against. This verifies the
+  library's output and is not an OGC geometry validity check.
+- `interior-point --verify` (`-v`) runs that check over every record. stdout is
+  byte-for-byte identical to the same run without the flag; a summary line and
+  one line per failing record go to stderr, and the command exits 2 if any
+  record is `off-geometry`. `--quiet` drops the summary and keeps the failure
+  lines.

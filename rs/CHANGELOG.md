@@ -23,3 +23,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `interior_point` can trigger it. The assertion is carried for parity with JTS
   and with the TypeScript port, where GeoJSON's raw ring arrays make it
   reachable.
+
+### Added
+
+- `verify_interior_point` and `InteriorPointVerification` check a computed point
+  against the geometry it came from, through a point-in-polygon locator that
+  shares no code with the algorithm that produced the point. The four variants
+  are `Interior`, `OnGeometry`, `OffGeometry` and `Unverifiable`, and their
+  `Display` output is `interior`, `on-geometry`, `off-geometry` and
+  `unverifiable`; the first two are passes and the last means there was no point
+  to check or no geometry to check it against.
+  `InteriorPointVerification::is_verified` collapses them to a `bool`. This
+  verifies the crate's output and is not an OGC geometry validity check. The
+  crate's public surface is now `interior_point`, `verify_interior_point` and
+  `InteriorPointVerification`.
+- `interior-point --verify` (`-v`), behind the `cli` feature, runs that check
+  over every record. stdout is byte-for-byte identical to the same run without
+  the flag; a summary line and one line per failing record go to stderr, and the
+  command exits 2 if any record is `off-geometry`. `--quiet` drops the summary
+  and keeps the failure lines.
