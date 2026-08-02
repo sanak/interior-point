@@ -852,3 +852,135 @@ mod verify_tests {
         assert_eq!(err, "verify: record 1: off-geometry\n");
     }
 }
+
+mod centroid_first_tests {
+    use super::*;
+
+    /// Drives `run` against in-memory sinks and returns (exit code, stdout, stderr).
+    fn drive(argv: &[&str]) -> (i32, String, String) {
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+        let mut read_stdin = || Ok(String::new());
+        let code = run(&args(argv), &mut out, &mut err, &mut read_stdin);
+        (
+            code,
+            String::from_utf8(out).unwrap(),
+            String::from_utf8(err).unwrap(),
+        )
+    }
+
+    /// A right triangle. Its centroid is inside it and is not the point the
+    /// scanline picks, so it is the shape that shows the flag doing something.
+    const TRIANGLE: &str = "POLYGON ((0 0, 10 0, 0 10, 0 0))";
+    const TRIANGLE_CENTROID: &str =
+        "{\"type\":\"Point\",\"coordinates\":[3.333333333333333,3.333333333333333]}\n";
+
+    /// A square with a central hole. Its centroid is in the hole, so the flag
+    /// changes nothing here.
+    const DONUT: &str = "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0), (3 3, 7 3, 7 7, 3 7, 3 3))";
+
+    /// The polygon whose hole encloses its shell, the one input that reaches
+    /// exit 2 under --verify.
+    const HOLE_LARGER_THAN_SHELL: &str =
+        "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0), (-5 -5, 15 -5, 15 15, -5 15, -5 -5))";
+
+    #[test]
+    fn returns_the_centroid_where_the_algorithm_returns_something_else() {
+        let (code, out, err) = drive(&["-i", TRIANGLE, "-c"]);
+        assert_eq!(code, 0);
+        assert_eq!(out, TRIANGLE_CENTROID);
+        assert!(err.is_empty());
+    }
+
+    #[test]
+    fn the_long_spelling_is_the_same_flag() {
+        let (code, out, _) = drive(&["-i", TRIANGLE, "--centroid-first"]);
+        assert_eq!(code, 0);
+        assert_eq!(out, TRIANGLE_CENTROID);
+    }
+
+    #[test]
+    fn without_the_flag_the_point_is_the_algorithms_own() {
+        let (code, out, _) = drive(&["-i", TRIANGLE]);
+        assert_eq!(code, 0);
+        assert_eq!(out, "{\"type\":\"Point\",\"coordinates\":[2.5,5]}\n");
+    }
+
+    #[test]
+    fn falls_back_when_the_centroid_is_in_a_hole() {
+        let (code, out, _) = drive(&["-i", DONUT, "-c"]);
+        assert_eq!(code, 0);
+        assert_eq!(out, "{\"type\":\"Point\",\"coordinates\":[1.5,5]}\n");
+    }
+
+    #[test]
+    fn leaves_a_lineal_record_to_the_algorithm() {
+        let (code, out, _) = drive(&["-i", "LINESTRING (0 0, 10 10)", "-c"]);
+        assert_eq!(code, 0);
+        assert_eq!(out, "{\"type\":\"Point\",\"coordinates\":[0,0]}\n");
+    }
+
+    #[test]
+    fn applies_to_every_record_of_a_feature_collection() {
+        let (code, out, _) = drive(&[
+            "-i",
+            r#"{"type":"FeatureCollection","features":[
+                {"type":"Feature","properties":{"n":1},
+                 "geometry":{"type":"Polygon","coordinates":[[[0,0],[10,0],[0,10],[0,0]]]}},
+                {"type":"Feature","properties":{"n":2},
+                 "geometry":{"type":"LineString","coordinates":[[0,0],[10,10]]}}]}"#,
+            "-c",
+        ]);
+        assert_eq!(code, 0);
+        assert!(
+            out.contains("\"coordinates\":[3.333333333333333,3.333333333333333]"),
+            "{out}"
+        );
+        assert!(out.contains("\"coordinates\":[0,0]"), "{out}");
+        assert_eq!(out.matches("\"type\":\"Feature\"").count(), 2, "{out}");
+    }
+
+    #[test]
+    fn format_wkt_writes_the_centroid() {
+        let (code, out, _) = drive(&["-i", TRIANGLE, "-c", "-f", "wkt"]);
+        assert_eq!(code, 0);
+        assert_eq!(out, "POINT (3.333333333333333 3.333333333333333)\n");
+    }
+
+    #[test]
+    fn quiet_still_suppresses_the_result() {
+        let (code, out, err) = drive(&["-i", TRIANGLE, "-c", "-q"]);
+        assert_eq!(code, 0);
+        assert!(out.is_empty());
+        assert!(err.is_empty());
+    }
+
+    #[test]
+    fn verify_checks_the_centroid_it_produced() {
+        let (code, out, err) = drive(&["-i", TRIANGLE, "-c", "-v"]);
+        assert_eq!(code, 0);
+        assert_eq!(out, TRIANGLE_CENTROID);
+        assert_eq!(err, "verify: 1 records, 1 interior\n");
+    }
+
+    #[test]
+    fn verify_checks_the_fallback_when_the_centroid_was_rejected() {
+        let (code, out, err) = drive(&["-i", DONUT, "-c", "-v"]);
+        assert_eq!(code, 0);
+        assert_eq!(out, "{\"type\":\"Point\",\"coordinates\":[1.5,5]}\n");
+        assert_eq!(err, "verify: 1 records, 1 interior\n");
+    }
+
+    /// The two flags do not interfere. This polygon's centroid locates as
+    /// EXTERIOR, so -c falls straight through, and --verify then rejects the
+    /// algorithm's own point exactly as it does without -c.
+    #[test]
+    fn verify_still_exits_two_on_the_polygon_whose_hole_swallows_its_shell() {
+        let (code, out, err) = drive(&["-i", HOLE_LARGER_THAN_SHELL, "-c", "-v"]);
+        assert_eq!(code, 2);
+        assert_eq!(out, "{\"type\":\"Point\",\"coordinates\":[-2.5,5]}\n");
+        assert_eq!(
+            err,
+            "verify: 1 records, 1 off-geometry\nverify: record 1: off-geometry\n"
+        );
+    }
+}

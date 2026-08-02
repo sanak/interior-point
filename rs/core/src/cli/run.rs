@@ -9,7 +9,9 @@
 
 use std::io::{self, Write};
 
-use crate::{InteriorPointVerification, interior_point, verify_interior_point};
+use crate::{
+    InteriorPointVerification, centroid_first_interior_point, interior_point, verify_interior_point,
+};
 
 use super::args::{help_text, parse_cli_args};
 use super::io::{OutputRecord, read_input, serialize, write_output};
@@ -68,6 +70,14 @@ pub fn run(
             return 1;
         }
     };
+    // One function is chosen for the whole run, so every record of a collection
+    // is answered the same way and the flag cannot vary within one output.
+    let compute_point: fn(&geo_types::Geometry<f64>) -> Option<geo_types::Coord<f64>> =
+        if options.centroid_first {
+            centroid_first_interior_point
+        } else {
+            interior_point
+        };
     // `into_iter` consumes each record, so the verdict is computed here, where
     // the point and the geometry it came from are both still in hand.
     let mut verifications: Vec<InteriorPointVerification> = Vec::new();
@@ -75,7 +85,7 @@ pub fn run(
         .records
         .into_iter()
         .map(|record| {
-            let point = record.geometry.as_ref().and_then(interior_point);
+            let point = record.geometry.as_ref().and_then(compute_point);
             if options.verify {
                 verifications.push(verify_interior_point(point, record.geometry.as_ref()));
             }
