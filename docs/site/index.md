@@ -60,6 +60,16 @@ console.log(point);
 // => [1, 5]
 ```
 
+Check that result against the geometry it came from, through a point-in-polygon locator that shares no code with the algorithm above:
+
+```typescript
+import { interiorPoint, isVerified, verifyInteriorPoint } from "interior-point";
+
+const point = interiorPoint(polygon);
+console.log(isVerified(verifyInteriorPoint(point, polygon)));
+// => true
+```
+
 ### Rust
 
 ```rust
@@ -81,6 +91,19 @@ let poly = Polygon::new(
 let result = interior_point(&poly.into());
 // => Some(Coord { x: 1.0, y: 5.0 })
 ```
+
+Check that result against the geometry it came from, binding the geometry first so the same value reaches both calls:
+
+```rust
+use geo_types::Geometry;
+use interior_point::{interior_point, verify_interior_point};
+
+let geometry: Geometry<f64> = poly.into();
+let point = interior_point(&geometry);
+assert!(verify_interior_point(point, Some(&geometry)).is_verified());
+```
+
+This verifies the library's own output. It is not an OGC geometry validity check: an invalid geometry can still yield a point that verifies. See the [API reference](/api/) for the four outcomes it distinguishes, and the [CLI page](/cli) for the same check as a flag.
 
 <script setup>
 import { ref, onMounted, watch, onUnmounted } from "vue";
