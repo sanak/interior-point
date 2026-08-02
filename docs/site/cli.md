@@ -28,14 +28,15 @@ flag is what turns the binary on.
 
 ## Usage
 
-| Short | Long       | Argument       | Meaning                                                    |
-| ----- | ---------- | -------------- | ---------------------------------------------------------- |
-| `-i`  | `--input`  | `<geom\|file>` | WKT literal, GeoJSON literal, or a path. Defaults to stdin |
-| `-f`  | `--format` | `<fmt>`        | Output format: geojson (default) or wkt                    |
-| `-o`  | `--output` | `<file>`       | Write to a file instead of stdout                          |
-| `-q`  | `--quiet`  | —              | Suppress the result; exit code only                        |
-| `-v`  | `--verify` | —              | Check each result against its input geometry               |
-| `-h`  | `--help`   | —              | Print this help                                            |
+| Short | Long               | Argument       | Meaning                                                    |
+| ----- | ------------------ | -------------- | ---------------------------------------------------------- |
+| `-i`  | `--input`          | `<geom\|file>` | WKT literal, GeoJSON literal, or a path. Defaults to stdin |
+| `-f`  | `--format`         | `<fmt>`        | Output format: geojson (default) or wkt                    |
+| `-o`  | `--output`         | `<file>`       | Write to a file instead of stdout                          |
+| `-c`  | `--centroid-first` | —              | Return the centroid when it lies strictly inside           |
+| `-q`  | `--quiet`          | —              | Suppress the result; exit code only                        |
+| `-v`  | `--verify`         | —              | Check each result against its input geometry               |
+| `-h`  | `--help`           | —              | Print this help                                            |
 
 The exact `--help` layout differs between the two CLIs: each language renders it with its own
 standard argument parser rather than a shared template.
@@ -46,6 +47,28 @@ interior-point --input countries.geojson --output centres.geojson
 interior-point --input countries.geojson --format wkt --output centres.txt
 echo '{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,10],[0,10],[0,0]]]}' | interior-point
 ```
+
+`--centroid-first` changes which point is computed. For an area geometry the command computes the
+geometry's centroid and returns it when it lies strictly inside; when it does not, the interior-point
+algorithm runs and the output is exactly what the command produces without the flag. A representative
+point is more useful when it is the centroid, because the fallback returns a point that depends on how
+the algorithm is implemented. Line and point inputs ignore the flag: at those dimensions the algorithm
+already returns the vertex nearest the centroid.
+
+Strictly inside means the interior and nothing else — a centroid that lands exactly on the boundary is
+rejected. The T below has its centroid at `(3, 3)`, inside, so that is what comes back; the L's centroid
+`(2, 3)` sits exactly on the edge from `(2, 2)` to `(2, 8)`, so the two runs agree:
+
+```sh
+interior-point -c -f wkt -i "POLYGON ((0 0, 6 0, 6 2, 4 2, 4 8, 2 8, 2 2, 0 2, 0 0))"
+# POINT (3 3), where the same run without -c gives POINT (3 5)
+interior-point -c -f wkt -i "POLYGON ((0 0, 6 0, 6 2, 2 2, 2 8, 0 8, 0 0))"
+# POINT (1 5), the same as without -c
+```
+
+The output shape is unchanged — one point per record, in the same envelope and the same format — so the
+flag composes with `--format`, `--output`, `--quiet` and `--verify`. `--verify` checks whichever point
+was produced, and neither flag changes the other's exit code.
 
 `--verify` checks each result against the geometry it was computed from, using a point-in-polygon
 locator that shares no code with the algorithm that produced the point. It is a check on this
