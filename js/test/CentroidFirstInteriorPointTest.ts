@@ -305,7 +305,7 @@ describe("centroidFirstInteriorPoint - the centroid is accepted", () => {
     assert.deepEqual(centroidFirstInteriorPoint(SQUARE_Z), [2, 2]);
     assert.deepEqual(interiorPoint(SQUARE_Z), [2, 2]);
   });
-  it("returns the centroid array itself, per ordinate equal to getCentroid", () => {
+  it("returns a point equal to getCentroid, per ordinate", () => {
     assert.deepEqual(centroidFirstInteriorPoint(TRIANGLE), getCentroid(TRIANGLE));
   });
 });
