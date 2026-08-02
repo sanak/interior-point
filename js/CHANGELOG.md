@@ -40,3 +40,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one line per failing record go to stderr, and the command exits 2 if any
   record is `off-geometry`. `--quiet` drops the summary and keeps the failure
   lines.
+- `centroidFirstInteriorPoint` computes the geometry's centroid and returns it
+  when it lies strictly inside the geometry, falling back to `interiorPoint`
+  when it does not. A centroid exactly on the boundary is not strictly inside
+  and is rejected. Line and point geometries delegate to `interiorPoint`
+  unchanged, and an empty or `null` geometry returns `null`. The return value
+  is the point alone; which of the two produced it is not reported. Every path
+  that does not accept the centroid ends in `interiorPoint`, so degenerate
+  input behaves as it did before.
+- `interior-point --centroid-first` (`-c`) applies that entry point to every
+  record. The output shape is unchanged — one point per record, in the same
+  envelope and format — so the flag composes with `--format`, `--output`,
+  `--quiet` and `--verify`.
