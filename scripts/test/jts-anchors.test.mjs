@@ -171,7 +171,9 @@ describe("scanPortAnchors", () => {
     // `verifyInteriorPoint` and its `isVerified`.
     // The Rust verify port adds two: `verify_interior_point.rs`'s module tag and
     // the adapter's `coordinates_at_dimension`.
-    assert.equal(kinds["jts-adapter"], 50);
+    // The centroid-first surface adds one, in TypeScript so far:
+    // `CentroidFirstInteriorPoint.ts`'s `centroidFirstInteriorPoint`.
+    assert.equal(kinds["jts-adapter"], 51);
   });
 });
 
