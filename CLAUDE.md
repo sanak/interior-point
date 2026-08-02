@@ -183,6 +183,7 @@ the read side exact.
 | `Assert.isTrue`                    | `assertTrue` (`js/src/Assert.ts`)                  | `assert!`                        |
 | `Orientation`                      | `algorithm/Orientation.ts`                         | `algorithm/orientation.rs`       |
 | `List<Double>`                     | `number[]`                                         | `Vec<f64>` / `&mut [f64]`        |
+| —                                  | `centroidFirstInteriorPoint`                       | `centroid_first_interior_point`  |
 | —                                  | `verifyInteriorPoint`                              | `verify_interior_point`          |
 | —                                  | `isVerified`                                       | `is_verified`                    |
 | —                                  | `InteriorPointVerification`                        | `InteriorPointVerification`      |
@@ -198,8 +199,12 @@ Rust computes the ring envelope in the adapter rather than through `geo`'s `Boun
 `geo-types`. It returns `Option<Rect<f64>>`, since `Rect` cannot represent the empty
 envelope JTS returns for an empty ring; both take the "intersects nothing" path.
 
-The last four rows have no JTS member behind them, so every one of them is tagged `@jts-adapter`
-rather than `@jts`. The nearest thing JTS has to `verifyInteriorPoint` is the private test helper
+The last five rows have no JTS member behind them, so every one of them is tagged `@jts-adapter`
+rather than `@jts`. JTS has no centroid-first entry point at all — `InteriorPoint` never consults a
+centroid at dimension 2 — so `centroidFirstInteriorPoint`/`centroid_first_interior_point` has no lineage to
+record beyond the two members it composes, `Centroid` and `SimplePointInAreaLocator`, each of which
+carries its own `@jts` anchor where it is defined. The nearest thing JTS has to `verifyInteriorPoint` is the
+private test helper
 `InteriorPointTest#checkInteriorPoint(Geometry)`, which asserts and throws instead of returning a
 verdict; that lineage is carried as the `@jts` anchor on the verify sweep test in both languages,
 not on the API modules. `isVerified` is a free function in TypeScript and an inherent method,
@@ -225,13 +230,19 @@ cannot, because its base directory would be a directory that does not exist.
 The Rust world test is the second exception, for the same underlying reason: the point-in-polygon
 locator it asserts containment through is `pub(crate)`, so `rs/core/tests/` cannot reach it either.
 An integration test links against the crate from outside and sees only what `lib.rs` publishes,
-which is `interior_point`, `verify_interior_point` and `InteriorPointVerification`. Making the
+which is `interior_point`, `centroid_first_interior_point`, `verify_interior_point` and
+`InteriorPointVerification`. Making the
 locator reachable from `verify_interior_point` removed its `#[cfg(test)]` gate but left that wall
 standing, so the world test stays at `rs/core/src/test/algorithm/interior_point_world_test.rs` as a
 `#[cfg(test)] mod`, recorded with `@jts-deviate`, beside `abstract_point_in_ring_test.rs`.
 `rs/core/tests/` holds `algorithm/interior_point_test.rs`,
-`algorithm/verify_interior_point_sweep_test.rs`, `cli/interior_point_cli_test.rs` and `utils/`; the
-verify sweep belongs there because it reaches the crate through the published surface alone. The
+`algorithm/verify_interior_point_sweep_test.rs`,
+`algorithm/centroid_first_interior_point_sweep_test.rs`, `cli/interior_point_cli_test.rs` and
+`utils/`; both sweeps belong there because each reaches the crate through the published surface
+alone. The same wall puts the centroid-first unit tests inside
+`rs/core/src/centroid_first_interior_point.rs` as an in-file `#[cfg(test)] mod tests`, the
+arrangement `rs/core/src/verify_interior_point.rs` already uses: asserting that the returned point
+_is_ the centroid needs `get_centroid`, which is `pub(crate)`. The
 TypeScript world test is unaffected and stays in `js/test/`.
 
 `js/package.json`'s `test` script hands `node --import tsx --test` the glob `test/**/*Test.ts`, so a
