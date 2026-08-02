@@ -48,6 +48,27 @@ Returns a `[x, y]` position guaranteed to lie inside the geometry (for polygons)
 - `Point`, `MultiPoint` — point nearest to centroid
 - `GeometryCollection` — uses highest-dimension non-empty component
 
+### `verifyInteriorPoint(point: Coordinate | null, geometry: Geometry | null): InteriorPointVerification`
+
+Checks a point against the geometry it was computed from, through a point-in-polygon locator that shares no code with the algorithm that produced the point. Returns one of `Interior`, `OnGeometry`, `OffGeometry` or `Unverifiable`, whose values are the strings `"interior"`, `"on-geometry"`, `"off-geometry"` and `"unverifiable"`.
+
+`Interior` and `OnGeometry` are passes, `OffGeometry` is the only failure, and `Unverifiable` means there was no point to check or no geometry to check it against. `Coordinate` is the package's re-exported alias of GeoJSON's `Position`.
+
+This verifies the library's own output. It is not an OGC geometry validity check: an invalid geometry can still yield a point that verifies.
+
+### `isVerified(verification: InteriorPointVerification): boolean`
+
+`true` for `Interior` and `OnGeometry`, `false` for `OffGeometry` and `Unverifiable`.
+
+```typescript
+import { interiorPoint, isVerified, verifyInteriorPoint } from "interior-point";
+
+isVerified(verifyInteriorPoint(interiorPoint(polygon), polygon));
+// => true
+```
+
+The bundled `interior-point` command runs the same check over every record when given `--verify`.
+
 ## License
 
 [MIT](./LICENSE)

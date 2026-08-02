@@ -45,6 +45,33 @@ assert!(pt.is_some());
 
 Returns a coordinate guaranteed to lie inside area geometries, or on linear/point geometries. Returns `None` for empty geometries.
 
+### `verify_interior_point(point: Option<Coord<f64>>, geometry: Option<&Geometry<f64>>) -> InteriorPointVerification`
+
+Checks a point against the geometry it was computed from, through a point-in-polygon locator that shares no code with the algorithm that produced the point. Returns one of `Interior`, `OnGeometry`, `OffGeometry` or `Unverifiable`, whose `Display` output is `interior`, `on-geometry`, `off-geometry` and `unverifiable`.
+
+`Interior` and `OnGeometry` are passes, `OffGeometry` is the only failure, and `Unverifiable` means there was no point to check or no geometry to check it against. `InteriorPointVerification::is_verified` collapses the four to a `bool`.
+
+```rust
+use geo_types::{polygon, Geometry};
+use interior_point::{interior_point, verify_interior_point};
+
+let geometry: Geometry<f64> = polygon![
+    (x: 0.0, y: 0.0),
+    (x: 10.0, y: 0.0),
+    (x: 10.0, y: 10.0),
+    (x: 0.0, y: 10.0),
+    (x: 0.0, y: 0.0),
+]
+.into();
+
+let pt = interior_point(&geometry);
+assert!(verify_interior_point(pt, Some(&geometry)).is_verified());
+```
+
+This verifies the crate's own output. It is not an OGC geometry validity check: an invalid geometry can still yield a point that verifies.
+
+`interior_point`, `verify_interior_point` and `InteriorPointVerification` are the crate's whole public surface.
+
 ## CLI
 
 This crate also bundles an `interior-point` command-line binary, behind a `cli` feature that is
@@ -56,6 +83,10 @@ cargo install interior-point --features cli
 ```
 
 See the [CLI page](https://sanak.github.io/interior-point/cli) for the flags and examples.
+
+Pass `--verify` to check each result against its input geometry: the command writes a summary and
+one line per failing record to stderr, leaves stdout byte-for-byte unchanged, and exits 2 when any
+record fails.
 
 ## License
 
