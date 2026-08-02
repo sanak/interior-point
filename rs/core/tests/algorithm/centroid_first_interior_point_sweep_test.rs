@@ -1,7 +1,7 @@
 //! Sweeps every upstream fixture through `centroid_first_interior_point` and
-//! asserts three things per geometry: the result verifies, it is one of the two
-//! points it is allowed to be, and its verification outcome is the same as the
-//! outcome of the point `interior_point` would have returned.
+//! asserts two things per geometry: the result verifies, and its verification
+//! outcome is the same as the outcome of the point `interior_point` would have
+//! returned.
 //!
 //! The last of those is the real invariant. Swapping the function changes which
 //! point comes back for 199 of these geometries and changes the verdict on none
