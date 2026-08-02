@@ -23,6 +23,7 @@ describe("args", () => {
       input: undefined,
       format: "geojson",
       output: undefined,
+      centroidFirst: false,
       quiet: false,
       verify: false,
       help: false,
@@ -60,6 +61,21 @@ describe("args", () => {
     assert.equal(options.quiet, true);
   });
 
+  it("sets centroidFirst from -c and from --centroid-first", () => {
+    assert.equal(parseCliArgs(["-c"]).centroidFirst, true);
+    assert.equal(parseCliArgs(["--centroid-first"]).centroidFirst, true);
+  });
+
+  it("lists --centroid-first between --output and --quiet in the help text", () => {
+    const lines = HELP_TEXT.split("\n");
+    const output = lines.findIndex((line) => line.includes("--output"));
+    const centroidFirst = lines.findIndex((line) => line.includes("--centroid-first"));
+    const quiet = lines.findIndex((line) => line.includes("--quiet"));
+    assert.equal(centroidFirst, output + 1);
+    assert.equal(quiet, centroidFirst + 1);
+    assert.equal(lines[centroidFirst], "  -c, --centroid-first      Prefer the centroid when it lies inside.");
+  });
+
   it("sets verify from -v and from --verify", () => {
     assert.equal(parseCliArgs(["-v"]).verify, true);
     assert.equal(parseCliArgs(["--verify"]).verify, true);
@@ -76,7 +92,7 @@ describe("args", () => {
   });
 
   it("help text names every long flag", () => {
-    for (const flag of ["--input", "--format", "--output", "--quiet", "--verify", "--help"]) {
+    for (const flag of ["--input", "--format", "--output", "--centroid-first", "--quiet", "--verify", "--help"]) {
       assert.ok(HELP_TEXT.includes(flag), flag);
     }
   });
