@@ -34,9 +34,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `unverifiable`; the first two are passes and the last means there was no point
   to check or no geometry to check it against.
   `InteriorPointVerification::is_verified` collapses them to a `bool`. This
-  verifies the crate's output and is not an OGC geometry validity check. The
-  crate's public surface is now `interior_point`, `verify_interior_point` and
-  `InteriorPointVerification`.
+  verifies the crate's output and is not an OGC geometry validity check. With
+  the default features, the crate's public surface is now `interior_point`,
+  `verify_interior_point` and `InteriorPointVerification`.
 - `interior-point --verify` (`-v`), behind the `cli` feature, runs that check
   over every record. stdout is byte-for-byte identical to the same run without
   the flag; a summary line and one line per failing record go to stderr, and the
