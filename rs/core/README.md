@@ -51,23 +51,6 @@ Checks a point against the geometry it was computed from, through a point-in-pol
 
 `Interior` and `OnGeometry` are passes, `OffGeometry` is the only failure, and `Unverifiable` means there was no point to check or no geometry to check it against. `InteriorPointVerification::is_verified` collapses the four to a `bool`.
 
-```rust
-use geo_types::{polygon, Geometry};
-use interior_point::{interior_point, verify_interior_point};
-
-let geometry: Geometry<f64> = polygon![
-    (x: 0.0, y: 0.0),
-    (x: 10.0, y: 0.0),
-    (x: 10.0, y: 10.0),
-    (x: 0.0, y: 10.0),
-    (x: 0.0, y: 0.0),
-]
-.into();
-
-let pt = interior_point(&geometry);
-assert!(verify_interior_point(pt, Some(&geometry)).is_verified());
-```
-
 This verifies the crate's own output. It is not an OGC geometry validity check: an invalid geometry can still yield a point that verifies.
 
 With the default features, `interior_point`, `verify_interior_point` and `InteriorPointVerification` are the crate's whole public surface.

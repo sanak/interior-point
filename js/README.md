@@ -60,13 +60,6 @@ This verifies the library's own output. It is not an OGC geometry validity check
 
 `true` for `Interior` and `OnGeometry`, `false` for `OffGeometry` and `Unverifiable`.
 
-```typescript
-import { interiorPoint, isVerified, verifyInteriorPoint } from "interior-point";
-
-isVerified(verifyInteriorPoint(interiorPoint(polygon), polygon));
-// => true
-```
-
 The bundled `interior-point` command runs the same check over every record when given `--verify`.
 
 ## License

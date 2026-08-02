@@ -20,19 +20,12 @@ An interior point is guaranteed to lie inside the geometry (for polygons) or on 
 
 ## Verification
 
-Both libraries also export a verification function — `verifyInteriorPoint` in TypeScript,
-`verify_interior_point` in Rust — that checks a computed point against the geometry it came from,
-through a point-in-polygon locator that shares no code with the algorithm that produced the point.
-It reports one of four outcomes: `interior`, `on-geometry`, `off-geometry` and `unverifiable`. The
-first two are passes, the third is the only failure, and the fourth means there was no point to
-check or no geometry to check it against.
+Both libraries also export a verification function — `verifyInteriorPoint` in TypeScript, `verify_interior_point` in Rust — that checks a computed point against the geometry it came from, through a point-in-polygon locator that shares no code with the algorithm that produced the point.
 
-The bundled `interior-point` command exposes the same check as `--verify`, which writes a summary
-and one line per failing record to stderr, leaves stdout byte-for-byte unchanged, and exits 2 when
-any record fails.
+- **Outcomes**: `interior` and `on-geometry` are passes, `off-geometry` is the only failure, `unverifiable` means there was no point to check or no geometry to check it against
+- **CLI**: the bundled `interior-point` command exposes the same check as `--verify`, which writes a summary and one line per failing record to stderr, leaves stdout byte-for-byte unchanged, and exits 2 when any record fails
 
-This verifies the libraries' own output. It is not an OGC geometry validity check: an invalid
-geometry can still yield a point that verifies.
+This verifies the libraries' own output. It is not an OGC geometry validity check: an invalid geometry can still yield a point that verifies.
 
 ## Documentation
 
