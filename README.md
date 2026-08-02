@@ -18,6 +18,15 @@ An interior point is guaranteed to lie inside the geometry (for polygons) or on 
 - **Points (0D)**: Point nearest to centroid
 - **GeometryCollections**: Uses the highest-dimension non-empty component
 
+## Centroid-first points
+
+Both libraries also export a second entry point — `centroidFirstInteriorPoint` in TypeScript, `centroid_first_interior_point` in Rust — that computes the geometry's centroid and returns it when it lies strictly inside, falling back to the algorithm above when it does not. A representative point is more useful when it is the centroid, because the fallback returns a point that depends on how the algorithm is implemented.
+
+- **Strictly inside**: a centroid exactly on the boundary is rejected, and lines and points delegate to the interior-point algorithm unchanged
+- **CLI**: the bundled `interior-point` command exposes it as `--centroid-first`, which leaves the output shape untouched and composes with every other flag
+
+Every path that does not accept the centroid ends in the interior-point algorithm, so degenerate input behaves exactly as it does without it.
+
 ## Verification
 
 Both libraries also export a verification function — `verifyInteriorPoint` in TypeScript, `verify_interior_point` in Rust — that checks a computed point against the geometry it came from, through a point-in-polygon locator that shares no code with the algorithm that produced the point.

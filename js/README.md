@@ -48,6 +48,14 @@ Returns a `[x, y]` position guaranteed to lie inside the geometry (for polygons)
 - `Point`, `MultiPoint` — point nearest to centroid
 - `GeometryCollection` — uses highest-dimension non-empty component
 
+### `centroidFirstInteriorPoint(geometry: Geometry | null): Coordinate | null`
+
+Computes the geometry's centroid and returns it when it lies strictly inside the geometry, falling back to `interiorPoint` when it does not. A representative point is more useful when it is the centroid, because the fallback returns a point that depends on how the algorithm is implemented.
+
+Strictly inside means the interior and nothing else: a centroid exactly on the boundary is rejected. `LineString`, `MultiLineString`, `Point` and `MultiPoint` delegate to `interiorPoint` unchanged, and an empty or `null` geometry returns `null`.
+
+The return value is the point alone — which of the two produced it is not reported. The bundled `interior-point` command applies the same entry point to every record when given `--centroid-first`.
+
 ### `verifyInteriorPoint(point: Coordinate | null, geometry: Geometry | null): InteriorPointVerification`
 
 Checks a point against the geometry it was computed from, through a point-in-polygon locator that shares no code with the algorithm that produced the point. Returns one of `Interior`, `OnGeometry`, `OffGeometry` or `Unverifiable`, whose values are the strings `"interior"`, `"on-geometry"`, `"off-geometry"` and `"unverifiable"`.
