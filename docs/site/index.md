@@ -22,7 +22,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-interior-point = "0.1"
+interior-point = "0.3"
 geo-types = "0.7"
 ```
 

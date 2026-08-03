@@ -3,7 +3,7 @@ members = ["core", "wasm"]
 resolver = "2"
 
 [workspace.package]
-version = "0.2.0"
+version = "0.3.0"
 license = "MIT"
 authors = ["Ko Nagase"]
 repository = "https://github.com/sanak/interior-point"
