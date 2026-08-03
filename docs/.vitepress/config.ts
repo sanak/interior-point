@@ -57,6 +57,16 @@ export default defineConfig({
           { text: "Rust", link: "/api/rust" },
         ],
       },
+      {
+        text: "Links",
+        items: [
+          { text: "npm", link: "https://www.npmjs.com/package/interior-point" },
+          { text: "crates.io", link: "https://crates.io/crates/interior-point" },
+          { text: "docs.rs", link: "https://docs.rs/interior-point" },
+          { text: "CHANGELOG (TypeScript)", link: "https://github.com/sanak/interior-point/blob/main/js/CHANGELOG.md" },
+          { text: "CHANGELOG (Rust)", link: "https://github.com/sanak/interior-point/blob/main/rs/CHANGELOG.md" },
+        ],
+      },
     ],
     sidebar: [
       { text: "Getting Started", link: "/guide" },
@@ -69,6 +79,7 @@ export default defineConfig({
         ],
       },
     ],
+    search: { provider: "local" },
     socialLinks: [{ icon: "github", link: "https://github.com/sanak/interior-point" }],
   },
 });
