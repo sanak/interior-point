@@ -89,37 +89,9 @@ enforce that, so it is recorded here. Rust has the same two roots — the librar
 `interior-point` binary — and its CLI modules hang off a `#[cfg(feature = "cli")] pub mod cli`, so
 they are reachable whenever the feature is on and compiled out entirely when it is not.
 
-This stack replaced two third-party point-in-polygon dependencies
-(`point-in-polygon-hao` in TS, `geo`'s `Contains` in Rust). The evidence for that
-removal — 263,944 probes over all 8,397 rings of `world.wkt` against real JTS 1.19.0,
-0 mismatches for both ports and for `geo::Contains`, 2 mismatches for
-`point-in-polygon-hao` traced to an inexact IEEE 754 subtraction in its translated
-`orient2d` call — lives as a comment in both world tests
+This stack replaced two third-party point-in-polygon dependencies (`point-in-polygon-hao` in TS,
+`geo`'s `Contains` in Rust); the measured evidence lives as comments in both world tests
 (`js/test/algorithm/InteriorPointWorldTest.ts`, `rs/core/src/test/algorithm/interior_point_world_test.rs`).
-
-Because the Rust locator is `pub(crate)`, an integration test still cannot see it: such a test links
-against the crate from outside and reaches only the four published items. The world test therefore
-stays at `rs/core/src/test/algorithm/interior_point_world_test.rs` as a `#[cfg(test)] mod`, recorded
-with `@jts-deviate`, the same arrangement `rs/core/src/test/algorithm/centroid_test.rs` uses. The
-TypeScript world test stays in `js/test/`, since TypeScript tests can import unexported `js/src`
-modules directly.
-
-Every one is reachable from the crate root, so `rs/core/src` carries no file-level
-`#![allow(dead_code)]`. The eight that remain are per-item, and un-gating the locator
-stack changed which items they are rather than how many. Three are orientation
-constants — `CLOCKWISE`, `RIGHT` and `STRAIGHT` — which complete JTS's constant set and
-have no reader anywhere in the crate. `COLLINEAR` and `LEFT` no longer carry one: their
-reader `RayCrossingCounter::count_segment` is compiled into every build now that the
-stack is un-gated, so `COUNTERCLOCKWISE` is no longer the only constant a build without
-`--all-targets` reaches. Three are ported members with no caller inside the ported
-subset: `RayCrossingCounter::get_count` and `is_point_in_polygon`
-(`locate_point_in_ring_*` reads `get_location`), and `PointLocation::is_in_ring`
-(`SimplePointInAreaLocator` reads `locate_in_ring`). The last two are
-`SimplePointInAreaLocator`'s struct and its `impl` block, which nothing constructs —
-`verify_interior_point` and `centroid_first_interior_point` both reach the free `locate` directly — and which are
-ported
-because `pin.json` names the constructor and the instance method in `portedMembers`.
-Each attribute names its member and its reason.
 
 ### Adapter Boundary
 
