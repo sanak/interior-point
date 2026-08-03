@@ -368,10 +368,10 @@ describe("collectPrograms, against this repository", () => {
     assert.deepEqual(
       programs.map((p) => `${p.path} [${p.language}]`),
       [
-        "docs/site/api/index.md [typescript]",
-        "docs/site/api/index.md [rust]",
-        "docs/site/index.md [typescript]",
-        "docs/site/index.md [rust]",
+        "docs/site/api/rust.md [rust]",
+        "docs/site/api/typescript.md [typescript]",
+        "docs/site/guide.md [typescript]",
+        "docs/site/guide.md [rust]",
         "js/README.md [typescript]",
       ],
     );
