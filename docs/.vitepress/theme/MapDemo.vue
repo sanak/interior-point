@@ -110,15 +110,14 @@ onUnmounted(() => {
 
 <style scoped>
 .map-demo {
-  max-width: 1152px;
-  margin: 0 auto;
-  padding: 0 24px;
+  width: 100%;
+  height: 100%;
 }
 
 .map-container {
   width: 100%;
-  aspect-ratio: 2.5 / 1;
-  margin: 1.5rem 0;
+  height: 100%;
+  min-height: 220px;
   border-radius: 8px;
   overflow: hidden;
   border: 1px solid var(--vp-c-divider);
