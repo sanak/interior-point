@@ -6,8 +6,8 @@
     "prepare": "simple-git-hooks",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
-    "format": "prettier --write \"**/*.{ts,mts,mjs,json,md,yml,yaml,vue}\"",
-    "format:check": "prettier --check \"**/*.{ts,mts,mjs,json,md,yml,yaml,vue}\"",
+    "format": "prettier --write \"**/*.{ts,mts,mjs,json,md,yml,yaml,vue,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,mts,mjs,json,md,yml,yaml,vue,css}\"",
     "build:js": "pnpm --filter ./js run build",
     "typecheck:js": "pnpm --filter ./js run typecheck",
     "test:scripts": "node --test \"scripts/test/*.test.mjs\"",
@@ -30,7 +30,7 @@
       "eslint --fix",
       "prettier --write"
     ],
-    "*.{json,md,yml,yaml}": [
+    "*.{json,md,yml,yaml,css}": [
       "prettier --write"
     ],
     "*.vue": [
