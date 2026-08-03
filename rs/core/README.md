@@ -52,7 +52,7 @@ An empty geometry returns `None`.
 
 Those four items are the crate's whole public surface with the default features. Verification runs through a point-in-polygon locator that shares no code with the algorithm that produced the point, and checks this crate's own output rather than the input's OGC validity.
 
-Full signatures, the four verification outcomes and the reasoning behind each entry point: [API reference](https://sanak.github.io/interior-point/api/).
+Full signatures, the four verification outcomes and the reasoning behind each entry point: [API reference](https://sanak.github.io/interior-point/api/rust).
 
 ## CLI
 

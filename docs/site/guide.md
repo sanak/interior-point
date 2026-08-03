@@ -22,7 +22,7 @@ interior-point -c -f wkt -i "POLYGON ((0 0, 6 0, 6 2, 2 2, 2 6, 6 6, 6 8, 0 8, 0
 # POINT (1 4)
 ```
 
-Which of the two entry points to reach for, and what each returns for a degenerate geometry, is covered in the [API reference](/api/).
+Which of the two entry points to reach for, and what each returns for a degenerate geometry, is covered in the API reference ([TypeScript](/api/typescript) | [Rust](/api/rust)).
 
 ## Installation
 
@@ -120,7 +120,7 @@ assert!(verify_interior_point(result, Some(&geometry)).is_verified());
 
 :::
 
-This verifies the library's own output. It is not an OGC geometry validity check: an invalid geometry can still yield a point that verifies. See the [API reference](/api/) for the four outcomes it distinguishes, and the [CLI page](/cli) for the same check as a flag.
+This verifies the library's own output. It is not an OGC geometry validity check: an invalid geometry can still yield a point that verifies. See the API reference ([TypeScript](/api/typescript) | [Rust](/api/rust)) for the four outcomes it distinguishes, and the [CLI page](/cli) for the same check as a flag.
 
 ### Prefer the centroid
 

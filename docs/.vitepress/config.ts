@@ -50,17 +50,22 @@ export default defineConfig({
     nav: [
       { text: "Getting Started", link: "/guide" },
       { text: "CLI", link: "/cli" },
-      { text: "API Reference", link: "/api/" },
+      {
+        text: "API Reference",
+        items: [
+          { text: "TypeScript", link: "/api/typescript" },
+          { text: "Rust", link: "/api/rust" },
+        ],
+      },
     ],
     sidebar: [
       { text: "Getting Started", link: "/guide" },
       { text: "CLI", link: "/cli" },
       {
         text: "API Reference",
-        link: "/api/",
         items: [
-          { text: "TypeScript", link: "/api/#typescript" },
-          { text: "Rust", link: "/api/#rust" },
+          { text: "TypeScript", link: "/api/typescript" },
+          { text: "Rust", link: "/api/rust" },
         ],
       },
     ],

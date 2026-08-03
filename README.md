@@ -44,7 +44,7 @@ Verification is a check on this port's own output, not an OGC geometry validity 
 Full documentation: https://sanak.github.io/interior-point/
 
 - [CLI](https://sanak.github.io/interior-point/cli) — installing the bundled `interior-point` command, its flags and its exit codes
-- [API reference](https://sanak.github.io/interior-point/api/) — every entry point in both languages, with the reasoning behind each
+- API reference — every entry point, with the reasoning behind each: [TypeScript](https://sanak.github.io/interior-point/api/typescript), [Rust](https://sanak.github.io/interior-point/api/rust)
 
 ## License
 

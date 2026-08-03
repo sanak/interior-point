@@ -48,7 +48,7 @@ Supported geometry types are `Polygon`, `MultiPolygon`, `LineString`, `MultiLine
 
 `Coordinate` is the package's re-exported alias of GeoJSON's `Position`. Verification runs through a point-in-polygon locator that shares no code with the algorithm that produced the point, and checks this library's own output rather than the input's OGC validity.
 
-Full signatures, the four verification outcomes and the reasoning behind each entry point: [API reference](https://sanak.github.io/interior-point/api/).
+Full signatures, the four verification outcomes and the reasoning behind each entry point: [API reference](https://sanak.github.io/interior-point/api/typescript).
 
 ## CLI
 
