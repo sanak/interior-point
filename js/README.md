@@ -70,6 +70,22 @@ This verifies the library's own output. It is not an OGC geometry validity check
 
 The bundled `interior-point` command runs the same check over every record when given `--verify`.
 
+## CLI
+
+The package also installs an `interior-point` command:
+
+```bash
+npm install -g interior-point
+interior-point -i "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))"
+# => {"type":"Point","coordinates":[5,5]}
+```
+
+It reads WKT or GeoJSON — as a literal, a file, or on stdin — and writes GeoJSON by default or one WKT geometry per line. `--verify` checks each result against its input geometry, and `--centroid-first` returns the centroid when it lies strictly inside. See the [CLI page](https://sanak.github.io/interior-point/cli) for every flag, the output shapes and the exit codes.
+
+## Documentation
+
+Full documentation: https://sanak.github.io/interior-point/
+
 ## License
 
 [MIT](./LICENSE)

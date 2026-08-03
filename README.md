@@ -6,10 +6,10 @@ An interior point is guaranteed to lie inside the geometry (for polygons) or on 
 
 ## Packages
 
-| Package                 | Language   | Registry                                             |
-| ----------------------- | ---------- | ---------------------------------------------------- |
-| [interior-point](./js/) | TypeScript | [npm](https://www.npmjs.com/package/interior-point)  |
-| [interior-point](./rs/) | Rust       | [crates.io](https://crates.io/crates/interior-point) |
+| Package                      | Language   | Registry                                             |
+| ---------------------------- | ---------- | ---------------------------------------------------- |
+| [interior-point](./js/)      | TypeScript | [npm](https://www.npmjs.com/package/interior-point)  |
+| [interior-point](./rs/core/) | Rust       | [crates.io](https://crates.io/crates/interior-point) |
 
 ## Algorithm
 
@@ -39,6 +39,9 @@ This verifies the libraries' own output. It is not an OGC geometry validity chec
 ## Documentation
 
 Full documentation: https://sanak.github.io/interior-point/
+
+- [CLI](https://sanak.github.io/interior-point/cli) — installing the bundled `interior-point` command, its flags and its exit codes
+- [API reference](https://sanak.github.io/interior-point/api/) — every entry point in both languages
 
 ## License
 

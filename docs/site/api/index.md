@@ -178,14 +178,14 @@ let poly = Polygon::new(
     vec![],
 );
 let result = interior_point(&poly.into());
-// => Some(Coord { x: 5.0, y: 5.0 })
+// => Some(Coord { x: 1.0, y: 5.0 })
 ```
 
 Returns `None` for empty geometries:
 
 ```rust
-use geo_types::GeometryCollection;
-let empty = GeometryCollection::<f64>(vec![]).into();
+use geo_types::{Geometry, GeometryCollection};
+let empty = Geometry::GeometryCollection(GeometryCollection::<f64>(vec![]));
 assert_eq!(interior_point::interior_point(&empty), None);
 ```
 

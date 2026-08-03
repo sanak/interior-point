@@ -82,8 +82,8 @@ console.log(centroidFirstInteriorPoint(polygon));
 ### Rust
 
 ```rust
+use geo_types::{Geometry, LineString, Polygon};
 use interior_point::interior_point;
-use geo_types::{Polygon, LineString};
 
 let poly = Polygon::new(
     LineString::from(vec![
@@ -97,19 +97,17 @@ let poly = Polygon::new(
     ]),
     vec![],
 );
-let result = interior_point(&poly.into());
+let geometry: Geometry<f64> = poly.into();
+let result = interior_point(&geometry);
 // => Some(Coord { x: 1.0, y: 5.0 })
 ```
 
-Check that result against the geometry it came from, binding the geometry first so the same value reaches both calls:
+Check that result against the geometry it came from — the `geometry` binding above reaches both calls:
 
 ```rust
-use geo_types::Geometry;
-use interior_point::{interior_point, verify_interior_point};
+use interior_point::verify_interior_point;
 
-let geometry: Geometry<f64> = poly.into();
-let point = interior_point(&geometry);
-assert!(verify_interior_point(point, Some(&geometry)).is_verified());
+assert!(verify_interior_point(result, Some(&geometry)).is_verified());
 ```
 
 This verifies the library's own output. It is not an OGC geometry validity check: an invalid geometry can still yield a point that verifies. See the [API reference](/api/) for the four outcomes it distinguishes, and the [CLI page](/cli) for the same check as a flag.
