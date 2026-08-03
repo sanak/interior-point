@@ -38,6 +38,7 @@ js/LICENSE_EDLv1.txt
 .claude/
 !.claude/skills/
 tmp/
+.playwright-mcp/
 
 # superpowers scratch workspace — machine-local, never committed
 docs/superpowers/
