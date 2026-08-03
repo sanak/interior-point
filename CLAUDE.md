@@ -48,6 +48,10 @@ and the script rejects a block that breaks either:
 2. Every block of one language in one file is concatenated, in order, into a single program. A
    later block may go on using a binding an earlier one introduced, and must not redeclare it.
 
+An info string may carry a VitePress code-group tab title after the language — ` ```typescript [TypeScript] `.
+Only the first word is read. The title is mandatory inside a `::: code-group`, since VitePress generates no
+tab without one and drops the block from the rendered page.
+
 The TypeScript half runs under tsx against `js/src`, so it catches wrong values and runtime
 errors but not type errors; the Rust half becomes a real crate under `rs/target/docs-examples`
 and goes through `cargo`, so it catches both. `rs/core/README.md` is exempt because

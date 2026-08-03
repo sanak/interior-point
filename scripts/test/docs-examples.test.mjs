@@ -62,6 +62,30 @@ describe("extractBlocks", () => {
     assert.equal(blocks.length, 1);
     assert.deepEqual(blocks[0].lines, [{ text: "a;", line: 5 }]);
   });
+
+  it("accepts a fence whose info string carries a code-group tab title", () => {
+    const blocks = extractBlocks(
+      [
+        "::: code-group",
+        "",
+        "```typescript [TypeScript]",
+        "a;",
+        "```",
+        "",
+        "```rust [Rust]",
+        "let b = 1;",
+        "```",
+        "",
+        ":::",
+      ].join("\n"),
+    );
+    assert.deepEqual(
+      blocks.map((b) => b.language),
+      ["typescript", "rust"],
+    );
+    assert.deepEqual(blocks[0].lines, [{ text: "a;", line: 4 }]);
+    assert.deepEqual(blocks[1].lines, [{ text: "let b = 1;", line: 8 }]);
+  });
 });
 
 describe("splitComment", () => {

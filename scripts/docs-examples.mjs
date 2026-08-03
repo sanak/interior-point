@@ -71,7 +71,11 @@ export function extractBlocks(markdown) {
   const blocks = [];
   let open = null;
   lines.forEach((text, index) => {
-    const fence = /^```(\S*)\s*$/.exec(text);
+    // The info string may carry more than the language: VitePress requires a `[Title]` on every
+    // fence inside a `::: code-group`, or the tab is never generated and the block does not render.
+    // Only the first word is read; the rest is display metadata. A closing fence still yields `""`,
+    // so the open/close pairing below is unaffected.
+    const fence = /^```(\S*)(\s.*)?$/.exec(text);
     if (!fence) {
       if (open) open.lines.push({ text, line: index + 1 });
       return;
