@@ -1,7 +1,7 @@
-//! JTS InteriorPoint algorithm ported to Rust.
-//!
-//! Computes an interior point (representative point) of a geometry.
-//! The point is guaranteed to lie inside the geometry for area geometries.
+// The README is the crate's documentation: including it here puts one text on
+// docs.rs and in the repository, and turns every Rust block it carries into a
+// doctest, so an example that stops compiling fails `cargo test`.
+#![doc = include_str!("../README.md")]
 
 mod algorithm;
 mod centroid_first_interior_point;
