@@ -33,6 +33,9 @@
     "*.{json,md,yml,yaml}": [
       "prettier --write"
     ],
+    "*.vue": [
+      "prettier --write"
+    ],
     "*.rs": [
       "rustfmt"
     ]

@@ -15,7 +15,7 @@ hero:
 
 features:
   - title: Always lands inside the shape
-    details: A polygon's centroid can fall outside the polygon entirely, as it does for a C- or V-shaped one. The point returned here is inside the geometry whatever its shape.
+    details: A polygon's centroid can fall outside the polygon entirely, as it does for a C-shaped one. The point returned here is inside the geometry whatever its shape.
   - title: A faithful port of JTS
     details: Every ported member carries an anchor back to the JTS source it came from, and a scheduled job checks those anchors against upstream for drift.
   - title: The same answer in both languages
