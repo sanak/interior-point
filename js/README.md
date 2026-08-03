@@ -35,40 +35,20 @@ console.log(point);
 // => [1, 5]
 ```
 
+Supported geometry types are `Polygon`, `MultiPolygon`, `LineString`, `MultiLineString`, `Point`, `MultiPoint` and `GeometryCollection`. An empty geometry returns `null`.
+
 ## API
 
-### `interiorPoint(geometry: Geometry | null): Position | null`
+| Export                       | Signature                                                                              | Returns                                                                                    |
+| ---------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `interiorPoint`              | `(geometry: Geometry \| null) => Coordinate \| null`                                   | a point inside the geometry, or on it for lines and points                                 |
+| `centroidFirstInteriorPoint` | `(geometry: Geometry \| null) => Coordinate \| null`                                   | the geometry's centroid when it lies strictly inside, and `interiorPoint` when it does not |
+| `verifyInteriorPoint`        | `(point: Coordinate \| null, geometry: Geometry \| null) => InteriorPointVerification` | one of `"interior"`, `"on-geometry"`, `"off-geometry"`, `"unverifiable"`                   |
+| `isVerified`                 | `(verification: InteriorPointVerification) => boolean`                                 | `true` for `Interior` and `OnGeometry`                                                     |
 
-Returns a `[x, y]` position guaranteed to lie inside the geometry (for polygons) or on the geometry (for lines/points). Returns `null` for empty geometries.
+`Coordinate` is the package's re-exported alias of GeoJSON's `Position`. Verification runs through a point-in-polygon locator that shares no code with the algorithm that produced the point, and checks this library's own output rather than the input's OGC validity.
 
-**Supported geometry types:**
-
-- `Polygon`, `MultiPolygon` — scanline interior point
-- `LineString`, `MultiLineString` — vertex nearest to centroid
-- `Point`, `MultiPoint` — point nearest to centroid
-- `GeometryCollection` — uses highest-dimension non-empty component
-
-### `centroidFirstInteriorPoint(geometry: Geometry | null): Coordinate | null`
-
-Computes the geometry's centroid and returns it when it lies strictly inside the geometry, falling back to `interiorPoint` when it does not. A representative point is more useful when it is the centroid, because the fallback returns a point that depends on how the algorithm is implemented.
-
-Strictly inside means the interior and nothing else: a centroid exactly on the boundary is rejected. `LineString`, `MultiLineString`, `Point` and `MultiPoint` delegate to `interiorPoint` unchanged, and an empty or `null` geometry returns `null`.
-
-The return value is the point alone — which of the two produced it is not reported. The bundled `interior-point` command applies the same entry point to every record when given `--centroid-first`.
-
-### `verifyInteriorPoint(point: Coordinate | null, geometry: Geometry | null): InteriorPointVerification`
-
-Checks a point against the geometry it was computed from, through a point-in-polygon locator that shares no code with the algorithm that produced the point. Returns one of `Interior`, `OnGeometry`, `OffGeometry` or `Unverifiable`, whose values are the strings `"interior"`, `"on-geometry"`, `"off-geometry"` and `"unverifiable"`.
-
-`Interior` and `OnGeometry` are passes, `OffGeometry` is the only failure, and `Unverifiable` means there was no point to check or no geometry to check it against. `Coordinate` is the package's re-exported alias of GeoJSON's `Position`.
-
-This verifies the library's own output. It is not an OGC geometry validity check: an invalid geometry can still yield a point that verifies.
-
-### `isVerified(verification: InteriorPointVerification): boolean`
-
-`true` for `Interior` and `OnGeometry`, `false` for `OffGeometry` and `Unverifiable`.
-
-The bundled `interior-point` command runs the same check over every record when given `--verify`.
+Full signatures, the four verification outcomes and the reasoning behind each entry point: [API reference](https://sanak.github.io/interior-point/api/).
 
 ## CLI
 
@@ -80,7 +60,7 @@ interior-point -i "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))"
 # => {"type":"Point","coordinates":[5,5]}
 ```
 
-It reads WKT or GeoJSON — as a literal, a file, or on stdin — and writes GeoJSON by default or one WKT geometry per line. `--verify` checks each result against its input geometry, and `--centroid-first` returns the centroid when it lies strictly inside. See the [CLI page](https://sanak.github.io/interior-point/cli) for every flag, the output shapes and the exit codes.
+It reads WKT or GeoJSON — as a literal, a file, or on stdin — and writes GeoJSON by default or one WKT geometry per line. See the [CLI page](https://sanak.github.io/interior-point/cli) for every flag, the output shapes and the exit codes.
 
 ## Documentation
 

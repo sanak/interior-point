@@ -39,29 +39,20 @@ let pt = interior_point(&Geometry::Polygon(poly));
 assert!(pt.is_some());
 ```
 
+An empty geometry returns `None`.
+
 ## API
 
-### `interior_point(geometry: &Geometry<f64>) -> Option<Coord<f64>>`
+| Item                                     | Signature                                                                                    | Returns                                                                                     |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `interior_point`                         | `(geometry: &Geometry<f64>) -> Option<Coord<f64>>`                                           | a point inside area geometries, or on linear and point ones                                 |
+| `centroid_first_interior_point`          | `(geometry: &Geometry<f64>) -> Option<Coord<f64>>`                                           | the geometry's centroid when it lies strictly inside, and `interior_point` when it does not |
+| `verify_interior_point`                  | `(point: Option<Coord<f64>>, geometry: Option<&Geometry<f64>>) -> InteriorPointVerification` | `Interior`, `OnGeometry`, `OffGeometry` or `Unverifiable`                                   |
+| `InteriorPointVerification::is_verified` | `(&self) -> bool`                                                                            | `true` for `Interior` and `OnGeometry`                                                      |
 
-Returns a coordinate guaranteed to lie inside area geometries, or on linear/point geometries. Returns `None` for empty geometries.
+Those four items are the crate's whole public surface with the default features. Verification runs through a point-in-polygon locator that shares no code with the algorithm that produced the point, and checks this crate's own output rather than the input's OGC validity.
 
-### `centroid_first_interior_point(geometry: &Geometry<f64>) -> Option<Coord<f64>>`
-
-Computes the geometry's centroid and returns it when it lies strictly inside the geometry, falling back to `interior_point` when it does not. A representative point is more useful when it is the centroid, because the fallback returns a point that depends on how the algorithm is implemented.
-
-Strictly inside means the interior and nothing else: a centroid exactly on the boundary is rejected. Linear and point geometries delegate to `interior_point` unchanged, and an empty geometry returns `None`.
-
-The return value is the point alone — which of the two produced it is not reported.
-
-### `verify_interior_point(point: Option<Coord<f64>>, geometry: Option<&Geometry<f64>>) -> InteriorPointVerification`
-
-Checks a point against the geometry it was computed from, through a point-in-polygon locator that shares no code with the algorithm that produced the point. Returns one of `Interior`, `OnGeometry`, `OffGeometry` or `Unverifiable`, whose `Display` output is `interior`, `on-geometry`, `off-geometry` and `unverifiable`.
-
-`Interior` and `OnGeometry` are passes, `OffGeometry` is the only failure, and `Unverifiable` means there was no point to check or no geometry to check it against. `InteriorPointVerification::is_verified` collapses the four to a `bool`.
-
-This verifies the crate's own output. It is not an OGC geometry validity check: an invalid geometry can still yield a point that verifies.
-
-With the default features, `interior_point`, `centroid_first_interior_point`, `verify_interior_point` and `InteriorPointVerification` are the crate's whole public surface.
+Full signatures, the four verification outcomes and the reasoning behind each entry point: [API reference](https://sanak.github.io/interior-point/api/).
 
 ## CLI
 
@@ -73,15 +64,13 @@ with `--features cli`:
 cargo install interior-point --features cli
 ```
 
-See the [CLI page](https://sanak.github.io/interior-point/cli) for the flags and examples.
+It reads WKT or GeoJSON — as a literal, a file, or on stdin — and writes GeoJSON by default or one
+WKT geometry per line. See the [CLI page](https://sanak.github.io/interior-point/cli) for every
+flag, the output shapes and the exit codes.
 
-Pass `--verify` to check each result against its input geometry: the command writes a summary and
-one line per failing record to stderr, leaves stdout byte-for-byte unchanged, and exits 2 when any
-record fails.
+## Documentation
 
-Pass `--centroid-first` to return each geometry's centroid when it lies strictly inside it, falling
-back to the interior-point algorithm when it does not. The output shape is unchanged, so the flag
-composes with every other one.
+Full documentation: [sanak.github.io/interior-point](https://sanak.github.io/interior-point/)
 
 ## License
 

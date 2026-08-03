@@ -24,7 +24,7 @@ cargo install interior-point --features cli
 
 The Rust CLI sits behind a `cli` feature that is deliberately not in `default`, so adding the
 crate as a library dependency pulls none of the command-line dependencies. The `--features cli`
-flag is what turns the binary on.
+flag is what turns the binary on: `cargo install interior-point` on its own installs nothing.
 
 ## Usage
 
