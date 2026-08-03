@@ -48,30 +48,13 @@ export default defineConfig({
   ],
   themeConfig: {
     nav: [
-      { text: "Getting Started", link: "/" },
+      { text: "Getting Started", link: "/guide" },
       { text: "CLI", link: "/cli" },
       { text: "API Reference", link: "/api/" },
     ],
     sidebar: [
-      {
-        text: "Getting Started",
-        link: "/",
-        items: [
-          { text: "Installation", link: "/#installation" },
-          { text: "Usage", link: "/#usage" },
-        ],
-      },
-      {
-        text: "CLI",
-        link: "/cli",
-        items: [
-          { text: "Installation", link: "/cli#installation" },
-          { text: "Usage", link: "/cli#usage" },
-          { text: "Input", link: "/cli#input" },
-          { text: "Output", link: "/cli#output" },
-          { text: "Exit codes", link: "/cli#exit-codes" },
-        ],
-      },
+      { text: "Getting Started", link: "/guide" },
+      { text: "CLI", link: "/cli" },
       {
         text: "API Reference",
         link: "/api/",
