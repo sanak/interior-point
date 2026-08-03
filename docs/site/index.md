@@ -60,12 +60,11 @@ console.log(point);
 // => [1, 5]
 ```
 
-Check that result against the geometry it came from, through a point-in-polygon locator that shares no code with the algorithm above:
+Check that result against the geometry it came from, through a point-in-polygon locator that shares no code with the algorithm above — the `point` binding above reaches both calls:
 
 ```typescript
-import { interiorPoint, isVerified, verifyInteriorPoint } from "interior-point";
+import { isVerified, verifyInteriorPoint } from "interior-point";
 
-const point = interiorPoint(polygon);
 console.log(isVerified(verifyInteriorPoint(point, polygon)));
 // => true
 ```
@@ -75,8 +74,9 @@ Or ask for the centroid instead, falling back to the algorithm above only when t
 ```typescript
 import { centroidFirstInteriorPoint } from "interior-point";
 
+// This polygon's centroid [2, 3] sits exactly on an edge, so it is rejected.
 console.log(centroidFirstInteriorPoint(polygon));
-// => [1, 5], because this polygon's centroid [2, 3] sits exactly on an edge and is rejected
+// => [1, 5]
 ```
 
 ### Rust
@@ -117,8 +117,9 @@ Or ask for the centroid instead, falling back to the algorithm above only when t
 ```rust
 use interior_point::centroid_first_interior_point;
 
+// This polygon's centroid (2, 3) sits exactly on an edge, so it is rejected.
 let point = centroid_first_interior_point(&geometry);
-// => Some(Coord { x: 1.0, y: 5.0 }), because this polygon's centroid (2, 3) sits exactly on an edge
+// => Some(Coord { x: 1.0, y: 5.0 })
 ```
 
 <script setup>

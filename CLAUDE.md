@@ -34,6 +34,25 @@ sync workflow, `pin.json`/`portedMembers` semantics, and the vendored-test rules
 repository — a design doc, a numbered task, a numbered rule — and exits non-zero if it finds one;
 it runs in `ci.yml` beside `anchors` and is covered by `pnpm test:scripts`.
 
+### Documentation examples
+
+`pnpm test:docs` (`node scripts/docs-examples.mjs`) compiles and runs every `typescript` and
+`rust` block in the tracked Markdown and checks each `// =>` against what the code produces.
+`--only=ts` and `--only=rust` split it across the two CI jobs, which is why it uses nothing
+beyond node builtins, `git ls-files` and `cargo`. Two conventions make the translation possible,
+and the script rejects a block that breaks either:
+
+1. A `// =>` holds one value and nothing else — it becomes the expected side of an assertion, so
+   an explanation there would not parse. Put it in the prose or on its own comment line. A comma
+   outside every bracket is what gives prose away.
+2. Every block of one language in one file is concatenated, in order, into a single program. A
+   later block may go on using a binding an earlier one introduced, and must not redeclare it.
+
+The TypeScript half runs under tsx against `js/src`, so it catches wrong values and runtime
+errors but not type errors; the Rust half becomes a real crate under `rs/target/docs-examples`
+and goes through `cargo`, so it catches both. `rs/core/README.md` is exempt because
+`rs/core/src/lib.rs` pulls it in with `include_str!`, making it a doctest already.
+
 ### CLI
 
 `cargo test --workspace` alone does **not** exercise the Rust CLI: the `cli` feature is off by

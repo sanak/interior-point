@@ -73,7 +73,8 @@ const triangle = {
   ],
 };
 
-centroidFirstInteriorPoint(triangle); // => [2, 2], the centroid, which lies inside
+// The centroid lies inside this triangle, so it is the point returned.
+centroidFirstInteriorPoint(triangle); // => [2, 2]
 interiorPoint(triangle); // => [1.5, 3]
 ```
 

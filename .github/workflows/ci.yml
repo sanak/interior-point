@@ -34,6 +34,8 @@ jobs:
           test "$(npx --no-install interior-point -i 'POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))')" = '{"type":"Point","coordinates":[5,5]}'
           test "$(echo '{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,10],[0,10],[0,0]]]}' | npx --no-install interior-point -f wkt)" = 'POINT (5 5)'
           ! npx --no-install interior-point -i 'NOTAGEOM' 2>/dev/null
+      - name: Run the TypeScript examples in the documentation
+        run: node scripts/docs-examples.mjs --only=ts
       - name: Check JTS anchor integrity
         run: node scripts/jts-sync.mjs anchors
       - name: Check for out-of-repo citations
@@ -58,6 +60,10 @@ jobs:
           test "$(./target/debug/interior-point -i 'POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))')" = '{"type":"Point","coordinates":[5,5]}'
           test "$(echo '{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,10],[0,10],[0,0]]]}' | ./target/debug/interior-point -f wkt)" = 'POINT (5 5)'
           ! ./target/debug/interior-point -i 'NOTAGEOM' 2>/dev/null
+      # Only node builtins, `git ls-files` and `cargo` — the runner's own node is enough,
+      # so this job needs no pnpm install.
+      - name: Run the Rust examples in the documentation
+        run: node scripts/docs-examples.mjs --only=rust
 
   docs:
     name: Build Docs
