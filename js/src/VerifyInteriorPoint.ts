@@ -95,6 +95,12 @@ export function verifyInteriorPoint(point: Coordinate | null, geometry: Geometry
  * is not, and neither is `Unverifiable` — though only the first of those two is
  * a failure, which is the distinction the command-line exit code draws.
  *
+ * A free function, where Rust's counterpart is an inherent method on the enum.
+ * A TypeScript `enum` declaration holds members and nothing else, so there is
+ * nowhere on `InteriorPointVerification` for this to live, and the four values
+ * are the strings the command line prints, which fixes that representation.
+ * The difference in shape is a language constraint, not a difference in meaning.
+ *
  * @param v an outcome
  * @return true when the point lies on or in its geometry
  * @jts-adapter isVerified
