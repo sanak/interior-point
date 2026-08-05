@@ -1,0 +1,31 @@
+name: Test Rust
+
+on:
+  workflow_call:
+
+jobs:
+  test-rs:
+    name: Test Rust
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rs
+      - run: cd rs && cargo test --workspace --all-features
+      - run: cd rs && cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - run: cd rs && cargo fmt --all --check
+      - run: cd rs && cargo build --workspace --all-features
+      - name: Smoke-test the CLI binary
+        run: |
+          cd rs
+          test "$(./target/debug/interior-point -i 'POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))')" = '{"type":"Point","coordinates":[5,5]}'
+          test "$(echo '{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,10],[0,10],[0,0]]]}' | ./target/debug/interior-point -f wkt)" = 'POINT (5 5)'
+          ! ./target/debug/interior-point -i 'NOTAGEOM' 2>/dev/null
+      # Only node builtins, `git ls-files` and `cargo` — the runner's own node is enough,
+      # so this job needs no pnpm install.
+      - name: Run the Rust examples in the documentation
+        run: node scripts/docs-examples.mjs --only=rust

@@ -8,62 +8,10 @@ on:
 
 jobs:
   test-js:
-    name: Test TypeScript
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 11
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm format:check
-      - run: pnpm typecheck:js
-      - run: pnpm test:scripts
-      - run: pnpm test:js
-      - run: pnpm build:js
-      - name: Smoke-test the packed CLI via npx
-        run: |
-          cd js && pnpm pack --pack-destination "$RUNNER_TEMP" && cd ..
-          mkdir "$RUNNER_TEMP/cli-smoke" && cd "$RUNNER_TEMP/cli-smoke" && npm init -y
-          npm install --no-audit --no-fund "$RUNNER_TEMP"/interior-point-*.tgz
-          test "$(npx --no-install interior-point -i 'POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))')" = '{"type":"Point","coordinates":[5,5]}'
-          test "$(echo '{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,10],[0,10],[0,0]]]}' | npx --no-install interior-point -f wkt)" = 'POINT (5 5)'
-          ! npx --no-install interior-point -i 'NOTAGEOM' 2>/dev/null
-      - name: Run the TypeScript examples in the documentation
-        run: node scripts/docs-examples.mjs --only=ts
-      - name: Check JTS anchor integrity
-        run: node scripts/jts-sync.mjs anchors
-      - name: Check for out-of-repo citations
-        run: node scripts/jts-citations.mjs
+    uses: ./.github/workflows/test-js.yml
 
   test-rs:
-    name: Test Rust
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: rs
-      - run: cd rs && cargo test --workspace --all-features
-      - run: cd rs && cargo clippy --workspace --all-targets --all-features -- -D warnings
-      - run: cd rs && cargo fmt --all --check
-      - run: cd rs && cargo build --workspace --all-features
-      - name: Smoke-test the CLI binary
-        run: |
-          cd rs
-          test "$(./target/debug/interior-point -i 'POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))')" = '{"type":"Point","coordinates":[5,5]}'
-          test "$(echo '{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,10],[0,10],[0,0]]]}' | ./target/debug/interior-point -f wkt)" = 'POINT (5 5)'
-          ! ./target/debug/interior-point -i 'NOTAGEOM' 2>/dev/null
-      # Only node builtins, `git ls-files` and `cargo` — the runner's own node is enough,
-      # so this job needs no pnpm install.
-      - name: Run the Rust examples in the documentation
-        run: node scripts/docs-examples.mjs --only=rust
+    uses: ./.github/workflows/test-rs.yml
 
   docs:
     name: Build Docs
