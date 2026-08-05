@@ -7,7 +7,7 @@
   "author": "Ko Nagase",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sanak/interior-point.git",
+    "url": "git+https://github.com/sanak/interior-point.git",
     "directory": "js"
   },
   "homepage": "https://sanak.github.io/interior-point/",
