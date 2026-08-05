@@ -17,6 +17,7 @@ jobs:
     permissions:
       contents: write
       id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -64,6 +65,12 @@ jobs:
       - name: Pack the release asset
         working-directory: js
         run: npm pack --pack-destination "$RUNNER_TEMP"
+      # The published tarball carries npm's own sigstore provenance, but this is a
+      # second one packed after the fact. Attesting it is what gives the asset on
+      # the Release page an integrity path of its own, as the rs side already has.
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: ${{ runner.temp }}/interior-point-*.tgz
       - uses: softprops/action-gh-release@v3
         with:
           name: ${{ github.ref_name }}
