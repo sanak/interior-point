@@ -1,0 +1,73 @@
+name: Release npm
+
+on:
+  push:
+    tags:
+      - "js/v*"
+
+jobs:
+  test:
+    uses: ./.github/workflows/test-js.yml
+
+  publish:
+    name: Publish to npm
+    needs: test
+    runs-on: ubuntu-latest
+    environment: release-npm
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+      # No `cache:` here on purpose. A release resolves from the committed lockfile
+      # alone, with nothing carried in from an earlier run.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: "https://registry.npmjs.org"
+      - name: Use an npm new enough for trusted publishing
+        run: npm install -g npm@latest
+      - name: Check the tag against the package version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#js/v}"
+          PKG_VERSION="$(node -p "require('./js/package.json').version")"
+          echo "tag $TAG_VERSION / package.json $PKG_VERSION"
+          test "$TAG_VERSION" = "$PKG_VERSION"
+          echo "VERSION=$PKG_VERSION" >> "$GITHUB_ENV"
+      - name: Choose the dist-tag
+        run: |
+          case "$VERSION" in
+            *-*)
+              echo "NPM_TAG=next" >> "$GITHUB_ENV"
+              echo "PRERELEASE=true" >> "$GITHUB_ENV"
+              ;;
+            *)
+              echo "NPM_TAG=latest" >> "$GITHUB_ENV"
+              echo "PRERELEASE=false" >> "$GITHUB_ENV"
+              ;;
+          esac
+      # Ahead of the publish, not after it: a missing section must stop the run while
+      # stopping is still free. Nothing sent to a registry can be taken back.
+      - name: Read the release notes out of the changelog
+        run: node scripts/changelog-section.mjs js/CHANGELOG.md "$VERSION" > "$RUNNER_TEMP/notes.md"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:js
+      - name: Show what would be published
+        working-directory: js
+        run: npm publish --dry-run --tag "$NPM_TAG"
+      - name: Publish
+        working-directory: js
+        run: npm publish --tag "$NPM_TAG" --provenance
+      - name: Pack the release asset
+        working-directory: js
+        run: npm pack --pack-destination "$RUNNER_TEMP"
+      - uses: softprops/action-gh-release@v3
+        with:
+          name: ${{ github.ref_name }}
+          body_path: ${{ runner.temp }}/notes.md
+          files: ${{ runner.temp }}/interior-point-*.tgz
+          prerelease: ${{ env.PRERELEASE == 'true' }}
+          fail_on_unmatched_files: true
