@@ -32,7 +32,7 @@ sync workflow, `pin.json`/`portedMembers` semantics, and the vendored-test rules
 
 `node scripts/jts-citations.mjs` scans tracked files for comments citing something outside this
 repository — a design doc, a numbered task, a numbered rule — and exits non-zero if it finds one;
-it runs in `ci.yml` beside `anchors` and is covered by `pnpm test:scripts`.
+it runs in `test-js.yml` beside `anchors` and is covered by `pnpm test:scripts`.
 
 ### Documentation examples
 
@@ -62,7 +62,7 @@ and goes through `cargo`, so it catches both. `rs/core/README.md` is exempt beca
 `cargo test --workspace` alone does **not** exercise the Rust CLI: the `cli` feature is off by
 default, so the binary is not built and `tests/cli/` is not run. Pass `--all-features` to
 `cargo test`, `cargo clippy --all-targets` and `cargo build` — `--all-targets` does not imply it —
-which is what `ci.yml` and the root `test:rs` script do. `cargo fmt` walks the module tree rather
+which is what `test-rs.yml` and the root `test:rs` script do. `cargo fmt` walks the module tree rather
 than the feature graph and needs no flag.
 
 Run the binary from a checkout with `cargo run -p interior-point --features cli -- -i "POINT (1 2)"`,
