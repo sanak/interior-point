@@ -268,3 +268,4 @@ ESLint rule is enabled, so `pnpm typecheck:js` is the only command covering `js/
 
 - JTS source: `org.locationtech.jts.algorithm.InteriorPoint*` ([locationtech/jts](https://github.com/locationtech/jts))
 - Porting rules: [`docs/jts-porting-rules.md`](docs/jts-porting-rules.md) — the naming table, the adapter boundary, and the measured evidence behind them. Most comments across `js/src`, `rs/core/src` and `scripts/` refer to these rules by name; two are recorded there without one.
+- Releasing: [`docs/releasing.md`](docs/releasing.md) — what a `js/v*` or `rs/v*` tag sets off, what has to be true before pushing one, and the one-time trusted-publisher setup both registries need.
