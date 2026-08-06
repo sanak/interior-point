@@ -10,6 +10,10 @@ Port of JTS (Java Topology Suite) InteriorPoint algorithm to **TypeScript** and 
 
 - `js/` — TypeScript library (`interior-point`), GeoJSON-native; the library has no runtime
   dependencies, and the bundled CLI uses `betterknown`
+- `rs/` — Rust workspace, rooted at `rs/Cargo.toml`
+  - `rs/core/` — the published crate (`interior-point`), `geo-types`-native; that is its only
+    required dependency, and the `cli` feature adds the rest
+  - `rs/wasm/` — wasm-bindgen bindings (`interior-point-wasm`), `publish = false`
 - `docs/` — All project documentation. **Only `docs/site/` is published.**
   - `docs/site/` — VitePress source directory (`srcDir`), deployed to GitHub Pages (base: `/interior-point/`)
   - `docs/site/public/` — Static assets copied to the site root
