@@ -68,6 +68,20 @@ than the feature graph and needs no flag.
 Run the binary from a checkout with `cargo run -p interior-point --features cli -- -i "POINT (1 2)"`,
 and install it with `cargo install interior-point --features cli`.
 
+### WASM
+
+`rs/wasm` (`interior-point-wasm`) holds the wasm-bindgen bindings. It is `publish = false` and stays
+on edition 2021 while `rs/core` is on 2024. `cargo build --workspace` compiles it for the host, which
+is all CI checks; producing the artifact needs the target and `wasm-pack`:
+
+```bash
+rustup target add wasm32-unknown-unknown
+cd rs/wasm && wasm-pack build
+```
+
+It exports `interiorPoint` alone: `verify_interior_point` and `centroid_first_interior_point` have no
+bindings, and nothing in this repository consumes the build.
+
 ## Public API
 
 `Coordinate` is `js/src/GeometryAdapter.ts`'s alias of GeoJSON's `Position` and carries JTS's
