@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Re-running an existing run is not a way to retry the Pages deployment: every attempt uploads
+  # another artifact named `github-pages`, and `deploy-pages` refuses once more than one exists.
+  # A fresh run is the only retry, and this is how to get one without an empty commit.
+  workflow_dispatch:
 
 jobs:
   test-js:
