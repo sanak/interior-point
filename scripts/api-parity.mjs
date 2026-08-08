@@ -86,12 +86,7 @@ export function extractRustExports(source) {
  * The item a `#[wasm_bindgen]` attribute is applied to, skipping any further
  * attributes and any doc or line comment between the two.
  */
-const WASM_ITEM_RE = /^(?:\s*(?:#\[[^\]]*\]|\/\/[^\n]*))*\s*pub\s+(fn|struct|enum)\s+(\w+)/;
-
-/** wasm-bindgen's own snake_case-to-camelCase conversion for a function name. */
-function toCamelCase(name) {
-  return name.replace(/_+([a-zA-Z0-9])/g, (_, first) => first.toUpperCase());
-}
+const WASM_ITEM_RE = /^(?:\s*(?:#\[[^\]]*\]|\/\/[^\n]*))*\s*pub\s+(?:fn|struct|enum)\s+(\w+)/;
 
 /**
  * The JavaScript name wasm-bindgen publishes for each binding. `js_name` can sit
@@ -100,9 +95,11 @@ function toCamelCase(name) {
  * past that one attribute's closing `)]`.
  *
  * An attribute carrying no `js_name` — bare, or with arguments of another kind —
- * publishes the item that follows it just the same, under the name wasm-bindgen
- * derives from the Rust one: a function's snake_case becomes camelCase, while a
- * type keeps the name it was written with.
+ * publishes the item that follows it just the same, under the Rust name verbatim.
+ * wasm-bindgen renames nothing on its own: a function keeps its snake_case, so
+ * `pub fn boundary_point` reaches JavaScript as `boundary_point`, and a type keeps
+ * the name it was written with. `js_name` is the only thing that changes a name,
+ * which is why every binding in this repository carries one.
  */
 export function extractWasmExports(source) {
   const names = new Set();
@@ -113,7 +110,7 @@ export function extractWasmExports(source) {
       continue;
     }
     const item = source.slice(match.index + match[0].length).match(WASM_ITEM_RE);
-    if (item) names.add(item[1] === "fn" ? toCamelCase(item[2]) : item[2]);
+    if (item) names.add(item[1]);
   }
   return names;
 }

@@ -109,9 +109,16 @@ describe("extractWasmExports", () => {
     assert.ok(extractWasmExports(source).has("beforeArg"));
   });
 
-  it("camel-cases the name of a function bound by a bare attribute", () => {
+  it("keeps the Rust name of a function bound by a bare attribute", () => {
     const source = `/// Doc comment.\n#[wasm_bindgen]\npub fn boundary_point() {}\n`;
-    assert.deepEqual([...extractWasmExports(source)], ["boundaryPoint"]);
+    assert.deepEqual([...extractWasmExports(source)], ["boundary_point"]);
+  });
+
+  it("leaves every underscore in a bare-attribute function name alone", () => {
+    // wasm-bindgen renames nothing without `js_name`, so `a_b_c_d` reaches
+    // JavaScript spelled exactly that way.
+    const source = `#[wasm_bindgen]\npub fn a_b_c_d() {}\n\n#[wasm_bindgen]\npub fn _foo() {}\n`;
+    assert.deepEqual([...extractWasmExports(source)].sort(), ["_foo", "a_b_c_d"]);
   });
 
   it("keeps the name of a type bound by a bare attribute", () => {
@@ -121,7 +128,7 @@ describe("extractWasmExports", () => {
 
   it("reads the item name through an attribute holding other arguments", () => {
     const source = `#[wasm_bindgen(skip_typescript)]\npub fn hidden_from_dts() {}\n`;
-    assert.ok(extractWasmExports(source).has("hiddenFromDts"));
+    assert.ok(extractWasmExports(source).has("hidden_from_dts"));
   });
 
   it("ignores an attribute on an item that is not published", () => {
