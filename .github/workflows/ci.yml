@@ -17,10 +17,13 @@ jobs:
   test-rs:
     uses: ./.github/workflows/test-rs.yml
 
+  test-wasm:
+    uses: ./.github/workflows/test-wasm.yml
+
   docs:
     name: Build Docs
     runs-on: ubuntu-latest
-    needs: [test-js, test-rs]
+    needs: [test-js, test-rs, test-wasm]
     if: github.ref == 'refs/heads/main'
     permissions:
       pages: write

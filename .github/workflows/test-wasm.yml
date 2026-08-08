@@ -1,0 +1,51 @@
+name: Test WASM
+
+on:
+  workflow_call:
+
+jobs:
+  test-wasm:
+    name: Test WASM
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rs
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
+      # Two builds that fail for different reasons. This one proves the crate compiles
+      # for the target at all; the wasm-pack runs below prove wasm-bindgen can generate
+      # its JavaScript glue, which can break while this still succeeds.
+      - run: cd rs && cargo build -p interior-point-wasm --target wasm32-unknown-unknown
+      # The command CLAUDE.md documents, on wasm-pack's default bundler target.
+      - run: cd rs/wasm && wasm-pack build
+      - run: cd rs/wasm && wasm-pack build --target nodejs --out-dir pkg-node
+      # The nodejs target emits CommonJS, so this is a .cjs file and uses require.
+      # Calling every binding is what catches an export that was renamed or never
+      # written; the verify assertion also confirms the four verdict strings reach
+      # JavaScript as strings, which is why no Verification type is bound.
+      - name: Smoke-test the generated bindings
+        working-directory: rs/wasm
+        run: |
+          cat > smoke.cjs <<'EOF'
+          const assert = require("node:assert/strict");
+          const {
+            interiorPoint,
+            centroidFirstInteriorPoint,
+            verifyInteriorPoint,
+          } = require("./pkg-node/interior_point_wasm.js");
+
+          const square = { type: "Polygon", coordinates: [[[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]]] };
+          assert.deepEqual(interiorPoint(square), [5, 5]);
+          assert.deepEqual(centroidFirstInteriorPoint(square), [5, 5]);
+          assert.equal(verifyInteriorPoint([5, 5], square), "interior");
+          console.log("wasm smoke ok");
+          EOF
+          node smoke.cjs
