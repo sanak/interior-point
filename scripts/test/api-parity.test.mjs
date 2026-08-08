@@ -50,6 +50,24 @@ describe("extractTsExports", () => {
     assert.ok(names.has("outer"));
     assert.ok(!names.has("inner"));
   });
+
+  it("reads a function declared and exported in the file itself", () => {
+    assert.ok(extractTsExports(`export function helper() {}\n`).has("helper"));
+  });
+
+  it("reads a locally declared type alias, class and constant", () => {
+    const source = `export type Verdict = string;\nexport class Box {}\nexport const LIMIT = 1;\n`;
+    const names = extractTsExports(source);
+    assert.deepEqual([...names].sort(), ["Box", "LIMIT", "Verdict"]);
+  });
+
+  it("refuses a star re-export it cannot enumerate", () => {
+    assert.throws(() => extractTsExports(`export * from "./Everything.ts";\n`), /cannot be read statically/);
+  });
+
+  it("takes the namespace name of an aliased star re-export", () => {
+    assert.ok(extractTsExports(`export * as adapter from "./GeometryAdapter.ts";\n`).has("adapter"));
+  });
 });
 
 describe("extractRustExports", () => {
@@ -89,6 +107,25 @@ describe("extractWasmExports", () => {
   it("finds js_name that precedes another argument", () => {
     const source = `#[wasm_bindgen(js_name = "beforeArg", skip_typescript)]\npub fn bar() {}\n`;
     assert.ok(extractWasmExports(source).has("beforeArg"));
+  });
+
+  it("camel-cases the name of a function bound by a bare attribute", () => {
+    const source = `/// Doc comment.\n#[wasm_bindgen]\npub fn boundary_point() {}\n`;
+    assert.deepEqual([...extractWasmExports(source)], ["boundaryPoint"]);
+  });
+
+  it("keeps the name of a type bound by a bare attribute", () => {
+    const source = `#[wasm_bindgen]\npub struct Verification {}\n\n#[wasm_bindgen]\npub enum Verdict {}\n`;
+    assert.deepEqual([...extractWasmExports(source)].sort(), ["Verdict", "Verification"]);
+  });
+
+  it("reads the item name through an attribute holding other arguments", () => {
+    const source = `#[wasm_bindgen(skip_typescript)]\npub fn hidden_from_dts() {}\n`;
+    assert.ok(extractWasmExports(source).has("hiddenFromDts"));
+  });
+
+  it("ignores an attribute on an item that is not published", () => {
+    assert.deepEqual([...extractWasmExports(`#[wasm_bindgen]\nfn private_helper() {}\n`)], []);
   });
 });
 
@@ -132,6 +169,23 @@ describe("checkSurface", () => {
     const problems = checkSurface(surface, actualOf({ ts: ["Coordinate"] }));
     assert.equal(problems.length, 1);
     assert.match(problems[0], /"rsNote"/);
+  });
+
+  it("flags two members claiming one name for one target", () => {
+    const surface = {
+      members: [
+        { ts: "interiorPoint", rs: "interior_point", wasm: "interiorPoint" },
+        { ts: "interiorPoint", rs: "another_name", wasm: null, wasmNote: "plain arrays" },
+      ],
+    };
+    const actual = actualOf({
+      ts: ["interiorPoint"],
+      rs: ["interior_point", "another_name"],
+      wasm: ["interiorPoint"],
+    });
+    const problems = checkSurface(surface, actual);
+    assert.equal(problems.length, 1);
+    assert.match(problems[0], /both declare `interiorPoint` for ts/);
   });
 
   it("flags an entry absent from every target", () => {
