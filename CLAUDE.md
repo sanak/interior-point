@@ -38,6 +38,16 @@ sync workflow, `pin.json`/`portedMembers` semantics, and the vendored-test rules
 repository — a design doc, a numbered task, a numbered rule — and exits non-zero if it finds one;
 it runs in `test-js.yml` beside `anchors` and is covered by `pnpm test:scripts`.
 
+### API surface parity
+
+`scripts/api-surface.json` declares every published name across the three targets, and
+`node scripts/api-parity.mjs` checks it against `js/src/index.ts`, `rs/core/src/lib.rs` and
+`rs/wasm/src/lib.rs` in both directions: a declared name no source exports fails, and an exported
+name the file does not declare fails too. Growing the public surface therefore starts here — either
+give the name in all three targets, or set a target to `null` and write the matching `tsNote` /
+`rsNote` / `wasmNote` saying why it is absent. It runs in `test-js.yml` beside the citation guard
+and is covered by `pnpm test:scripts`.
+
 ### Documentation examples
 
 `pnpm test:docs` (`node scripts/docs-examples.mjs`) compiles and runs every `typescript` and
@@ -75,16 +85,20 @@ and install it with `cargo install interior-point --features cli`.
 ### WASM
 
 `rs/wasm` (`interior-point-wasm`) holds the wasm-bindgen bindings. It is `publish = false` and stays
-on edition 2021 while `rs/core` is on 2024. `cargo build --workspace` compiles it for the host, which
-is all CI checks; producing the artifact needs the target and `wasm-pack`:
+on edition 2021 while `rs/core` is on 2024. `cargo build --workspace` compiles it for the host, so the
+Rust job already typechecks it; `test-wasm.yml` is what covers the rest, building the target and
+running `wasm-pack` twice:
 
 ```bash
 rustup target add wasm32-unknown-unknown
 cd rs/wasm && wasm-pack build
 ```
 
-It exports `interiorPoint` alone: `verify_interior_point` and `centroid_first_interior_point` have no
-bindings, and nothing in this repository consumes the build.
+It exports the crate's three published functions under their TypeScript names —
+`interiorPoint`, `centroidFirstInteriorPoint` and `verifyInteriorPoint`. `Verification` has no
+binding, because `verifyInteriorPoint` hands JavaScript the enum's string value directly.
+`test-wasm.yml` builds the `nodejs` target as well and calls all three, which is the only place
+in this repository that consumes the build.
 
 ## Public API
 
