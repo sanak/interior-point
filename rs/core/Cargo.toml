@@ -2,6 +2,7 @@
 name = "interior-point"
 version.workspace = true
 edition = "2024"
+rust-version.workspace = true
 license.workspace = true
 description = "JTS InteriorPoint algorithm ported to Rust"
 authors.workspace = true

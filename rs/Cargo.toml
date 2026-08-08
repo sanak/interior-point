@@ -4,6 +4,9 @@ resolver = "2"
 
 [workspace.package]
 version = "0.3.0"
+# Edition 2024 is what sets this floor; declaring it makes cargo say so on an
+# older toolchain instead of failing somewhere in the parse.
+rust-version = "1.85"
 license = "MIT"
 authors = ["Ko Nagase"]
 repository = "https://github.com/sanak/interior-point"

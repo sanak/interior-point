@@ -231,11 +231,12 @@ impl<'a> InteriorPointPolygon<'a> {
             return;
         }
 
-        // JTS: `Assert.isTrue(0 == crossings.size() % 2, ...)`. Spelled with
-        // `is_multiple_of` because `clippy::manual_is_multiple_of` rejects the
-        // remainder form; the TypeScript port keeps Java's `% 2` literally.
+        // JTS: `Assert.isTrue(0 == crossings.size() % 2, ...)`, kept literally,
+        // as the TypeScript port does. `clippy::manual_is_multiple_of` would
+        // push this to `is_multiple_of`, which is stable only since 1.87; the
+        // lint honours the declared `rust-version` and so leaves it alone.
         assert!(
-            crossings.len().is_multiple_of(2),
+            crossings.len() % 2 == 0,
             "Interior Point robustness failure: odd number of scanline crossings"
         );
 
