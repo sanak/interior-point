@@ -30,7 +30,7 @@ use crate::geometry_adapter::coordinates_at_dimension;
 /// a failed one, which is why the command line treats `OffGeometry` alone as a
 /// failure.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum InteriorPointVerification {
+pub enum Verification {
     /// The point lies in the interior of an areal geometry.
     Interior,
     /// The point lies on the boundary of an areal geometry, or equals a
@@ -46,7 +46,7 @@ pub enum InteriorPointVerification {
 /// rather than derived from the variant names: the TypeScript port prints the
 /// same four strings, and the two command lines are held to byte-for-byte
 /// agreement.
-impl fmt::Display for InteriorPointVerification {
+impl fmt::Display for Verification {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
             Self::Interior => "interior",
@@ -72,23 +72,23 @@ impl fmt::Display for InteriorPointVerification {
 pub fn verify_interior_point(
     point: Option<Coord<f64>>,
     geometry: Option<&Geometry<f64>>,
-) -> InteriorPointVerification {
+) -> Verification {
     let (Some(point), Some(geometry)) = (point, geometry) else {
-        return InteriorPointVerification::Unverifiable;
+        return Verification::Unverifiable;
     };
     let dim = dimension_non_empty(geometry);
     if dim < 0 {
-        return InteriorPointVerification::Unverifiable;
+        return Verification::Unverifiable;
     }
     if dim == 2 {
         let location = locate(point, geometry);
         if location == INTERIOR {
-            return InteriorPointVerification::Interior;
+            return Verification::Interior;
         }
         if location == BOUNDARY {
-            return InteriorPointVerification::OnGeometry;
+            return Verification::OnGeometry;
         }
-        return InteriorPointVerification::OffGeometry;
+        return Verification::OffGeometry;
     }
     // Dimension 0 and 1 have no interior for the locator to find: a ray cast at
     // a LineString's own vertex still counts zero crossings. What the algorithm
@@ -101,15 +101,15 @@ pub fn verify_interior_point(
         .iter()
         .any(|c| c.x == point.x && c.y == point.y)
     {
-        InteriorPointVerification::OnGeometry
+        Verification::OnGeometry
     } else {
-        InteriorPointVerification::OffGeometry
+        Verification::OffGeometry
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{InteriorPointVerification, verify_interior_point};
+    use super::{Verification, verify_interior_point};
     use crate::interior_point;
     use geo_types::{
         Coord, Geometry, GeometryCollection, LineString, MultiLineString, MultiPoint, Point,
@@ -121,7 +121,7 @@ mod tests {
     }
 
     /// Verifies the point the algorithm actually returned for `geometry`.
-    fn verify_computed(geometry: &Geometry<f64>) -> InteriorPointVerification {
+    fn verify_computed(geometry: &Geometry<f64>) -> Verification {
         verify_interior_point(interior_point(geometry), Some(geometry))
     }
 
@@ -135,47 +135,32 @@ mod tests {
             (0.0, 0.0),
         ]);
         assert_eq!(interior_point(&square), Some(Coord { x: 5.0, y: 5.0 }));
-        assert_eq!(
-            verify_computed(&square),
-            InteriorPointVerification::Interior
-        );
+        assert_eq!(verify_computed(&square), Verification::Interior);
     }
 
     #[test]
     fn reports_on_geometry_for_a_zero_area_polygon() {
         let collapsed = polygon(&[(10.0, 10.0), (10.0, 10.0), (10.0, 10.0), (10.0, 10.0)]);
-        assert_eq!(
-            verify_computed(&collapsed),
-            InteriorPointVerification::OnGeometry
-        );
+        assert_eq!(verify_computed(&collapsed), Verification::OnGeometry);
     }
 
     #[test]
     fn reports_on_geometry_for_a_polygon_collapsed_to_a_segment() {
         let collapsed = polygon(&[(0.0, 0.0), (10.0, 0.0), (0.0, 0.0)]);
-        assert_eq!(
-            verify_computed(&collapsed),
-            InteriorPointVerification::OnGeometry
-        );
+        assert_eq!(verify_computed(&collapsed), Verification::OnGeometry);
     }
 
     #[test]
     fn reports_on_geometry_for_a_point() {
         let point = Geometry::Point(Point::new(5.0, 5.0));
-        assert_eq!(
-            verify_computed(&point),
-            InteriorPointVerification::OnGeometry
-        );
+        assert_eq!(verify_computed(&point), Verification::OnGeometry);
     }
 
     #[test]
     fn reports_on_geometry_for_a_line_string() {
         let line = Geometry::LineString(LineString::from(vec![(0.0, 0.0), (10.0, 10.0)]));
         assert_eq!(interior_point(&line), Some(Coord { x: 0.0, y: 0.0 }));
-        assert_eq!(
-            verify_computed(&line),
-            InteriorPointVerification::OnGeometry
-        );
+        assert_eq!(verify_computed(&line), Verification::OnGeometry);
     }
 
     #[test]
@@ -184,10 +169,7 @@ mod tests {
             Point::new(0.0, 0.0),
             Point::new(10.0, 10.0),
         ]));
-        assert_eq!(
-            verify_computed(&points),
-            InteriorPointVerification::OnGeometry
-        );
+        assert_eq!(verify_computed(&points), Verification::OnGeometry);
     }
 
     #[test]
@@ -196,10 +178,7 @@ mod tests {
             Geometry::Point(Point::new(5.0, 5.0)),
             Geometry::LineString(LineString::from(vec![(0.0, 0.0), (10.0, 10.0)])),
         ]));
-        assert_eq!(
-            verify_computed(&collection),
-            InteriorPointVerification::OnGeometry
-        );
+        assert_eq!(verify_computed(&collection), Verification::OnGeometry);
     }
 
     /// The dispatch is on the non-empty dimension, not the adapter's dimension.
@@ -215,10 +194,7 @@ mod tests {
             Geometry::LineString(LineString(vec![])),
         ]));
         assert_eq!(interior_point(&collection), Some(Coord { x: 5.0, y: 5.0 }));
-        assert_eq!(
-            verify_computed(&collection),
-            InteriorPointVerification::OnGeometry
-        );
+        assert_eq!(verify_computed(&collection), Verification::OnGeometry);
     }
 
     /// The algorithm never produces one, so the only way here is a fabricated
@@ -229,7 +205,7 @@ mod tests {
         let square = polygon(&[(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0), (0.0, 0.0)]);
         assert_eq!(
             verify_interior_point(Some(Coord { x: 100.0, y: 100.0 }), Some(&square)),
-            InteriorPointVerification::OffGeometry
+            Verification::OffGeometry
         );
     }
 
@@ -238,7 +214,7 @@ mod tests {
         let line = Geometry::LineString(LineString::from(vec![(0.0, 0.0), (10.0, 10.0)]));
         assert_eq!(
             verify_interior_point(Some(Coord { x: 100.0, y: 100.0 }), Some(&line)),
-            InteriorPointVerification::OffGeometry
+            Verification::OffGeometry
         );
     }
 
@@ -246,19 +222,13 @@ mod tests {
     fn reports_unverifiable_for_an_empty_geometry() {
         let empty = Geometry::Polygon(Polygon::new(LineString(vec![]), vec![]));
         assert_eq!(interior_point(&empty), None);
-        assert_eq!(
-            verify_computed(&empty),
-            InteriorPointVerification::Unverifiable
-        );
+        assert_eq!(verify_computed(&empty), Verification::Unverifiable);
     }
 
     #[test]
     fn reports_unverifiable_for_a_multi_line_string_of_one_empty_line() {
         let empty = Geometry::MultiLineString(MultiLineString::new(vec![LineString(vec![])]));
-        assert_eq!(
-            verify_computed(&empty),
-            InteriorPointVerification::Unverifiable
-        );
+        assert_eq!(verify_computed(&empty), Verification::Unverifiable);
     }
 
     #[test]
@@ -266,32 +236,23 @@ mod tests {
         let square = polygon(&[(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0), (0.0, 0.0)]);
         assert_eq!(
             verify_interior_point(None, Some(&square)),
-            InteriorPointVerification::Unverifiable
+            Verification::Unverifiable
         );
         assert_eq!(
             verify_interior_point(Some(Coord { x: 0.0, y: 0.0 }), None),
-            InteriorPointVerification::Unverifiable
+            Verification::Unverifiable
         );
         assert_eq!(
             verify_interior_point(None, None),
-            InteriorPointVerification::Unverifiable
+            Verification::Unverifiable
         );
     }
 
     #[test]
     fn prints_the_four_outcome_words() {
-        assert_eq!(InteriorPointVerification::Interior.to_string(), "interior");
-        assert_eq!(
-            InteriorPointVerification::OnGeometry.to_string(),
-            "on-geometry"
-        );
-        assert_eq!(
-            InteriorPointVerification::OffGeometry.to_string(),
-            "off-geometry"
-        );
-        assert_eq!(
-            InteriorPointVerification::Unverifiable.to_string(),
-            "unverifiable"
-        );
+        assert_eq!(Verification::Interior.to_string(), "interior");
+        assert_eq!(Verification::OnGeometry.to_string(), "on-geometry");
+        assert_eq!(Verification::OffGeometry.to_string(), "off-geometry");
+        assert_eq!(Verification::Unverifiable.to_string(), "unverifiable");
     }
 }

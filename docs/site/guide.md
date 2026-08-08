@@ -106,16 +106,16 @@ Check that result against the geometry it came from, through a point-in-polygon 
 ::: code-group
 
 ```typescript [TypeScript]
-import { verifyInteriorPoint, InteriorPointVerification } from "interior-point";
+import { verifyInteriorPoint, Verification } from "interior-point";
 
-console.log(verifyInteriorPoint(point, polygon) === InteriorPointVerification.Interior);
+console.log(verifyInteriorPoint(point, polygon) === Verification.Interior);
 // => true
 ```
 
 ```rust [Rust]
-use interior_point::{verify_interior_point, InteriorPointVerification};
+use interior_point::{verify_interior_point, Verification};
 
-assert_eq!(verify_interior_point(result, Some(&geometry)), InteriorPointVerification::Interior);
+assert_eq!(verify_interior_point(result, Some(&geometry)), Verification::Interior);
 ```
 
 :::

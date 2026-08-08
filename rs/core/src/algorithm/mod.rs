@@ -19,7 +19,7 @@ pub(crate) mod orientation;
 // build. It stays out of the published API: `pub(crate)` means nothing outside
 // the crate can name it, so the published surface is still only
 // `interior_point`, `centroid_first_interior_point`, `verify_interior_point` and
-// `InteriorPointVerification`.
+// `Verification`.
 pub(crate) mod locate;
 pub(crate) mod point_location;
 pub(crate) mod ray_crossing_counter;

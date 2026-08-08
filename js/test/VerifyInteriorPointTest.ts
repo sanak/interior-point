@@ -9,7 +9,7 @@ import { describe, it } from "node:test";
 import type { Geometry, LineString } from "geojson";
 import { dimension } from "../src/GeometryAdapter.ts";
 import { interiorPoint } from "../src/algorithm/InteriorPoint.ts";
-import { InteriorPointVerification, verifyInteriorPoint } from "../src/VerifyInteriorPoint.ts";
+import { Verification, verifyInteriorPoint } from "../src/VerifyInteriorPoint.ts";
 
 const SQUARE: Geometry = {
   type: "Polygon",
@@ -90,45 +90,39 @@ const MULTI_POINT: Geometry = {
 
 const COLLECTION: Geometry = { type: "GeometryCollection", geometries: [POINT, LINE] };
 
-describe("InteriorPointVerification", () => {
+describe("Verification", () => {
   it("spells its four values exactly as the CLI prints them", () => {
-    assert.equal(InteriorPointVerification.Interior, "interior");
-    assert.equal(InteriorPointVerification.OnGeometry, "on-geometry");
-    assert.equal(InteriorPointVerification.OffGeometry, "off-geometry");
-    assert.equal(InteriorPointVerification.Unverifiable, "unverifiable");
+    assert.equal(Verification.Interior, "interior");
+    assert.equal(Verification.OnGeometry, "on-geometry");
+    assert.equal(Verification.OffGeometry, "off-geometry");
+    assert.equal(Verification.Unverifiable, "unverifiable");
   });
 });
 
 describe("verifyInteriorPoint - interior", () => {
   it("reports interior for a square's own interior point", () => {
     assert.deepEqual(interiorPoint(SQUARE), [5, 5]);
-    assert.equal(verifyInteriorPoint(interiorPoint(SQUARE), SQUARE), InteriorPointVerification.Interior);
+    assert.equal(verifyInteriorPoint(interiorPoint(SQUARE), SQUARE), Verification.Interior);
   });
 
   it("reports interior for a point handed in directly", () => {
-    assert.equal(verifyInteriorPoint([1, 1], SQUARE), InteriorPointVerification.Interior);
+    assert.equal(verifyInteriorPoint([1, 1], SQUARE), Verification.Interior);
   });
 });
 
 describe("verifyInteriorPoint - on-geometry, areal", () => {
   it("reports on-geometry for a zero-area polygon", () => {
     assert.deepEqual(interiorPoint(ZERO_AREA_POLYGON), [10, 10]);
-    assert.equal(
-      verifyInteriorPoint(interiorPoint(ZERO_AREA_POLYGON), ZERO_AREA_POLYGON),
-      InteriorPointVerification.OnGeometry,
-    );
+    assert.equal(verifyInteriorPoint(interiorPoint(ZERO_AREA_POLYGON), ZERO_AREA_POLYGON), Verification.OnGeometry);
   });
 
   it("reports on-geometry for a collapsed triangle", () => {
     assert.deepEqual(interiorPoint(COLLAPSED_TRIANGLE), [0, 0]);
-    assert.equal(
-      verifyInteriorPoint(interiorPoint(COLLAPSED_TRIANGLE), COLLAPSED_TRIANGLE),
-      InteriorPointVerification.OnGeometry,
-    );
+    assert.equal(verifyInteriorPoint(interiorPoint(COLLAPSED_TRIANGLE), COLLAPSED_TRIANGLE), Verification.OnGeometry);
   });
 
   it("reports on-geometry for a point on the square's boundary", () => {
-    assert.equal(verifyInteriorPoint([0, 5], SQUARE), InteriorPointVerification.OnGeometry);
+    assert.equal(verifyInteriorPoint([0, 5], SQUARE), Verification.OnGeometry);
   });
 });
 
@@ -144,65 +138,65 @@ describe("verifyInteriorPoint - on-geometry, non-areal", () => {
     it(`reports on-geometry for ${label}`, () => {
       const point = interiorPoint(geometry);
       assert.notEqual(point, null);
-      assert.equal(verifyInteriorPoint(point, geometry), InteriorPointVerification.OnGeometry);
+      assert.equal(verifyInteriorPoint(point, geometry), Verification.OnGeometry);
     });
   }
 });
 
 describe("verifyInteriorPoint - off-geometry", () => {
   it("reports off-geometry for a fabricated point outside the square", () => {
-    assert.equal(verifyInteriorPoint([100, 100], SQUARE), InteriorPointVerification.OffGeometry);
+    assert.equal(verifyInteriorPoint([100, 100], SQUARE), Verification.OffGeometry);
   });
 
   it("reports off-geometry for a computed point outside an invalid polygon", () => {
     assert.deepEqual(interiorPoint(HOLE_SWALLOWS_SHELL), [-2.5, 5]);
     assert.equal(
       verifyInteriorPoint(interiorPoint(HOLE_SWALLOWS_SHELL), HOLE_SWALLOWS_SHELL),
-      InteriorPointVerification.OffGeometry,
+      Verification.OffGeometry,
     );
   });
 
   it("reports off-geometry for a point on a segment that is not a vertex", () => {
-    assert.equal(verifyInteriorPoint([5, 5], LINE), InteriorPointVerification.OffGeometry);
+    assert.equal(verifyInteriorPoint([5, 5], LINE), Verification.OffGeometry);
   });
 
   it("reports off-geometry when the ordinate counts differ", () => {
-    assert.equal(verifyInteriorPoint([0, 0, 0], LINE), InteriorPointVerification.OffGeometry);
+    assert.equal(verifyInteriorPoint([0, 0, 0], LINE), Verification.OffGeometry);
   });
 
   it("reports off-geometry for a point that is a vertex of a lower-dimension element only", () => {
-    assert.equal(verifyInteriorPoint([5, 5], COLLECTION), InteriorPointVerification.OffGeometry);
+    assert.equal(verifyInteriorPoint([5, 5], COLLECTION), Verification.OffGeometry);
   });
 });
 
 describe("verifyInteriorPoint - unverifiable", () => {
   it("reports unverifiable for a null point", () => {
-    assert.equal(verifyInteriorPoint(null, SQUARE), InteriorPointVerification.Unverifiable);
+    assert.equal(verifyInteriorPoint(null, SQUARE), Verification.Unverifiable);
   });
 
   it("reports unverifiable for a null geometry", () => {
-    assert.equal(verifyInteriorPoint([5, 5], null), InteriorPointVerification.Unverifiable);
+    assert.equal(verifyInteriorPoint([5, 5], null), Verification.Unverifiable);
   });
 
   it("reports unverifiable when both are null", () => {
-    assert.equal(verifyInteriorPoint(null, null), InteriorPointVerification.Unverifiable);
+    assert.equal(verifyInteriorPoint(null, null), Verification.Unverifiable);
   });
 
   it("reports unverifiable for an empty geometry", () => {
     const empty: Geometry = { type: "Point", coordinates: [] };
     assert.equal(interiorPoint(empty), null);
-    assert.equal(verifyInteriorPoint(interiorPoint(empty), empty), InteriorPointVerification.Unverifiable);
+    assert.equal(verifyInteriorPoint(interiorPoint(empty), empty), Verification.Unverifiable);
   });
 
   it("reports unverifiable for a MultiLineString whose only part is empty", () => {
     const mls: Geometry = { type: "MultiLineString", coordinates: [[]] };
     assert.equal(interiorPoint(mls), null);
-    assert.equal(verifyInteriorPoint(interiorPoint(mls), mls), InteriorPointVerification.Unverifiable);
+    assert.equal(verifyInteriorPoint(interiorPoint(mls), mls), Verification.Unverifiable);
   });
 
   it("reports unverifiable when every element is empty, even with a fabricated point", () => {
     const emptyCollection: Geometry = { type: "GeometryCollection", geometries: [] };
-    assert.equal(verifyInteriorPoint([0, 0], emptyCollection), InteriorPointVerification.Unverifiable);
+    assert.equal(verifyInteriorPoint([0, 0], emptyCollection), Verification.Unverifiable);
   });
 });
 
@@ -220,7 +214,7 @@ describe("verifyInteriorPoint - dispatch", () => {
     // elements would find no vertices at all and call a correct point off-geometry.
     assert.equal(dimension(gc), 1);
     assert.deepEqual(interiorPoint(gc), [5, 5]);
-    assert.equal(verifyInteriorPoint(interiorPoint(gc), gc), InteriorPointVerification.OnGeometry);
+    assert.equal(verifyInteriorPoint(interiorPoint(gc), gc), Verification.OnGeometry);
   });
 });
 
@@ -238,11 +232,11 @@ describe("verifyInteriorPoint - comparison", () => {
     // object as the vertex it came from; `===` on the arrays would never be true.
     assert.notEqual(point, line.coordinates[0]);
     assert.deepEqual(point, [0, 0]);
-    assert.equal(verifyInteriorPoint(point, line), InteriorPointVerification.OnGeometry);
+    assert.equal(verifyInteriorPoint(point, line), Verification.OnGeometry);
   });
 
   it("accepts a structurally equal coordinate from an unrelated array", () => {
-    assert.equal(verifyInteriorPoint([0, 0], LINE), InteriorPointVerification.OnGeometry);
+    assert.equal(verifyInteriorPoint([0, 0], LINE), Verification.OnGeometry);
   });
 
   it("keeps the Z ordinate in the comparison", () => {
@@ -254,8 +248,8 @@ describe("verifyInteriorPoint - comparison", () => {
       ],
     };
     assert.deepEqual(interiorPoint(line), [0, 0, 5]);
-    assert.equal(verifyInteriorPoint(interiorPoint(line), line), InteriorPointVerification.OnGeometry);
-    assert.equal(verifyInteriorPoint([0, 0, 9], line), InteriorPointVerification.OffGeometry);
-    assert.equal(verifyInteriorPoint([0, 0], line), InteriorPointVerification.OffGeometry);
+    assert.equal(verifyInteriorPoint(interiorPoint(line), line), Verification.OnGeometry);
+    assert.equal(verifyInteriorPoint([0, 0, 9], line), Verification.OffGeometry);
+    assert.equal(verifyInteriorPoint([0, 0], line), Verification.OffGeometry);
   });
 });

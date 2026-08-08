@@ -17,7 +17,7 @@ import type { Geometry } from "geojson";
 import { centroidFirstInteriorPoint } from "../src/CentroidFirstInteriorPoint.ts";
 import { getCentroid } from "../src/algorithm/Centroid.ts";
 import { dimensionNonEmpty, interiorPoint } from "../src/algorithm/InteriorPoint.ts";
-import { InteriorPointVerification, verifyInteriorPoint } from "../src/VerifyInteriorPoint.ts";
+import { Verification, verifyInteriorPoint } from "../src/VerifyInteriorPoint.ts";
 import { parseXmlTestCases } from "./utils/XmlTestParser.ts";
 import { parseWktFile } from "./utils/WktParser.ts";
 
@@ -51,10 +51,10 @@ function sweep(label: string, geometries: (Geometry | null)[], expectedCount: nu
         const outcome = verifyInteriorPoint(point, geometry);
         assert.equal(outcome, verifyInteriorPoint(fallback, geometry), `${label}[${index}]: ${outcome}`);
         if (point === null) {
-          assert.equal(outcome, InteriorPointVerification.Unverifiable);
+          assert.equal(outcome, Verification.Unverifiable);
           return;
         }
-        assert.notEqual(outcome, InteriorPointVerification.OffGeometry, `${label}[${index}]: ${outcome}`);
+        assert.notEqual(outcome, Verification.OffGeometry, `${label}[${index}]: ${outcome}`);
       });
     });
   });
@@ -77,12 +77,12 @@ function countCentroidBranch(geometries: (Geometry | null)[]): number {
   return accepted;
 }
 
-function countOutcomes(geometries: (Geometry | null)[]): Record<InteriorPointVerification, number> {
-  const counts: Record<InteriorPointVerification, number> = {
-    [InteriorPointVerification.Interior]: 0,
-    [InteriorPointVerification.OnGeometry]: 0,
-    [InteriorPointVerification.OffGeometry]: 0,
-    [InteriorPointVerification.Unverifiable]: 0,
+function countOutcomes(geometries: (Geometry | null)[]): Record<Verification, number> {
+  const counts: Record<Verification, number> = {
+    [Verification.Interior]: 0,
+    [Verification.OnGeometry]: 0,
+    [Verification.OffGeometry]: 0,
+    [Verification.Unverifiable]: 0,
   };
   for (const geometry of geometries) {
     counts[verifyInteriorPoint(centroidFirstInteriorPoint(geometry), geometry)] += 1;
@@ -96,10 +96,10 @@ describe("centroid-first sweep - totals", () => {
   it("reaches no off-geometry across all 306 fixture geometries", () => {
     assert.equal(all.length, 306);
     assert.deepEqual(countOutcomes(all), {
-      [InteriorPointVerification.Interior]: 260,
-      [InteriorPointVerification.OnGeometry]: 39,
-      [InteriorPointVerification.OffGeometry]: 0,
-      [InteriorPointVerification.Unverifiable]: 7,
+      [Verification.Interior]: 260,
+      [Verification.OnGeometry]: 39,
+      [Verification.OffGeometry]: 0,
+      [Verification.Unverifiable]: 7,
     });
   });
 

@@ -36,9 +36,9 @@ import { BOUNDARY, INTERIOR } from "./geom/Location.ts";
  * The four values are the strings the command-line surface prints, so they are
  * part of that surface rather than an internal spelling.
  *
- * @jts-adapter InteriorPointVerification
+ * @jts-adapter Verification
  */
-export enum InteriorPointVerification {
+export enum Verification {
   Interior = "interior",
   OnGeometry = "on-geometry",
   OffGeometry = "off-geometry",
@@ -62,19 +62,19 @@ export enum InteriorPointVerification {
  * @return where the point sits relative to the geometry
  * @jts-adapter verifyInteriorPoint
  */
-export function verifyInteriorPoint(point: Coordinate | null, geometry: Geometry | null): InteriorPointVerification {
-  if (point === null || geometry === null) return InteriorPointVerification.Unverifiable;
+export function verifyInteriorPoint(point: Coordinate | null, geometry: Geometry | null): Verification {
+  if (point === null || geometry === null) return Verification.Unverifiable;
 
   const dim = dimensionNonEmpty(geometry);
   // Every element is empty. A non-null point cannot arrive here, but answering
   // keeps the function total rather than relying on that argument.
-  if (dim < 0) return InteriorPointVerification.Unverifiable;
+  if (dim < 0) return Verification.Unverifiable;
 
   if (dim === 2) {
     const location = locate(point, geometry);
-    if (location === INTERIOR) return InteriorPointVerification.Interior;
-    if (location === BOUNDARY) return InteriorPointVerification.OnGeometry;
-    return InteriorPointVerification.OffGeometry;
+    if (location === INTERIOR) return Verification.Interior;
+    if (location === BOUNDARY) return Verification.OnGeometry;
+    return Verification.OffGeometry;
   }
 
   // Per ordinate, never by reference: the algorithm stores a fresh array for the
@@ -83,8 +83,8 @@ export function verifyInteriorPoint(point: Coordinate | null, geometry: Geometry
   // geometry-model helper, and its single addition here is the enumeration.
   for (const coordinate of coordinatesAtDimension(geometry, dim)) {
     if (coordinate.length === point.length && coordinate.every((ordinate, i) => ordinate === point[i])) {
-      return InteriorPointVerification.OnGeometry;
+      return Verification.OnGeometry;
     }
   }
-  return InteriorPointVerification.OffGeometry;
+  return Verification.OffGeometry;
 }

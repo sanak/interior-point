@@ -18,4 +18,4 @@ mod test;
 
 pub use algorithm::interior_point::interior_point;
 pub use centroid_first_interior_point::centroid_first_interior_point;
-pub use verify_interior_point::{InteriorPointVerification, verify_interior_point};
+pub use verify_interior_point::{Verification, verify_interior_point};

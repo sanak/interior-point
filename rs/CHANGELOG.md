@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `verify_interior_point` and `InteriorPointVerification` check a computed point
+- `verify_interior_point` and `Verification` check a computed point
   against the geometry it came from, through a point-in-polygon locator that
   shares no code with the algorithm that produced the point. The four variants
   are `Interior`, `OnGeometry`, `OffGeometry` and `Unverifiable`, and their
@@ -51,7 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   degenerate input behaves as it did before. With the default features, the
   crate's public surface is now `interior_point`,
   `centroid_first_interior_point`, `verify_interior_point` and
-  `InteriorPointVerification`.
+  `Verification`.
 - `interior-point --centroid-first` (`-c`), behind the `cli` feature, applies
   that entry point to every record. The output shape is unchanged — one point
   per record, in the same envelope and format — so the flag composes with

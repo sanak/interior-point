@@ -93,17 +93,17 @@ Checks a point against the geometry it was computed from, using a point-in-polyg
 - `point: Coordinate | null` — the coordinate to check, normally the return value of `interiorPoint`
 - `geometry: Geometry | null` — the geometry the point should lie on or in, or `null`
 
-**Returns:** `InteriorPointVerification` — one of four outcomes:
+**Returns:** `Verification` — one of four outcomes:
 
-| Value                                    | Reached when                                                                                   |
-| ---------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `InteriorPointVerification.Interior`     | an area geometry, and the point lies inside it                                                 |
-| `InteriorPointVerification.OnGeometry`   | the point lies on the boundary of an area geometry, or is a vertex of a line or point geometry |
-| `InteriorPointVerification.OffGeometry`  | the point lies outside an area geometry, or matches no vertex of a line or point geometry      |
-| `InteriorPointVerification.Unverifiable` | `point` is `null`, `geometry` is `null`, or every element of `geometry` is empty               |
+| Value                       | Reached when                                                                                   |
+| --------------------------- | ---------------------------------------------------------------------------------------------- |
+| `Verification.Interior`     | an area geometry, and the point lies inside it                                                 |
+| `Verification.OnGeometry`   | the point lies on the boundary of an area geometry, or is a vertex of a line or point geometry |
+| `Verification.OffGeometry`  | the point lies outside an area geometry, or matches no vertex of a line or point geometry      |
+| `Verification.Unverifiable` | `point` is `null`, `geometry` is `null`, or every element of `geometry` is empty               |
 
 ```typescript
-import { interiorPoint, verifyInteriorPoint, InteriorPointVerification } from "interior-point";
+import { interiorPoint, verifyInteriorPoint, Verification } from "interior-point";
 
 const polygon = {
   type: "Polygon",
@@ -119,20 +119,20 @@ const polygon = {
 };
 
 const point = interiorPoint(polygon);
-verifyInteriorPoint(point, polygon); // => InteriorPointVerification.Interior
-verifyInteriorPoint([100, 100], polygon); // => InteriorPointVerification.OffGeometry
-verifyInteriorPoint(null, null); // => InteriorPointVerification.Unverifiable
+verifyInteriorPoint(point, polygon); // => Verification.Interior
+verifyInteriorPoint([100, 100], polygon); // => Verification.OffGeometry
+verifyInteriorPoint(null, null); // => Verification.Unverifiable
 ```
 
 Compare the outcome against the variant you mean. `OffGeometry` and `Unverifiable` are not the same thing: `OffGeometry` is a failed check, while `Unverifiable` is the absence of one. The CLI reads that difference, which is why an `unverifiable` record leaves the exit code at 0.
 
 ## Type Reference
 
-| Type                        | Definition                                                                       |
-| --------------------------- | -------------------------------------------------------------------------------- |
-| `Geometry`                  | GeoJSON `Geometry` from `@types/geojson`                                         |
-| `Coordinate`                | `number[]` (an alias of GeoJSON `Position`)                                      |
-| `InteriorPointVerification` | a string enum: `"interior"`, `"on-geometry"`, `"off-geometry"`, `"unverifiable"` |
+| Type           | Definition                                                                       |
+| -------------- | -------------------------------------------------------------------------------- |
+| `Geometry`     | GeoJSON `Geometry` from `@types/geojson`                                         |
+| `Coordinate`   | `number[]` (an alias of GeoJSON `Position`)                                      |
+| `Verification` | a string enum: `"interior"`, `"on-geometry"`, `"off-geometry"`, `"unverifiable"` |
 
 `Coordinate` carries JTS's name for the type and is re-exported from the package
 root. It is a plain alias of GeoJSON's `Position`, so existing code that annotates

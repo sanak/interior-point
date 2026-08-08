@@ -9,26 +9,24 @@
 
 use std::io::{self, Write};
 
-use crate::{
-    InteriorPointVerification, centroid_first_interior_point, interior_point, verify_interior_point,
-};
+use crate::{Verification, centroid_first_interior_point, interior_point, verify_interior_point};
 
 use super::args::{help_text, parse_cli_args};
 use super::io::{OutputRecord, read_input, serialize, write_output};
 
 /// The outcomes a summary line lists, in the order it lists them, which is the
 /// order the four are declared in. Only the ones that occurred are printed.
-const VERIFICATION_OUTCOMES: [InteriorPointVerification; 4] = [
-    InteriorPointVerification::Interior,
-    InteriorPointVerification::OnGeometry,
-    InteriorPointVerification::OffGeometry,
-    InteriorPointVerification::Unverifiable,
+const VERIFICATION_OUTCOMES: [Verification; 4] = [
+    Verification::Interior,
+    Verification::OnGeometry,
+    Verification::OffGeometry,
+    Verification::Unverifiable,
 ];
 
 /// `verify: 3 records, 1 interior, 1 on-geometry, 1 off-geometry`, or the bare
 /// `verify: 0 records` when there is nothing to report. The noun stays `records`
 /// at every count, so the two command lines cannot drift on the singular case.
-fn verify_summary(verifications: &[InteriorPointVerification]) -> String {
+fn verify_summary(verifications: &[Verification]) -> String {
     let mut line = format!("verify: {} records", verifications.len());
     for outcome in VERIFICATION_OUTCOMES {
         let count = verifications.iter().filter(|v| **v == outcome).count();
@@ -80,7 +78,7 @@ pub fn run(
         };
     // `into_iter` consumes each record, so the verdict is computed here, where
     // the point and the geometry it came from are both still in hand.
-    let mut verifications: Vec<InteriorPointVerification> = Vec::new();
+    let mut verifications: Vec<Verification> = Vec::new();
     let results: Vec<OutputRecord> = input
         .records
         .into_iter()
@@ -112,11 +110,11 @@ pub fn run(
         }
         // Only a failure gets a line of its own; those are what survive --quiet.
         for (index, verification) in verifications.iter().enumerate() {
-            if *verification == InteriorPointVerification::OffGeometry {
+            if *verification == Verification::OffGeometry {
                 let _ = writeln!(err, "verify: record {}: {verification}", index + 1);
             }
         }
-        if verifications.contains(&InteriorPointVerification::OffGeometry) {
+        if verifications.contains(&Verification::OffGeometry) {
             return 2;
         }
     }

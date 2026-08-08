@@ -43,13 +43,13 @@ An empty geometry returns `None`.
 
 ## API
 
-| Item                            | Signature                                                                                    | Returns                                                                                     |
-| ------------------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `interior_point`                | `(geometry: &Geometry<f64>) -> Option<Coord<f64>>`                                           | a point inside area geometries, or on linear and point ones                                 |
-| `centroid_first_interior_point` | `(geometry: &Geometry<f64>) -> Option<Coord<f64>>`                                           | the geometry's centroid when it lies strictly inside, and `interior_point` when it does not |
-| `verify_interior_point`         | `(point: Option<Coord<f64>>, geometry: Option<&Geometry<f64>>) -> InteriorPointVerification` | `Interior`, `OnGeometry`, `OffGeometry` or `Unverifiable`                                   |
+| Item                            | Signature                                                                       | Returns                                                                                     |
+| ------------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `interior_point`                | `(geometry: &Geometry<f64>) -> Option<Coord<f64>>`                              | a point inside area geometries, or on linear and point ones                                 |
+| `centroid_first_interior_point` | `(geometry: &Geometry<f64>) -> Option<Coord<f64>>`                              | the geometry's centroid when it lies strictly inside, and `interior_point` when it does not |
+| `verify_interior_point`         | `(point: Option<Coord<f64>>, geometry: Option<&Geometry<f64>>) -> Verification` | `Interior`, `OnGeometry`, `OffGeometry` or `Unverifiable`                                   |
 
-Those three functions and the `InteriorPointVerification` they answer with are the crate's whole public surface with the default features. Verification runs through a point-in-polygon locator that shares no code with the algorithm that produced the point, and checks this crate's own output rather than the input's OGC validity.
+Those three functions and the `Verification` they answer with are the crate's whole public surface with the default features. Verification runs through a point-in-polygon locator that shares no code with the algorithm that produced the point, and checks this crate's own output rather than the input's OGC validity.
 
 Full signatures, the four verification outcomes and the reasoning behind each entry point: [API reference](https://sanak.github.io/interior-point/api/rust).
 

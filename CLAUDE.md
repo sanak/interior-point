@@ -121,7 +121,7 @@ it came from using JTS-derived code instead of a third-party predicate, and
 lies strictly inside it. Both languages' world tests
 assert containment through the same stack. Reachable is not the same as published: they are still
 not exported from `js/src/index.ts`, and in Rust they are still `pub(crate)` — `interior_point`,
-`centroid_first_interior_point`, `verify_interior_point` and `InteriorPointVerification` are the crate's entire
+`centroid_first_interior_point`, `verify_interior_point` and `Verification` are the crate's entire
 public surface. What
 changed in Rust is the gate alone: these modules were declared `#[cfg(test)] mod` and are now
 compiled into every build, because published library items call them. So `js/src` now has no
@@ -198,7 +198,7 @@ the read side exact.
 | `List<Double>`                     | `number[]`                                         | `Vec<f64>` / `&mut [f64]`        |
 | —                                  | `centroidFirstInteriorPoint`                       | `centroid_first_interior_point`  |
 | —                                  | `verifyInteriorPoint`                              | `verify_interior_point`          |
-| —                                  | `InteriorPointVerification`                        | `InteriorPointVerification`      |
+| —                                  | `Verification`                                     | `Verification`                   |
 | —                                  | `coordinatesAtDimension`                           | `coordinates_at_dimension`       |
 
 `getEnvelopeInternal()` is one method on `Geometry` that `LinearRing` inherits, not a Java
@@ -241,9 +241,9 @@ The Rust world test is the second exception, for the same underlying reason: the
 locator it asserts containment through is `pub(crate)`, so `rs/core/tests/` cannot reach it either.
 An integration test links against the crate from outside and sees only what `lib.rs` publishes,
 which is `interior_point`, `centroid_first_interior_point`, `verify_interior_point` and
-`InteriorPointVerification`. Making the
-locator reachable from `verify_interior_point` removed its `#[cfg(test)]` gate but left that wall
-standing, so the world test stays at `rs/core/src/test/algorithm/interior_point_world_test.rs` as a
+`Verification`. Making the locator reachable from `verify_interior_point` removed its
+`#[cfg(test)]` gate but left that wall standing, so the world test stays at
+`rs/core/src/test/algorithm/interior_point_world_test.rs` as a
 `#[cfg(test)] mod`, recorded with `@jts-deviate`, beside `abstract_point_in_ring_test.rs`.
 `rs/core/tests/` holds `algorithm/interior_point_test.rs`,
 `algorithm/verify_interior_point_sweep_test.rs`,

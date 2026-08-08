@@ -2,7 +2,7 @@
 //! computed point verifies against the geometry it came from.
 //!
 //! This reaches the crate through its public API alone — `interior_point`,
-//! `verify_interior_point` and `InteriorPointVerification` — so unlike the world
+//! `verify_interior_point` and `Verification` — so unlike the world
 //! test it can live here rather than under `src/test/`.
 //!
 //! @jts InteriorPointTest#checkInteriorPoint(Geometry)
@@ -22,7 +22,7 @@ use std::fs;
 use std::str::FromStr;
 
 use geo_types::Geometry;
-use interior_point::{InteriorPointVerification, interior_point, verify_interior_point};
+use interior_point::{Verification, interior_point, verify_interior_point};
 use utils::xml_test_parser::parse_xml_test_cases;
 use wkt::Wkt;
 
@@ -31,7 +31,7 @@ use wkt::Wkt;
 fn failure(label: &str, geometry: &Geometry<f64>) -> Option<String> {
     let point = interior_point(geometry)?;
     let verification = verify_interior_point(Some(point), Some(geometry));
-    if verification != InteriorPointVerification::OffGeometry {
+    if verification != Verification::OffGeometry {
         return None;
     }
     Some(format!(
@@ -214,10 +214,10 @@ fn tallies_every_outcome_across_all_306_fixture_geometries() {
     for geometry in &all {
         let point = geometry.as_ref().and_then(interior_point);
         match verify_interior_point(point, geometry.as_ref()) {
-            InteriorPointVerification::Interior => interior += 1,
-            InteriorPointVerification::OnGeometry => on_geometry += 1,
-            InteriorPointVerification::OffGeometry => off_geometry += 1,
-            InteriorPointVerification::Unverifiable => unverifiable += 1,
+            Verification::Interior => interior += 1,
+            Verification::OnGeometry => on_geometry += 1,
+            Verification::OffGeometry => off_geometry += 1,
+            Verification::Unverifiable => unverifiable += 1,
         }
     }
 

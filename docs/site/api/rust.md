@@ -81,19 +81,19 @@ Checks a point against the geometry it was computed from, using a point-in-polyg
 - `point: Option<Coord<f64>>` — the coordinate to check, normally the return value of `interior_point`
 - `geometry: Option<&Geometry<f64>>` — the geometry the point should lie on or in, or `None`
 
-**Returns:** `InteriorPointVerification` — one of four outcomes:
+**Returns:** `Verification` — one of four outcomes:
 
-| Value                                     | Reached when                                                                                   |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `InteriorPointVerification::Interior`     | an area geometry, and the point lies inside it                                                 |
-| `InteriorPointVerification::OnGeometry`   | the point lies on the boundary of an area geometry, or is a vertex of a line or point geometry |
-| `InteriorPointVerification::OffGeometry`  | the point lies outside an area geometry, or matches no vertex of a line or point geometry      |
-| `InteriorPointVerification::Unverifiable` | `point` is `None`, `geometry` is `None`, or every element of `geometry` is empty               |
+| Value                        | Reached when                                                                                   |
+| ---------------------------- | ---------------------------------------------------------------------------------------------- |
+| `Verification::Interior`     | an area geometry, and the point lies inside it                                                 |
+| `Verification::OnGeometry`   | the point lies on the boundary of an area geometry, or is a vertex of a line or point geometry |
+| `Verification::OffGeometry`  | the point lies outside an area geometry, or matches no vertex of a line or point geometry      |
+| `Verification::Unverifiable` | `point` is `None`, `geometry` is `None`, or every element of `geometry` is empty               |
 
 Compare the outcome against the variant you mean. `OffGeometry` and `Unverifiable` are not the same thing — `OffGeometry` is a failed check, `Unverifiable` the absence of one — which is why the CLI leaves an unverifiable record at exit code 0. The `Display` output is the four kebab-case strings `interior`, `on-geometry`, `off-geometry` and `unverifiable`, which is what the CLI prints.
 
 ```rust
-use interior_point::{interior_point, verify_interior_point, InteriorPointVerification};
+use interior_point::{interior_point, verify_interior_point, Verification};
 use geo_types::{Geometry, LineString, Polygon};
 
 let geometry: Geometry<f64> = Polygon::new(
@@ -103,17 +103,17 @@ let geometry: Geometry<f64> = Polygon::new(
 .into();
 
 let point = interior_point(&geometry);
-assert_eq!(verify_interior_point(point, Some(&geometry)), InteriorPointVerification::Interior);
+assert_eq!(verify_interior_point(point, Some(&geometry)), Verification::Interior);
 ```
 
 `Some(&geometry)` rather than `&geometry`: one signature serves both the library caller and the CLI, whose records carry an optional geometry because GeoJSON permits a Feature with none.
 
 ## Type Reference
 
-| Type                        | Definition                                                       |
-| --------------------------- | ---------------------------------------------------------------- |
-| `Geometry<f64>`             | `geo_types::Geometry<f64>`                                       |
-| `Coord<f64>`                | `geo_types::Coord { x: f64, y: f64 }`                            |
-| `InteriorPointVerification` | an enum: `Interior`, `OnGeometry`, `OffGeometry`, `Unverifiable` |
+| Type            | Definition                                                       |
+| --------------- | ---------------------------------------------------------------- |
+| `Geometry<f64>` | `geo_types::Geometry<f64>`                                       |
+| `Coord<f64>`    | `geo_types::Coord { x: f64, y: f64 }`                            |
+| `Verification`  | an enum: `Interior`, `OnGeometry`, `OffGeometry`, `Unverifiable` |
 
-With the default features, `interior_point`, `centroid_first_interior_point`, `verify_interior_point` and `InteriorPointVerification` are the crate's whole public surface; the locator behind the check is crate-internal and is not documented here as a callable item.
+With the default features, `interior_point`, `centroid_first_interior_point`, `verify_interior_point` and `Verification` are the crate's whole public surface; the locator behind the check is crate-internal and is not documented here as a callable item.

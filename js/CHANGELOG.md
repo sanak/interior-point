@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Coordinate` is re-exported as the name of the coordinate type. It is an
   alias of GeoJSON's `Position`, so existing code naming `Position` is
   unaffected.
-- `verifyInteriorPoint` and `InteriorPointVerification` check a
+- `verifyInteriorPoint` and `Verification` check a
   computed point against the geometry it came from, through a point-in-polygon
   locator that shares no code with the algorithm that produced the point. The
   four outcomes are `Interior`, `OnGeometry`, `OffGeometry` and `Unverifiable`,

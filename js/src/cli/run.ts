@@ -11,7 +11,7 @@
 import { readFileSync } from "node:fs";
 import { interiorPoint } from "../algorithm/InteriorPoint.ts";
 import { centroidFirstInteriorPoint } from "../CentroidFirstInteriorPoint.ts";
-import { InteriorPointVerification, verifyInteriorPoint } from "../VerifyInteriorPoint.ts";
+import { Verification, verifyInteriorPoint } from "../VerifyInteriorPoint.ts";
 import { HELP_TEXT, parseCliArgs, type CliOptions } from "./args.ts";
 import { readInput, serialize, writeOutput, type Sink } from "./io.ts";
 
@@ -22,10 +22,10 @@ import { readInput, serialize, writeOutput, type Sink } from "./io.ts";
  * detail.
  */
 const OUTCOME_ORDER = [
-  InteriorPointVerification.Interior,
-  InteriorPointVerification.OnGeometry,
-  InteriorPointVerification.OffGeometry,
-  InteriorPointVerification.Unverifiable,
+  Verification.Interior,
+  Verification.OnGeometry,
+  Verification.OffGeometry,
+  Verification.Unverifiable,
 ];
 
 export function run(
@@ -83,7 +83,7 @@ export function run(
  * exits 0 without the flag. The count noun stays `records` at every count, so
  * the two language ports cannot drift on the singular case.
  */
-function reportVerification(outcomes: InteriorPointVerification[], quiet: boolean, err: Sink): number {
+function reportVerification(outcomes: Verification[], quiet: boolean, err: Sink): number {
   if (!quiet) {
     let summary = `verify: ${outcomes.length} records`;
     for (const outcome of OUTCOME_ORDER) {
@@ -94,7 +94,7 @@ function reportVerification(outcomes: InteriorPointVerification[], quiet: boolea
   }
   let failed = false;
   outcomes.forEach((outcome, index) => {
-    if (outcome !== InteriorPointVerification.OffGeometry) return;
+    if (outcome !== Verification.OffGeometry) return;
     failed = true;
     err(`verify: record ${index + 1}: ${outcome}\n`);
   });
