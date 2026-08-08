@@ -41,3 +41,5 @@ jobs:
         run: node scripts/jts-sync.mjs anchors
       - name: Check for out-of-repo citations
         run: node scripts/jts-citations.mjs
+      - name: Check the published API surfaces agree
+        run: node scripts/api-parity.mjs
