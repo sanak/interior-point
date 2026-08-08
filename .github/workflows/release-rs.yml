@@ -108,9 +108,15 @@ jobs:
       # forever. The notes themselves are read again in the final job.
       - name: Fail early if the changelog has no section for this version
         run: node scripts/changelog-section.mjs rs/CHANGELOG.md "${{ steps.version.outputs.version }}" > /dev/null
-      - name: Show what would be published
+      # `cargo package` rather than `cargo publish --dry-run`. Both pack the crate and
+      # compile it from the packed copy, so both say what a publish would say. Only
+      # `package` moves the archive out of cargo's private `target/package/tmp-crate/`
+      # into `target/package/`, which is where the upload step below reads it from;
+      # `publish` uploads from the temporary directory and leaves nothing under the
+      # documented name. This is the rs counterpart of `npm pack` in release-js.yml.
+      - name: Pack the crate, building it from the packed copy
         working-directory: rs
-        run: cargo publish -p interior-point --locked --dry-run
+        run: cargo package -p interior-point --locked
       - uses: rust-lang/crates-io-auth-action@v1
         id: auth
       - name: Publish

@@ -51,9 +51,12 @@ version check, changelog read, build, `npm publish --dry-run`, `npm publish --pr
 
 **crate** — after the tests, two jobs run side by side. `build-binaries` compiles five targets
 natively and uploads each as an artifact. `publish-crate` is held at the `release-crates`
-environment until approved, then runs the version check, the changelog check, `cargo publish
---dry-run` and `cargo publish`. A final job collects every artifact, writes `SHA256SUMS`, attests
-the six files, and creates the Release.
+environment until approved, then runs the version check, the changelog check, `cargo package` and
+`cargo publish`, and uploads the packed `.crate`. `cargo package` stands where the npm side has
+both `npm publish --dry-run` and `npm pack`: it compiles the crate from the packed copy the way a
+dry run does, and it is the only one of the two commands that leaves the archive under
+`target/package/` — `cargo publish` uploads from a temporary directory of its own. A final job
+collects every artifact, writes `SHA256SUMS`, attests the six files, and creates the Release.
 
 The GitHub Release is created **last** in both, after the registry has accepted the version.
 Registries refuse to accept a version twice, so the irreversible step goes first: if the Release
