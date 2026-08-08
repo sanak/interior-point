@@ -147,9 +147,9 @@ describe("scanPortAnchors", () => {
     // after its move into `rs/core/src/` to reach the gated locator modules. Plus one more:
     // `rs/core/src/test/mod.rs`'s module-placement note explaining why these tests
     // cannot live in `rs/core/tests/`. The verify surface adds one more: the verify sweep test's note that it
-    // asserts `isVerified` where JTS's own helper asserts `contains`.
-    // The Rust verify port adds one: the fixture sweep's note that it asserts
-    // `is_verified()` where JTS asserts `contains`.
+    // asserts the outcome is not `OffGeometry` where JTS's own helper asserts `contains`.
+    // The Rust verify port adds one: the fixture sweep's note carrying the same
+    // deviation.
     assert.equal(kinds["jts-deviate"], 30);
     // The geometry adapters (6 in TypeScript, 4 in Rust — Rust needs no
     // Coordinate or Envelope alias but does define its own ring envelope, since
@@ -166,16 +166,16 @@ describe("scanPortAnchors", () => {
     // modules, its bin stub and its test file, and in Rust the same five plus
     // a cli/mod.rs the module layout requires and a WKTWriter note where the
     // wkt crate's output shape and geo_types' lack of an empty point force the
-    // point text to be written here. The verify surface adds four, all in TypeScript so far: the adapter's
-    // `coordinatesAtDimension`, and `VerifyInteriorPoint.ts`'s outcome enum, its
-    // `verifyInteriorPoint` and its `isVerified`.
+    // point text to be written here. The verify surface adds three, all in TypeScript so far: the adapter's
+    // `coordinatesAtDimension`, and `VerifyInteriorPoint.ts`'s outcome enum and its
+    // `verifyInteriorPoint`.
     // The Rust verify port adds two: `verify_interior_point.rs`'s module tag and
     // the adapter's `coordinates_at_dimension`.
     // The centroid-first surface adds one, in TypeScript so far:
     // `CentroidFirstInteriorPoint.ts`'s `centroidFirstInteriorPoint`.
     // The Rust half adds the second: `centroid_first_interior_point.rs`'s module
     // tag, which is where Rust puts what TypeScript put on the function.
-    assert.equal(kinds["jts-adapter"], 52);
+    assert.equal(kinds["jts-adapter"], 51);
   });
 });
 

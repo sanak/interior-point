@@ -30,9 +30,8 @@ import { BOUNDARY, INTERIOR } from "./geom/Location.ts";
  * `Interior` and `OnGeometry` are both passes, and they are not the same fact:
  * a point on the boundary is what the algorithm falls back to when an exact
  * interior point cannot be calculated. `Unverifiable` is a third thing entirely
- * — the absence of an answer rather than a failed one — which is why callers
- * that want a boolean go through `isVerified` and callers that want to know
- * where the point landed read the value.
+ * — the absence of an answer rather than a failed one — so `OffGeometry` alone
+ * is a failure, which is the distinction the command-line exit code draws.
  *
  * The four values are the strings the command-line surface prints, so they are
  * part of that surface rather than an internal spelling.
@@ -88,23 +87,4 @@ export function verifyInteriorPoint(point: Coordinate | null, geometry: Geometry
     }
   }
   return InteriorPointVerification.OffGeometry;
-}
-
-/**
- * Whether an outcome is a pass. `Interior` and `OnGeometry` are; `OffGeometry`
- * is not, and neither is `Unverifiable` — though only the first of those two is
- * a failure, which is the distinction the command-line exit code draws.
- *
- * A free function, where Rust's counterpart is an inherent method on the enum.
- * A TypeScript `enum` declaration holds members and nothing else, so there is
- * nowhere on `InteriorPointVerification` for this to live, and the four values
- * are the strings the command line prints, which fixes that representation.
- * The difference in shape is a language constraint, not a difference in meaning.
- *
- * @param v an outcome
- * @return true when the point lies on or in its geometry
- * @jts-adapter isVerified
- */
-export function isVerified(v: InteriorPointVerification): boolean {
-  return v === InteriorPointVerification.Interior || v === InteriorPointVerification.OnGeometry;
 }

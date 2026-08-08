@@ -198,7 +198,6 @@ the read side exact.
 | `List<Double>`                     | `number[]`                                         | `Vec<f64>` / `&mut [f64]`        |
 | —                                  | `centroidFirstInteriorPoint`                       | `centroid_first_interior_point`  |
 | —                                  | `verifyInteriorPoint`                              | `verify_interior_point`          |
-| —                                  | `isVerified`                                       | `is_verified`                    |
 | —                                  | `InteriorPointVerification`                        | `InteriorPointVerification`      |
 | —                                  | `coordinatesAtDimension`                           | `coordinates_at_dimension`       |
 
@@ -212,7 +211,7 @@ Rust computes the ring envelope in the adapter rather than through `geo`'s `Boun
 `geo-types`. It returns `Option<Rect<f64>>`, since `Rect` cannot represent the empty
 envelope JTS returns for an empty ring; both take the "intersects nothing" path.
 
-The last five rows have no JTS member behind them, so every one of them is tagged `@jts-adapter`
+The last four rows have no JTS member behind them, so every one of them is tagged `@jts-adapter`
 rather than `@jts`. JTS has no centroid-first entry point at all — `InteriorPoint` never consults a
 centroid at dimension 2 — so `centroidFirstInteriorPoint`/`centroid_first_interior_point` has no lineage to
 record beyond the two members it composes, `Centroid` and `SimplePointInAreaLocator`, each of which
@@ -220,9 +219,7 @@ carries its own `@jts` anchor where it is defined. The nearest thing JTS has to 
 private test helper
 `InteriorPointTest#checkInteriorPoint(Geometry)`, which asserts and throws instead of returning a
 verdict; that lineage is carried as the `@jts` anchor on the verify sweep test in both languages,
-not on the API modules. `isVerified` is a free function in TypeScript and an inherent method,
-`InteriorPointVerification::is_verified`, in Rust. `coordinatesAtDimension` has no counterpart to
-name at all: it collects the coordinates of every non-empty element whose own dimension equals the
+not on the API modules. `coordinatesAtDimension` has no counterpart to name at all: it collects the coordinates of every non-empty element whose own dimension equals the
 one it is given, which is a walk over the target geometry model rather than a ported member, and it
 lives in the adapter because that is where every geometry-model helper is defined.
 

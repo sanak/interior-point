@@ -4,20 +4,20 @@
  * reported as unverifiable rather than as a failure.
  *
  * This runs beside the world test, which keeps its strict INTERIOR assertion.
- * Replacing that with `isVerified` would weaken it, because `isVerified` also
- * admits a point on the boundary.
+ * Replacing that with this one would weaken it, because this one also admits a
+ * point on the boundary.
  *
  * @jts InteriorPointTest#checkInteriorPoint(Geometry)
- * @jts-deviate predicate — JTS asserts `g.contains(ip)`; this asserts `isVerified(...)`, because
- *   `contains` is false for `LINESTRING (0 0, 10 10)`: its interior point is the endpoint, i.e. the
- *   line's boundary.
+ * @jts-deviate predicate — JTS asserts `g.contains(ip)`; this asserts the outcome is not
+ *   `OffGeometry`, because `contains` is false for `LINESTRING (0 0, 10 10)`: its interior point is
+ *   the endpoint, i.e. the line's boundary.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { resolve } from "node:path";
 import type { Geometry } from "geojson";
 import { interiorPoint } from "../src/algorithm/InteriorPoint.ts";
-import { InteriorPointVerification, isVerified, verifyInteriorPoint } from "../src/VerifyInteriorPoint.ts";
+import { InteriorPointVerification, verifyInteriorPoint } from "../src/VerifyInteriorPoint.ts";
 import { parseXmlTestCases } from "./utils/XmlTestParser.ts";
 import { parseWktFile } from "./utils/WktParser.ts";
 
@@ -51,7 +51,7 @@ function sweep(label: string, geometries: (Geometry | null)[], expectedCount: nu
           assert.equal(outcome, InteriorPointVerification.Unverifiable);
           return;
         }
-        assert.ok(isVerified(outcome), `${label}[${index}]: ${outcome}`);
+        assert.notEqual(outcome, InteriorPointVerification.OffGeometry, `${label}[${index}]: ${outcome}`);
       });
     });
   });

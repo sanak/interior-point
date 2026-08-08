@@ -124,15 +124,3 @@ pub fn verify_interior_point_wasm(point: &JsValue, geometry: &JsValue) -> Result
     };
     Ok(interior_point::verify_interior_point(point, geometry.as_ref()).to_string())
 }
-
-/// True when the outcome is a pass — the point lies on or in its geometry.
-///
-/// A free function taking the string, because that is the shape the outcome
-/// arrives in on this side of the boundary. The crate's
-/// `InteriorPointVerification::is_verified` is an inherent method and cannot be
-/// reached from a string without a conversion the crate does not expose, so the
-/// pass set is spelled out a second time here.
-#[wasm_bindgen(js_name = "isVerified")]
-pub fn is_verified_wasm(outcome: &str) -> bool {
-    matches!(outcome, "interior" | "on-geometry")
-}

@@ -17,7 +17,7 @@ import type { Geometry } from "geojson";
 import { centroidFirstInteriorPoint } from "../src/CentroidFirstInteriorPoint.ts";
 import { getCentroid } from "../src/algorithm/Centroid.ts";
 import { dimensionNonEmpty, interiorPoint } from "../src/algorithm/InteriorPoint.ts";
-import { InteriorPointVerification, isVerified, verifyInteriorPoint } from "../src/VerifyInteriorPoint.ts";
+import { InteriorPointVerification, verifyInteriorPoint } from "../src/VerifyInteriorPoint.ts";
 import { parseXmlTestCases } from "./utils/XmlTestParser.ts";
 import { parseWktFile } from "./utils/WktParser.ts";
 
@@ -54,7 +54,7 @@ function sweep(label: string, geometries: (Geometry | null)[], expectedCount: nu
           assert.equal(outcome, InteriorPointVerification.Unverifiable);
           return;
         }
-        assert.ok(isVerified(outcome), `${label}[${index}]: ${outcome}`);
+        assert.notEqual(outcome, InteriorPointVerification.OffGeometry, `${label}[${index}]: ${outcome}`);
       });
     });
   });

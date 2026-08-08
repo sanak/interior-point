@@ -9,7 +9,7 @@ import { describe, it } from "node:test";
 import type { Geometry, LineString } from "geojson";
 import { dimension } from "../src/GeometryAdapter.ts";
 import { interiorPoint } from "../src/algorithm/InteriorPoint.ts";
-import { InteriorPointVerification, isVerified, verifyInteriorPoint } from "../src/VerifyInteriorPoint.ts";
+import { InteriorPointVerification, verifyInteriorPoint } from "../src/VerifyInteriorPoint.ts";
 
 const SQUARE: Geometry = {
   type: "Polygon",
@@ -257,17 +257,5 @@ describe("verifyInteriorPoint - comparison", () => {
     assert.equal(verifyInteriorPoint(interiorPoint(line), line), InteriorPointVerification.OnGeometry);
     assert.equal(verifyInteriorPoint([0, 0, 9], line), InteriorPointVerification.OffGeometry);
     assert.equal(verifyInteriorPoint([0, 0], line), InteriorPointVerification.OffGeometry);
-  });
-});
-
-describe("isVerified", () => {
-  it("passes interior and on-geometry", () => {
-    assert.equal(isVerified(InteriorPointVerification.Interior), true);
-    assert.equal(isVerified(InteriorPointVerification.OnGeometry), true);
-  });
-
-  it("fails off-geometry and unverifiable", () => {
-    assert.equal(isVerified(InteriorPointVerification.OffGeometry), false);
-    assert.equal(isVerified(InteriorPointVerification.Unverifiable), false);
   });
 });

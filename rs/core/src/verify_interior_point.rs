@@ -27,8 +27,8 @@ use crate::geometry_adapter::coordinates_at_dimension;
 /// an areal point that lands exactly on the boundary is what
 /// `InteriorPoint`'s own contract falls back to when an exact interior point
 /// cannot be calculated. `Unverifiable` is the absence of an answer rather than
-/// a failed one, which is why [`InteriorPointVerification::is_verified`]
-/// returning `false` for it does not make it a failure.
+/// a failed one, which is why the command line treats `OffGeometry` alone as a
+/// failure.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum InteriorPointVerification {
     /// The point lies in the interior of an areal geometry.
@@ -40,14 +40,6 @@ pub enum InteriorPointVerification {
     OffGeometry,
     /// No point, no geometry, or a geometry whose every element is empty.
     Unverifiable,
-}
-
-impl InteriorPointVerification {
-    /// True for [`Interior`](Self::Interior) and
-    /// [`OnGeometry`](Self::OnGeometry), the two passing outcomes.
-    pub fn is_verified(self) -> bool {
-        matches!(self, Self::Interior | Self::OnGeometry)
-    }
 }
 
 /// The four spellings are what reach a caller's output, so they are fixed here
@@ -284,14 +276,6 @@ mod tests {
             verify_interior_point(None, None),
             InteriorPointVerification::Unverifiable
         );
-    }
-
-    #[test]
-    fn passes_only_interior_and_on_geometry() {
-        assert!(InteriorPointVerification::Interior.is_verified());
-        assert!(InteriorPointVerification::OnGeometry.is_verified());
-        assert!(!InteriorPointVerification::OffGeometry.is_verified());
-        assert!(!InteriorPointVerification::Unverifiable.is_verified());
     }
 
     #[test]

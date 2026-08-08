@@ -21,7 +21,9 @@ use std::fs;
 use std::str::FromStr;
 
 use geo_types::Geometry;
-use interior_point::{centroid_first_interior_point, interior_point, verify_interior_point};
+use interior_point::{
+    InteriorPointVerification, centroid_first_interior_point, interior_point, verify_interior_point,
+};
 use utils::xml_test_parser::parse_xml_test_cases;
 use wkt::Wkt;
 
@@ -47,7 +49,7 @@ fn sweep_one(label: &str, geometry: &Geometry<f64>, counts: &mut Sweep) -> Optio
         return (plain.is_some()).then(|| format!("{label}: empty where interior_point was not"));
     }
     let verification = verify_interior_point(result, Some(geometry));
-    if !verification.is_verified() {
+    if verification == InteriorPointVerification::OffGeometry {
         return Some(format!("{label}: result is {verification}"));
     }
     let plain_verification = verify_interior_point(plain, Some(geometry));

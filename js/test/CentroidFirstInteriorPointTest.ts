@@ -11,7 +11,7 @@ import { getCentroid } from "../src/algorithm/Centroid.ts";
 import { interiorPoint } from "../src/algorithm/InteriorPoint.ts";
 import { locate } from "../src/algorithm/locate/SimplePointInAreaLocator.ts";
 import { BOUNDARY, EXTERIOR, INTERIOR } from "../src/geom/Location.ts";
-import { isVerified, verifyInteriorPoint } from "../src/VerifyInteriorPoint.ts";
+import { InteriorPointVerification, verifyInteriorPoint } from "../src/VerifyInteriorPoint.ts";
 
 const TRIANGLE: Geometry = {
   type: "Polygon",
@@ -345,8 +345,8 @@ describe("centroidFirstInteriorPoint - the centroid is rejected", () => {
     assert.equal(locate([5, 5], HOLE_SWALLOWS_SHELL), EXTERIOR);
     assert.deepEqual(centroidFirstInteriorPoint(HOLE_SWALLOWS_SHELL), [-2.5, 5]);
     assert.equal(
-      isVerified(verifyInteriorPoint(centroidFirstInteriorPoint(HOLE_SWALLOWS_SHELL), HOLE_SWALLOWS_SHELL)),
-      false,
+      verifyInteriorPoint(centroidFirstInteriorPoint(HOLE_SWALLOWS_SHELL), HOLE_SWALLOWS_SHELL),
+      InteriorPointVerification.OffGeometry,
     );
   });
 });

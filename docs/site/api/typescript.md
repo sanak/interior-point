@@ -103,7 +103,7 @@ Checks a point against the geometry it was computed from, using a point-in-polyg
 | `InteriorPointVerification.Unverifiable` | `point` is `null`, `geometry` is `null`, or every element of `geometry` is empty               |
 
 ```typescript
-import { interiorPoint, isVerified, verifyInteriorPoint, InteriorPointVerification } from "interior-point";
+import { interiorPoint, verifyInteriorPoint, InteriorPointVerification } from "interior-point";
 
 const polygon = {
   type: "Polygon",
@@ -124,19 +124,7 @@ verifyInteriorPoint([100, 100], polygon); // => InteriorPointVerification.OffGeo
 verifyInteriorPoint(null, null); // => InteriorPointVerification.Unverifiable
 ```
 
-## `isVerified(verification)`
-
-**Parameters:**
-
-- `verification: InteriorPointVerification` — an outcome from `verifyInteriorPoint`
-
-**Returns:** `boolean` — `true` for `Interior` and `OnGeometry`, `false` for `OffGeometry` and `Unverifiable`
-
-```typescript
-isVerified(verifyInteriorPoint(interiorPoint(polygon), polygon)); // => true
-```
-
-`false` covers two different things: `OffGeometry` is a failed check, while `Unverifiable` is the absence of one. Read the value itself when that difference matters — the CLI does, which is why an `unverifiable` record leaves the exit code at 0.
+Compare the outcome against the variant you mean. `OffGeometry` and `Unverifiable` are not the same thing: `OffGeometry` is a failed check, while `Unverifiable` is the absence of one. The CLI reads that difference, which is why an `unverifiable` record leaves the exit code at 0.
 
 ## Type Reference
 

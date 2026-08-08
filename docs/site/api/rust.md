@@ -90,10 +90,10 @@ Checks a point against the geometry it was computed from, using a point-in-polyg
 | `InteriorPointVerification::OffGeometry`  | the point lies outside an area geometry, or matches no vertex of a line or point geometry      |
 | `InteriorPointVerification::Unverifiable` | `point` is `None`, `geometry` is `None`, or every element of `geometry` is empty               |
 
-`InteriorPointVerification::is_verified` collapses those to a `bool`: `true` for `Interior` and `OnGeometry`, `false` for `OffGeometry` and `Unverifiable`. `false` covers two different things — `OffGeometry` is a failed check, `Unverifiable` the absence of one — so read the value itself when that difference matters. Its `Display` output is the four kebab-case strings `interior`, `on-geometry`, `off-geometry` and `unverifiable`, which is what the CLI prints.
+Compare the outcome against the variant you mean. `OffGeometry` and `Unverifiable` are not the same thing — `OffGeometry` is a failed check, `Unverifiable` the absence of one — which is why the CLI leaves an unverifiable record at exit code 0. The `Display` output is the four kebab-case strings `interior`, `on-geometry`, `off-geometry` and `unverifiable`, which is what the CLI prints.
 
 ```rust
-use interior_point::{interior_point, verify_interior_point};
+use interior_point::{interior_point, verify_interior_point, InteriorPointVerification};
 use geo_types::{Geometry, LineString, Polygon};
 
 let geometry: Geometry<f64> = Polygon::new(
@@ -103,7 +103,7 @@ let geometry: Geometry<f64> = Polygon::new(
 .into();
 
 let point = interior_point(&geometry);
-assert!(verify_interior_point(point, Some(&geometry)).is_verified());
+assert_eq!(verify_interior_point(point, Some(&geometry)), InteriorPointVerification::Interior);
 ```
 
 `Some(&geometry)` rather than `&geometry`: one signature serves both the library caller and the CLI, whose records carry an optional geometry because GeoJSON permits a Feature with none.

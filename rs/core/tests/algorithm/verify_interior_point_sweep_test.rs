@@ -2,13 +2,14 @@
 //! computed point verifies against the geometry it came from.
 //!
 //! This reaches the crate through its public API alone — `interior_point`,
-//! `verify_interior_point` and `is_verified` — so unlike the world test it can
-//! live here rather than under `src/test/`.
+//! `verify_interior_point` and `InteriorPointVerification` — so unlike the world
+//! test it can live here rather than under `src/test/`.
 //!
 //! @jts InteriorPointTest#checkInteriorPoint(Geometry)
-//! @jts-deviate predicate — JTS asserts `g.contains(ip)`; this asserts
-//!   `is_verified()`, because `contains` is false for `LINESTRING (0 0, 10 10)`:
-//!   its interior point is the endpoint, i.e. the line's boundary.
+//! @jts-deviate predicate — JTS asserts `g.contains(ip)`; this asserts the
+//!   outcome is not `OffGeometry`, because `contains` is false for
+//!   `LINESTRING (0 0, 10 10)`: its interior point is the endpoint, i.e. the
+//!   line's boundary.
 
 // The shared parser also carries each case's expected point, which this sweep
 // has no use for: TestCentroid.xml's expected value is a centroid, not an
@@ -30,7 +31,7 @@ use wkt::Wkt;
 fn failure(label: &str, geometry: &Geometry<f64>) -> Option<String> {
     let point = interior_point(geometry)?;
     let verification = verify_interior_point(Some(point), Some(geometry));
-    if verification.is_verified() {
+    if verification != InteriorPointVerification::OffGeometry {
         return None;
     }
     Some(format!(
