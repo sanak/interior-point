@@ -4,7 +4,11 @@ node_modules/
 # Build outputs
 dist/
 pkg/
+pkg-node/
 target/
+
+# Written by test-wasm.yml, and by anyone running its commands locally
+rs/wasm/smoke.cjs
 
 # IDE
 .vscode/

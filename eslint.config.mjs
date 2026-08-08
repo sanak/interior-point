@@ -5,7 +5,17 @@ import prettier from "eslint-config-prettier";
 
 export default tseslint.config(
   {
-    ignores: ["**/dist/**", "**/pkg/**", "**/node_modules/**", "**/target/**", "docs/.vitepress/cache/**", "tmp/**"],
+    ignores: [
+      "**/dist/**",
+      "**/pkg/**",
+      "**/pkg-node/**",
+      "**/node_modules/**",
+      "**/target/**",
+      "docs/.vitepress/cache/**",
+      "tmp/**",
+      // Written by test-wasm.yml, and by anyone running its commands locally.
+      "rs/wasm/smoke.cjs",
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,

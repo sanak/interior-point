@@ -1,6 +1,8 @@
 dist/
 pkg/
+pkg-node/
 target/
+rs/wasm/smoke.cjs
 node_modules/
 pnpm-lock.yaml
 .claude/

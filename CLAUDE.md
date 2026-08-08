@@ -45,8 +45,11 @@ it runs in `test-js.yml` beside `anchors` and is covered by `pnpm test:scripts`.
 `rs/wasm/src/lib.rs` in both directions: a declared name no source exports fails, and an exported
 name the file does not declare fails too. Growing the public surface therefore starts here — either
 give the name in all three targets, or set a target to `null` and write the matching `tsNote` /
-`rsNote` / `wasmNote` saying why it is absent. It runs in `test-js.yml` beside the citation guard
-and is covered by `pnpm test:scripts`.
+`rsNote` / `wasmNote`. A `null` is a permanent statement about that target: the note has to say why
+the name **cannot** exist there — the target's own types make it meaningless, or the value crosses
+the boundary in another shape. "Not bound yet" is not a reason, because nothing ever revisits a
+`null`; a binding still to be written is missing work, not an absence, and belongs in the target
+instead. It runs in `test-js.yml` beside the citation guard and is covered by `pnpm test:scripts`.
 
 ### Documentation examples
 
@@ -98,7 +101,12 @@ It exports the crate's three published functions under their TypeScript names �
 `interiorPoint`, `centroidFirstInteriorPoint` and `verifyInteriorPoint`. `Verification` has no
 binding, because `verifyInteriorPoint` hands JavaScript the enum's string value directly.
 `test-wasm.yml` builds the `nodejs` target as well and calls all three, which is the only place
-in this repository that consumes the build.
+in this repository that consumes the build. Which names it expects there comes from
+`scripts/api-surface.json`, not from a list inside the workflow: every non-null `wasm` name has to
+be a function on the imported module, and the module may export nothing else, so a member declared
+for wasm and never bound fails the job. Its `wasm-pack` is pinned to an exact version, and the
+plain `cargo build` beside it is `--release` so that both compile one profile's worth of
+dependencies.
 
 ## Public API
 

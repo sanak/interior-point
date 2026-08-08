@@ -17,35 +17,49 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: rs
+      # Pinned: an unpinned tool takes whatever is newest, so an upstream release could
+      # turn this job red with nothing in the repository having changed.
       - uses: taiki-e/install-action@v2
         with:
-          tool: wasm-pack
+          tool: wasm-pack@0.15.0
       # Two builds that fail for different reasons. This one proves the crate compiles
       # for the target at all; the wasm-pack runs below prove wasm-bindgen can generate
-      # its JavaScript glue, which can break while this still succeeds.
-      - run: cd rs && cargo build -p interior-point-wasm --target wasm32-unknown-unknown
+      # its JavaScript glue, which can break while this still succeeds. It is `--release`
+      # because wasm-pack defaults to a release build, so the two share the compiled
+      # dependency tree rather than building it twice in two profiles.
+      - run: cd rs && cargo build --release -p interior-point-wasm --target wasm32-unknown-unknown
       # The command CLAUDE.md documents, on wasm-pack's default bundler target.
       - run: cd rs/wasm && wasm-pack build
       - run: cd rs/wasm && wasm-pack build --target nodejs --out-dir pkg-node
       # The nodejs target emits CommonJS, so this is a .cjs file and uses require.
-      # Calling every binding is what catches an export that was renamed or never
-      # written; the verify assertion also confirms the four verdict strings reach
-      # JavaScript as strings, which is why no Verification type is bound.
+      # The list of bindings to expect comes from `scripts/api-surface.json` rather than
+      # from this file: a list written out here could only ever hold the names someone
+      # remembered to bind, so a member declared for wasm and never bound would pass.
+      # The value assertions below stay hand-written, being about meaning rather than
+      # names; the verify one also confirms the verdict reaches JavaScript as a string,
+      # which is why no Verification type is bound.
       - name: Smoke-test the generated bindings
         working-directory: rs/wasm
         run: |
           cat > smoke.cjs <<'EOF'
           const assert = require("node:assert/strict");
-          const {
-            interiorPoint,
-            centroidFirstInteriorPoint,
-            verifyInteriorPoint,
-          } = require("./pkg-node/interior_point_wasm.js");
+          const bindings = require("./pkg-node/interior_point_wasm.js");
+          const surface = require("../../scripts/api-surface.json");
 
+          // `__wbindgen_`-prefixed entries are the glue the nodejs target hangs off the
+          // same module object, not part of the published surface.
+          const declared = surface.members.map((member) => member.wasm).filter((name) => name !== null);
+          const exported = Object.keys(bindings).filter((name) => !name.startsWith("__"));
+          for (const name of declared) {
+            assert.equal(typeof bindings[name], "function", `${name} is declared for wasm but not bound`);
+          }
+          assert.deepEqual(exported.sort(), declared.sort(), "the bindings and the manifest name different things");
+
+          const { interiorPoint, centroidFirstInteriorPoint, verifyInteriorPoint } = bindings;
           const square = { type: "Polygon", coordinates: [[[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]]] };
           assert.deepEqual(interiorPoint(square), [5, 5]);
           assert.deepEqual(centroidFirstInteriorPoint(square), [5, 5]);
           assert.equal(verifyInteriorPoint([5, 5], square), "interior");
-          console.log("wasm smoke ok");
+          console.log(`wasm smoke ok: ${declared.length} bindings`);
           EOF
           node smoke.cjs
