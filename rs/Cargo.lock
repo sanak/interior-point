@@ -393,7 +393,7 @@ dependencies = [
 
 [[package]]
 name = "interior-point"
-version = "0.3.0"
+version = "1.0.0-rc.1"
 dependencies = [
  "clap",
  "criterion",
@@ -409,7 +409,7 @@ dependencies = [
 
 [[package]]
 name = "interior-point-wasm"
-version = "0.3.0"
+version = "1.0.0-rc.1"
 dependencies = [
  "geo-types",
  "geojson",

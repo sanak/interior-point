@@ -1,6 +1,6 @@
 {
   "name": "interior-point",
-  "version": "0.3.0",
+  "version": "1.0.0-rc.1",
   "description": "Compute an interior point (representative point) of any GeoJSON geometry, ported from JTS",
   "type": "module",
   "license": "MIT",
