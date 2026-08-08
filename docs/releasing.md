@@ -17,12 +17,12 @@ the trust relationship, so renaming either one means re-registering at that regi
 Three things must be true on `main` at the commit you tag. The workflows check the first two and
 refuse to publish if either is wrong.
 
-1. **The manifest version equals the tag version.** `js/v0.3.0` requires `js/package.json` at
-   `0.3.0`; `rs/v0.3.0` requires `[workspace.package] version` in `rs/Cargo.toml` at `0.3.0`. The rs
+1. **The manifest version equals the tag version.** `js/v1.0.0` requires `js/package.json` at
+   `1.0.0`; `rs/v1.0.0` requires `[workspace.package] version` in `rs/Cargo.toml` at `1.0.0`. The rs
    side is read through `cargo metadata`, so what is compared is the resolved value that ships.
    Bump the Rust version with `cargo` rather than by hand so `rs/Cargo.lock` moves with it.
 2. **The changelog has a closed, non-empty section for that version.** Promote `## [Unreleased]` to
-   `## [0.3.0] - YYYY-MM-DD` and leave a new empty `## [Unreleased]` above it. That section becomes
+   `## [1.0.0] - YYYY-MM-DD` and leave a new empty `## [Unreleased]` above it. That section becomes
    the body of the GitHub Release, extracted by `scripts/changelog-section.mjs`. An absent or empty
    section fails the run before anything reaches a registry.
 3. **The commit is on `main`.** Tag the merged commit, not a branch head, so the released tree and
@@ -34,8 +34,8 @@ Promoting the changelog heading is a human step on purpose: a tag-triggered work
 ## Tagging
 
 ```bash
-git tag rs/v0.3.0 && git push origin rs/v0.3.0
-git tag js/v0.3.0 && git push origin js/v0.3.0
+git tag rs/v1.0.0 && git push origin rs/v1.0.0
+git tag js/v1.0.0 && git push origin js/v1.0.0
 ```
 
 Nothing else starts a release. `ci.yml` runs on pushes and pull requests and publishes nothing.
@@ -74,7 +74,7 @@ version alone:
 - crates.io needs no flag — a pre-release is excluded from ordinary version resolution already.
 - The GitHub Release is marked as a pre-release.
 
-There is no promotion step. To turn `0.3.0-rc.1` into `0.3.0`, bump the manifest, move the changelog
+There is no promotion step. To turn `1.0.0-rc.1` into `1.0.0`, bump the manifest, move the changelog
 heading, and push a new tag. Re-tagging an existing published version is not possible, and npm's
 dist-tag command does not work under OIDC.
 
