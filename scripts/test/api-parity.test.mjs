@@ -80,6 +80,16 @@ describe("extractWasmExports", () => {
     const names = extractWasmExports(WASM_SOURCE);
     assert.deepEqual([...names].sort(), ["interiorPoint", "verifyInteriorPoint"]);
   });
+
+  it("finds js_name that follows another argument", () => {
+    const source = `#[wasm_bindgen(skip_typescript, js_name = "afterArg")]\npub fn foo() {}\n`;
+    assert.ok(extractWasmExports(source).has("afterArg"));
+  });
+
+  it("finds js_name that precedes another argument", () => {
+    const source = `#[wasm_bindgen(js_name = "beforeArg", skip_typescript)]\npub fn bar() {}\n`;
+    assert.ok(extractWasmExports(source).has("beforeArg"));
+  });
 });
 
 describe("checkSurface", () => {

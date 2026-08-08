@@ -59,11 +59,17 @@ export function extractRustExports(source) {
   return names;
 }
 
-/** The JavaScript name wasm-bindgen publishes for each binding. */
+/**
+ * The JavaScript name wasm-bindgen publishes for each binding. `js_name` can sit
+ * anywhere in the attribute's argument list, alongside arguments such as
+ * `skip_typescript` on either side of it; `[^)]*` keeps the search from spanning
+ * past that one attribute's closing `)]`.
+ */
 export function extractWasmExports(source) {
   const names = new Set();
-  for (const match of source.matchAll(/#\[wasm_bindgen\(js_name\s*=\s*"([^"]+)"\)\]/g)) {
-    names.add(match[1]);
+  for (const match of source.matchAll(/#\[wasm_bindgen\(([^)]*)\)\]/g)) {
+    const jsName = match[1].match(/js_name\s*=\s*"([^"]+)"/);
+    if (jsName) names.add(jsName[1]);
   }
   return names;
 }
