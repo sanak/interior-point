@@ -5,3 +5,6 @@ packages:
 allowBuilds:
   esbuild: true
   simple-git-hooks: true
+overrides:
+  # GHSA-2v37-7h3g-55p8. Capped at 3.x because postcss needs the CJS build.
+  nanoid@<3.3.17: "^3.3.17"
