@@ -11,6 +11,8 @@ export default tseslint.config(
       "**/pkg-node/**",
       "**/node_modules/**",
       "**/target/**",
+      "**/pkg-web/**",
+      "examples/benchmark/public/vendor/**",
       "docs/.vitepress/cache/**",
       "tmp/**",
       // Written by test-wasm.yml, and by anyone running its commands locally.

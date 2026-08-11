@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["vite/client", "node"],
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "paths": {
+      "interior-point-wasm": ["../../rs/wasm/pkg-web/interior_point_wasm.d.ts"],
+      "geo-wasm": ["./geo-wasm/pkg-web/geo_wasm.d.ts"]
+    }
+  },
+  "include": ["src", "test", "vite.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

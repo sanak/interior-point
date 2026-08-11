@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interior Point Benchmark</title>
+  </head>
+  <body>
+    <main class="page">
+      <header class="page-header">
+        <h1>Interior Point Benchmark</h1>
+        <p class="lede">
+          Accuracy and performance of interior point / point-on-surface implementations, measured in your browser.
+        </p>
+      </header>
+      <div id="map" class="map"></div>
+      <section class="controls">
+        <div id="dataset-status" class="dataset-status">Loading…</div>
+        <button id="run-all" type="button">Run all</button>
+      </section>
+      <div id="results"></div>
+      <footer class="page-footer">
+        <p id="drop-error" class="drop-error" hidden></p>
+        <p>
+          Each row is measured from a GeoJSON geometry to an <code>[x, y]</code> pair, so whatever conversion a library
+          needs is counted as that library's cost. Verification uses this project's TypeScript
+          <code>verifyInteriorPoint</code>; rows 1–2 are therefore self-verification.
+        </p>
+        <p>
+          Initial data:
+          <a href="https://www.geospatial.jp/ckan/dataset/plateau-34100-hiroshima-shi-2024">PLATEAU Hiroshima 2024</a>
+          (MLIT), CC BY 4.0. Drop a <code>.geojson</code> file on the page to measure your own data.
+        </p>
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

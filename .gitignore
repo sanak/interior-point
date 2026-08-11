@@ -5,6 +5,7 @@ node_modules/
 dist/
 pkg/
 pkg-node/
+pkg-web/
 target/
 
 # Written by test-wasm.yml, and by anyone running its commands locally
@@ -48,3 +49,7 @@ tmp/
 docs/superpowers/
 .superpowers/
 .worktrees/
+
+# Benchmark example: vendored third-party bundles and CityGML intermediates
+examples/benchmark/public/vendor/
+examples/benchmark/data/citygml/
