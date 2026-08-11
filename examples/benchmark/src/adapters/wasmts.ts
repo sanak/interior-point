@@ -53,7 +53,7 @@ function loaded(): unknown {
 
 export const wasmtsAdapter: Adapter = {
   id: "wasmts",
-  label: "JTS (WASM)",
+  label: "wasmts (Java/WASM)",
   call: "InteriorPoint.getInteriorPoint",
   load,
   interiorPoint(geometry: Geometry): Position | null {

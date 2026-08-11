@@ -5,7 +5,7 @@ import { wasmtsAdapter } from "../src/adapters/wasmts.ts";
 describe("wasmtsAdapter", () => {
   it("matches ledger row 6", () => {
     assert.equal(wasmtsAdapter.id, "wasmts");
-    assert.equal(wasmtsAdapter.label, "JTS (WASM)");
+    assert.equal(wasmtsAdapter.label, "wasmts (Java/WASM)");
     assert.equal(wasmtsAdapter.call, "InteriorPoint.getInteriorPoint");
   });
 });

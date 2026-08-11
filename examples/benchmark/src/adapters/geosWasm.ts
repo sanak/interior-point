@@ -24,7 +24,7 @@ function loaded(): Geos {
 
 export const geosWasmAdapter: Adapter = {
   id: "geos-wasm",
-  label: "GEOS (WASM)",
+  label: "geos-wasm (C++/WASM)",
   call: "GEOSPointOnSurface",
   load,
   interiorPoint(geometry: Geometry): Position | null {

@@ -6,7 +6,7 @@ import { jstsAdapter } from "../src/adapters/jsts.ts";
 describe("jstsAdapter", () => {
   it("matches ledger row 5", () => {
     assert.equal(jstsAdapter.id, "jsts");
-    assert.equal(jstsAdapter.label, "JSTS (JS port)");
+    assert.equal(jstsAdapter.label, "jsts (JS port)");
     assert.equal(jstsAdapter.call, "Geometry#getInteriorPoint");
   });
 

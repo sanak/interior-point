@@ -9,7 +9,7 @@ const reader = new GeoJSONReader();
 
 export const jstsAdapter: Adapter = {
   id: "jsts",
-  label: "JSTS (JS port)",
+  label: "jsts (JS port)",
   call: "Geometry#getInteriorPoint",
   async load(): Promise<void> {},
   interiorPoint(geometry: Geometry): Position | null {

@@ -13,9 +13,9 @@ Live: <https://sanak.github.io/interior-point/examples/benchmark/>
 | 2   | interior-point (TS)        | `centroidFirstInteriorPoint`     |
 | 3   | interior-point (Rust/WASM) | `interiorPoint`                  |
 | 4   | interior-point (Rust/WASM) | `centroidFirstInteriorPoint`     |
-| 5   | JSTS (JS port)             | `Geometry#getInteriorPoint`      |
-| 6   | JTS (WASM)                 | `InteriorPoint.getInteriorPoint` |
-| 7   | GEOS (WASM)                | `GEOSPointOnSurface`             |
+| 5   | jsts (JS port)             | `Geometry#getInteriorPoint`      |
+| 6   | wasmts (Java/WASM)         | `InteriorPoint.getInteriorPoint` |
+| 7   | geos-wasm (C++/WASM)       | `GEOSPointOnSurface`             |
 | 8   | geo (Rust/WASM)            | `interior_point`                 |
 | 9   | turf (JS)                  | `pointOnFeature`                 |
 
