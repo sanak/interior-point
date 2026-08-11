@@ -88,3 +88,46 @@ body {
 .drop-error {
   color: #cf222e;
 }
+
+/* Results table */
+#results {
+  overflow-x: auto;
+}
+
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.results-table th,
+.results-table td {
+  padding: 0.375rem 0.625rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.results-table td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.results-table .swatch {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-right: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+
+.results-table tr.is-running td {
+  color: var(--muted);
+}
+
+.results-table tr.error-row td {
+  color: #cf222e;
+  white-space: normal;
+}
