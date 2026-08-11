@@ -29,5 +29,18 @@ export default defineConfig({
   },
   build: {
     target: "es2022",
+    rollupOptions: {
+      output: {
+        // maplibre-gl bootstraps its worker by stringifying its own module-factory
+        // functions (Function.prototype.toString()) into a Blob. Left in the default
+        // chunk, Rolldown's cross-module renaming touches identifiers inside those
+        // functions without updating the stringified copy, so the worker throws
+        // "<name> is not defined" on every GeoJSON source. Its own chunk keeps its
+        // scope untouched by the rest of the bundle.
+        manualChunks(id: string) {
+          if (id.includes("maplibre-gl")) return "maplibre-gl";
+        },
+      },
+    },
   },
 });
