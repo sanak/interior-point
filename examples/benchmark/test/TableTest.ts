@@ -61,9 +61,9 @@ describe("renderTable", () => {
       "Total (ms)",
       "pts per s",
       "interior",
-      "on-\ngeometry",
-      "off-\ngeometry",
-      "un-\nverifiable",
+      "on-geo\nmetry",
+      "off-geo\nmetry",
+      "unveri\nfiable",
       "errors",
     ]);
     assert.equal(container.querySelectorAll("tbody tr.result-row").length, 2);

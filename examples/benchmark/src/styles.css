@@ -114,7 +114,10 @@ body {
 }
 
 .results-table th.wrap-header {
-  white-space: pre-line;
+  /* pre, not pre-line: the table's auto layout would otherwise squeeze this
+     column by wrapping again at the "-", turning the intended two lines into
+     three. */
+  white-space: pre;
   line-height: 1.2;
 }
 

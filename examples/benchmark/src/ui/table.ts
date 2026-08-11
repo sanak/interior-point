@@ -12,15 +12,16 @@ const HEADERS = [
   "Total (ms)",
   "pts per s",
   "interior",
-  "on-\ngeometry",
-  "off-\ngeometry",
-  "un-\nverifiable",
+  "on-geo\nmetry",
+  "off-geo\nmetry",
+  "unveri\nfiable",
   "errors",
 ] as const;
 
-// The three verification headers wrap onto two lines so their columns don't
-// force the whole table wider than the numbers inside them need.
-const WRAPPED_HEADERS = new Set(["on-\ngeometry", "off-\ngeometry", "un-\nverifiable"]);
+// The three verification headers wrap onto two lines, split near their
+// midpoint rather than at "on-"/"off-", so neither line dictates a wide
+// column on its own.
+const WRAPPED_HEADERS = new Set(["on-geo\nmetry", "off-geo\nmetry", "unveri\nfiable"]);
 
 export interface TableCallbacks {
   onRun(id: string): void;
