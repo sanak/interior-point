@@ -50,6 +50,7 @@ export default defineConfig({
     nav: [
       { text: "Getting Started", link: "/guide" },
       { text: "CLI", link: "/cli" },
+      { text: "Benchmark", link: "https://sanak.github.io/interior-point/examples/benchmark/" },
       {
         text: "API Reference",
         items: [
