@@ -14,17 +14,25 @@ describe("ADAPTER_COLORS", () => {
 });
 
 describe("ADAPTERS", () => {
-  it("holds rows 1 through 4 and row 8, in ledger order", () => {
+  it("holds rows 1 through 5, 8 and 9, in ledger order", () => {
     assert.deepEqual(
       ADAPTERS.map((adapter) => adapter.id),
-      ["ts-interior-point", "ts-centroid-first", "rs-interior-point", "rs-centroid-first", "geo-wasm"],
+      ["ts-interior-point", "ts-centroid-first", "rs-interior-point", "rs-centroid-first", "jsts", "geo-wasm", "turf"],
     );
   });
 
-  it("names the calls the ledger records for rows 1 through 4 and row 8", () => {
+  it("names the calls the ledger records for rows 1 through 5, 8 and 9", () => {
     assert.deepEqual(
       ADAPTERS.map((adapter) => adapter.call),
-      ["interiorPoint", "centroidFirstInteriorPoint", "interiorPoint", "centroidFirstInteriorPoint", "interior_point"],
+      [
+        "interiorPoint",
+        "centroidFirstInteriorPoint",
+        "interiorPoint",
+        "centroidFirstInteriorPoint",
+        "Geometry#getInteriorPoint",
+        "interior_point",
+        "pointOnFeature",
+      ],
     );
   });
 
