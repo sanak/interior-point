@@ -8,6 +8,19 @@ import { isEmptyGeometry } from "./geometry.ts";
 /** The column hyparquet decodes GeoParquet geometry into. */
 const GEOMETRY_COLUMN = "geometry";
 
+/**
+ * hyparquet decodes int64 columns (e.g. GDAL's fid) as BigInt, which neither
+ * JSON nor MapLibre's worker postMessage can serialize. GeoJSON has no BigInt
+ * type, so this narrows every such value to a plain number.
+ */
+function toJsonSafe(properties: Record<string, unknown>): Record<string, unknown> {
+  const safe: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(properties)) {
+    safe[key] = typeof value === "bigint" ? Number(value) : value;
+  }
+  return safe;
+}
+
 /** Reads GeoParquet bytes into a dataset, skipping geometries with no coordinates. */
 export async function parquetToDataset(bytes: ArrayBuffer, name: string): Promise<Dataset> {
   const rows = await parquetReadObjects({ file: bytes, compressors });
@@ -24,7 +37,7 @@ export async function parquetToDataset(bytes: ArrayBuffer, name: string): Promis
     }
     const { [GEOMETRY_COLUMN]: _geometry, ...properties } = row as Record<string, unknown>;
     geometries.push(geometry);
-    features.push({ type: "Feature", geometry, properties: properties as Feature["properties"] });
+    features.push({ type: "Feature", geometry, properties: toJsonSafe(properties) as Feature["properties"] });
   }
 
   return { name, geometries, features, skipped };
