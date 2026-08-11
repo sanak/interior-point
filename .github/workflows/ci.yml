@@ -33,6 +33,19 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            rs
+            examples/benchmark/geo-wasm
+      # Same pin as test-wasm.yml — this build has to match what that job already verified,
+      # not pick up whatever wasm-pack happens to be newest on release day.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack@0.15.0
       - uses: pnpm/action-setup@v6
         with:
           version: 11
@@ -43,6 +56,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:js
       - run: pnpm docs:build
+      - run: pnpm examples:wasm
+      - run: pnpm examples:build
+      # examples/benchmark's own base is /interior-point/examples/benchmark/, so this is the one
+      # path inside docs/.vitepress/dist that makes the built app resolve there once the whole
+      # tree is uploaded as the Pages artifact below.
+      - run: mkdir -p docs/.vitepress/dist/examples && cp -r examples/benchmark/dist docs/.vitepress/dist/examples/benchmark
       - uses: actions/upload-pages-artifact@v5
         with:
           path: docs/.vitepress/dist

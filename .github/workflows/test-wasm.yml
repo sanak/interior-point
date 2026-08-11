@@ -16,7 +16,9 @@ jobs:
           targets: wasm32-unknown-unknown
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: rs
+          workspaces: |
+            rs
+            examples/benchmark/geo-wasm
       # Pinned: an unpinned tool takes whatever is newest, so an upstream release could
       # turn this job red with nothing in the repository having changed.
       - uses: taiki-e/install-action@v2
@@ -28,6 +30,8 @@ jobs:
       # because wasm-pack defaults to a release build, so the two share the compiled
       # dependency tree rather than building it twice in two profiles.
       - run: cd rs && cargo build --release -p interior-point-wasm --target wasm32-unknown-unknown
+      - run: cd examples/benchmark/geo-wasm && cargo fmt --check
+      - run: cd examples/benchmark/geo-wasm && cargo clippy --all-targets -- -D warnings
       # The command CLAUDE.md documents, on wasm-pack's default bundler target.
       - run: cd rs/wasm && wasm-pack build
       - run: cd rs/wasm && wasm-pack build --target nodejs --out-dir pkg-node
@@ -63,3 +67,27 @@ jobs:
           console.log(`wasm smoke ok: ${declared.length} bindings`);
           EOF
           node smoke.cjs
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:js
+      # Builds rs/wasm a third time in this job — `--target web --out-dir pkg-web`, distinct from
+      # the `pkg`/`pkg-node` directories the steps above already wrote — and geo-wasm for the
+      # first time. Three different `--out-dir` names under the same `rs/wasm` crate do not
+      # collide; this is what examples/benchmark's own `vite.config.ts` and `tsconfig.json`
+      # already alias both packages to.
+      - run: pnpm examples:wasm
+      # tsc resolves `interior-point-wasm` and `geo-wasm` through tsconfig paths pointing at the
+      # .d.ts files the step above just wrote, so this is the one job that can typecheck them.
+      - run: pnpm --filter @interior-point/benchmark run typecheck
+      - run: pnpm test:examples
+      # A PR that only breaks bundling (not typechecking) must still fail before merge — the repo
+      # convention this job follows is "test-wasm gates PRs on the SPA's typecheck and vite build."
+      # This build's output is discarded; only exit code matters here. The docs job below runs the
+      # same command again to produce the artifact it actually deploys.
+      - run: pnpm examples:build
