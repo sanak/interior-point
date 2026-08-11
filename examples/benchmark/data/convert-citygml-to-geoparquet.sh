@@ -26,9 +26,15 @@ mkdir -p "$(dirname "$OUT")"
 
 for gml in "${gmls[@]}"; do
   echo "Converting $(basename "$gml")"
+  # -lco GEOMETRY_NAME=geometry: the .gfs template names the geometry field
+  # lod0RoofEdge, but hyparquet's GeoParquet reader (Task 3) expects "geometry".
+  # -nlt MULTIPOLYGON: LOD0 roof edges come out of GML as MultiSurface, a
+  # curve-capable WKB type hyparquet's decoder does not support; forcing the
+  # linear-only MultiPolygon type here keeps the output plain WKB.
   ogr2ogr -f GPKG "$GPKG" "$gml" \
     --config GML_GFS_TEMPLATE "$HERE/bldg_lod0_roof_edge.gfs" \
     -nln buildings -update -append \
+    -lco GEOMETRY_NAME=geometry -nlt MULTIPOLYGON \
     -dim 2 -s_srs EPSG:6697 -t_srs EPSG:4326
 done
 
