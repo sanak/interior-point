@@ -113,6 +113,11 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.results-table th.wrap-header {
+  white-space: pre-line;
+  line-height: 1.2;
+}
+
 .results-table .swatch {
   display: inline-block;
   width: 0.75rem;
