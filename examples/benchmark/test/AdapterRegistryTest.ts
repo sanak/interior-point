@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import type { Polygon } from "geojson";
 import { ADAPTER_COLORS, ADAPTERS } from "../src/adapters/index.ts";
+import { tsCentroidFirstAdapter, tsInteriorPointAdapter } from "../src/adapters/tsInteriorPoint.ts";
 
 describe("ADAPTER_COLORS", () => {
   it("holds one color per ledger row, nine in all", () => {
@@ -13,17 +14,17 @@ describe("ADAPTER_COLORS", () => {
 });
 
 describe("ADAPTERS", () => {
-  it("holds the two TypeScript rows, in ledger order", () => {
+  it("holds rows 1 through 4, in ledger order", () => {
     assert.deepEqual(
       ADAPTERS.map((adapter) => adapter.id),
-      ["ts-interior-point", "ts-centroid-first"],
+      ["ts-interior-point", "ts-centroid-first", "rs-interior-point", "rs-centroid-first"],
     );
   });
 
-  it("names the calls the ledger records for rows 1 and 2", () => {
+  it("names the calls the ledger records for rows 1 through 4", () => {
     assert.deepEqual(
       ADAPTERS.map((adapter) => adapter.call),
-      ["interiorPoint", "centroidFirstInteriorPoint"],
+      ["interiorPoint", "centroidFirstInteriorPoint", "interiorPoint", "centroidFirstInteriorPoint"],
     );
   });
 
@@ -33,6 +34,9 @@ describe("ADAPTERS", () => {
     }
   });
 
+  // Restricted to the TypeScript rows: rs-interior-point and rs-centroid-first need a real wasm
+  // instantiation, which node --test cannot provide. RsWasmAdapterTest.ts checks their static
+  // fields instead, and manual browser verification checks the actual wasm call.
   it("throws if interiorPoint is called before load()", () => {
     const square: Polygon = {
       type: "Polygon",
@@ -46,7 +50,7 @@ describe("ADAPTERS", () => {
         ],
       ],
     };
-    for (const adapter of ADAPTERS) {
+    for (const adapter of [tsInteriorPointAdapter, tsCentroidFirstAdapter]) {
       assert.throws(() => adapter.interiorPoint(square));
     }
   });
@@ -64,7 +68,7 @@ describe("ADAPTERS", () => {
         ],
       ],
     };
-    for (const adapter of ADAPTERS) {
+    for (const adapter of [tsInteriorPointAdapter, tsCentroidFirstAdapter]) {
       await adapter.load();
       const point = adapter.interiorPoint(square);
       assert.notEqual(point, null);

@@ -1,4 +1,5 @@
 import type { Adapter } from "../types.ts";
+import { rsCentroidFirstAdapter, rsInteriorPointAdapter } from "./rsWasm.ts";
 import { tsCentroidFirstAdapter, tsInteriorPointAdapter } from "./tsInteriorPoint.ts";
 
 export const ADAPTER_COLORS: Record<string, string> = {
@@ -13,4 +14,9 @@ export const ADAPTER_COLORS: Record<string, string> = {
   turf: "#999999",
 };
 
-export const ADAPTERS: readonly Adapter[] = [tsInteriorPointAdapter, tsCentroidFirstAdapter];
+export const ADAPTERS: readonly Adapter[] = [
+  tsInteriorPointAdapter,
+  tsCentroidFirstAdapter,
+  rsInteriorPointAdapter,
+  rsCentroidFirstAdapter,
+];
