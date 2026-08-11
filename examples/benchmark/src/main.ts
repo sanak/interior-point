@@ -6,6 +6,7 @@ import { runAdapter } from "./bench/run.ts";
 import { loadParquetDataset } from "./data/parquet.ts";
 import { renderTable } from "./ui/table.ts";
 import { createBenchmarkMap } from "./ui/map.ts";
+import { installDropZone } from "./ui/drop.ts";
 import type { Dataset } from "./types.ts";
 
 function requireElement<T extends Element>(selector: string): T {
@@ -61,14 +62,33 @@ runAllButton.addEventListener("click", () => {
   })();
 });
 
+const dropError = document.querySelector<HTMLParagraphElement>("#drop-error");
+
+function showDropError(message: string): void {
+  if (dropError) {
+    dropError.textContent = message;
+    dropError.hidden = false;
+  }
+}
+
+function adoptDataset(next: Dataset): void {
+  dataset = next;
+  if (dropError) {
+    dropError.hidden = true;
+  }
+  table.reset();
+  map.clearResults();
+  map.setDataset(next);
+  statusEl.textContent = `${next.name}: ${next.geometries.length} geometries (${next.skipped} skipped)`;
+}
+
+installDropZone(document.body, adoptDataset, showDropError);
+
 const DATASET_URL = `${import.meta.env.BASE_URL}data/plateau-hiroshima-bldg.parquet`;
 
 loadParquetDataset(DATASET_URL, "PLATEAU Hiroshima buildings")
   .then((loadedDataset) => {
-    dataset = loadedDataset;
-    map.setDataset(dataset);
-    statusEl.textContent =
-      `${loadedDataset.name} — ${loadedDataset.geometries.length} geometries ` + `(${loadedDataset.skipped} skipped)`;
+    adoptDataset(loadedDataset);
     runAllButton.disabled = false;
   })
   .catch((error: unknown) => {
