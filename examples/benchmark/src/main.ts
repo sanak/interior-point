@@ -5,6 +5,7 @@ import { ADAPTERS } from "./adapters/index.ts";
 import { runAdapter } from "./bench/run.ts";
 import { loadParquetDataset } from "./data/parquet.ts";
 import { renderTable } from "./ui/table.ts";
+import { createBenchmarkMap } from "./ui/map.ts";
 import type { Dataset } from "./types.ts";
 
 function requireElement<T extends Element>(selector: string): T {
@@ -23,10 +24,11 @@ let dataset: Dataset | null = null;
 let running = false;
 const loaded = new Set<string>();
 
+const map = createBenchmarkMap(document.querySelector("#map") as HTMLElement);
+
 const table = renderTable(resultsEl, ADAPTERS, {
   onRun: (id) => void runOne(id),
-  // The map module arrives in a later task; until then a layer toggle has nothing to show.
-  onToggleLayer: () => {},
+  onToggleLayer: (id, visible) => map.setLayerVisible(id, visible),
 });
 
 async function runOne(id: string): Promise<void> {
@@ -42,6 +44,7 @@ async function runOne(id: string): Promise<void> {
   try {
     const result = await runAdapter(adapter, dataset, loaded);
     table.setResult(id, result);
+    map.setPoints(adapter.id, result.points);
   } catch (error) {
     table.setError(id, error instanceof Error ? error.message : String(error));
   } finally {
@@ -63,6 +66,7 @@ const DATASET_URL = `${import.meta.env.BASE_URL}data/plateau-hiroshima-bldg.parq
 loadParquetDataset(DATASET_URL, "PLATEAU Hiroshima buildings")
   .then((loadedDataset) => {
     dataset = loadedDataset;
+    map.setDataset(dataset);
     statusEl.textContent =
       `${loadedDataset.name} — ${loadedDataset.geometries.length} geometries ` + `(${loadedDataset.skipped} skipped)`;
     runAllButton.disabled = false;
