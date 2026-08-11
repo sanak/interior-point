@@ -5,6 +5,7 @@ import { jstsAdapter } from "./jsts.ts";
 import { rsCentroidFirstAdapter, rsInteriorPointAdapter } from "./rsWasm.ts";
 import { tsCentroidFirstAdapter, tsInteriorPointAdapter } from "./tsInteriorPoint.ts";
 import { turfAdapter } from "./turf.ts";
+import { wasmtsAdapter } from "./wasmts.ts";
 
 export const ADAPTER_COLORS: Record<string, string> = {
   "ts-interior-point": "#E69F00",
@@ -24,6 +25,7 @@ export const ADAPTERS: readonly Adapter[] = [
   rsInteriorPointAdapter,
   rsCentroidFirstAdapter,
   jstsAdapter,
+  wasmtsAdapter,
   geosWasmAdapter,
   geoWasmAdapter,
   turfAdapter,

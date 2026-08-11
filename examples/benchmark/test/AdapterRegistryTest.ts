@@ -14,7 +14,7 @@ describe("ADAPTER_COLORS", () => {
 });
 
 describe("ADAPTERS", () => {
-  it("holds rows 1 through 5, 7, 8 and 9, in ledger order", () => {
+  it("holds rows 1 through 9, in ledger order", () => {
     assert.deepEqual(
       ADAPTERS.map((adapter) => adapter.id),
       [
@@ -23,6 +23,7 @@ describe("ADAPTERS", () => {
         "rs-interior-point",
         "rs-centroid-first",
         "jsts",
+        "wasmts",
         "geos-wasm",
         "geo-wasm",
         "turf",
@@ -30,7 +31,7 @@ describe("ADAPTERS", () => {
     );
   });
 
-  it("names the calls the ledger records for rows 1 through 5, 7, 8 and 9", () => {
+  it("names the calls the ledger records for rows 1 through 9", () => {
     assert.deepEqual(
       ADAPTERS.map((adapter) => adapter.call),
       [
@@ -39,6 +40,7 @@ describe("ADAPTERS", () => {
         "interiorPoint",
         "centroidFirstInteriorPoint",
         "Geometry#getInteriorPoint",
+        "InteriorPoint.getInteriorPoint",
         "GEOSPointOnSurface",
         "interior_point",
         "pointOnFeature",
