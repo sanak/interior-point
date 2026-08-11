@@ -23,6 +23,14 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   prettier,
   {
+    // Rest-destructuring a known key off an object just to drop it from the rest
+    // (e.g. splitting a GeoParquet row into its geometry column and its properties)
+    // is intentional, not dead code.
+    rules: {
+      "@typescript-eslint/no-unused-vars": ["error", { ignoreRestSiblings: true }],
+    },
+  },
+  {
     languageOptions: {
       parserOptions: {
         projectService: {
