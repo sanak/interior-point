@@ -1,5 +1,6 @@
 import type { Adapter } from "../types.ts";
 import { geoWasmAdapter } from "./geoWasm.ts";
+import { geosWasmAdapter } from "./geosWasm.ts";
 import { jstsAdapter } from "./jsts.ts";
 import { rsCentroidFirstAdapter, rsInteriorPointAdapter } from "./rsWasm.ts";
 import { tsCentroidFirstAdapter, tsInteriorPointAdapter } from "./tsInteriorPoint.ts";
@@ -23,6 +24,7 @@ export const ADAPTERS: readonly Adapter[] = [
   rsInteriorPointAdapter,
   rsCentroidFirstAdapter,
   jstsAdapter,
+  geosWasmAdapter,
   geoWasmAdapter,
   turfAdapter,
 ];
