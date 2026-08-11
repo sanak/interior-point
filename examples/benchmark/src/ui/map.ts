@@ -78,13 +78,20 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
 
   // Setting a new style wipes every custom source and layer, so everything is
   // rebuilt from local state on style.load — which also covers the initial load.
+  // `styleReady` tracks readiness ourselves instead of calling `map.isStyleLoaded()`:
+  // that also goes false while a just-added GeoJSON source is still being tiled,
+  // which happens on every `setPoints` call during "Run all" and would otherwise
+  // drop a layer for good, since style.load never fires again outside setStyle().
+  let styleReady = false;
   const restoreLayers = (): void => {
+    styleReady = true;
     addDatasetLayers();
     for (const id of points.keys()) addPointLayer(id);
   };
   map.on("style.load", restoreLayers);
 
   const onSchemeChange = (event: MediaQueryListEvent): void => {
+    styleReady = false;
     map.setStyle(styleUrl(event.matches));
   };
   darkQuery.addEventListener("change", onSchemeChange);
@@ -100,7 +107,7 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
     setPoints(id: string, next: readonly (Position | null)[]): void {
       const known = points.has(id);
       points.set(id, next);
-      if (!map.isStyleLoaded()) return; // restoreLayers picks it up on style.load
+      if (!styleReady) return; // restoreLayers picks it up on style.load
       if (known) {
         (map.getSource(pointLayerId(id)) as GeoJSONSource).setData(pointsCollection(next));
       } else {
