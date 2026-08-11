@@ -113,6 +113,14 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.results-table th.wrap-header {
+  /* pre, not pre-line: the table's auto layout would otherwise squeeze this
+     column by wrapping again at the "-", turning the intended two lines into
+     three. */
+  white-space: pre;
+  line-height: 1.2;
+}
+
 .results-table .swatch {
   display: inline-block;
   width: 0.75rem;

@@ -6,17 +6,22 @@ const EMPTY = "—";
 const HEADERS = [
   "Library",
   "Call",
+  "show",
+  "Run",
   "Load (ms)",
   "Total (ms)",
   "pts per s",
   "interior",
-  "on-geometry",
-  "off-geometry",
-  "unverifiable",
+  "on-geo\nmetry",
+  "off-geo\nmetry",
+  "unveri\nfiable",
   "errors",
-  "show",
-  "Run",
 ] as const;
+
+// The three verification headers wrap onto two lines, split near their
+// midpoint rather than at "on-"/"off-", so neither line dictates a wide
+// column on its own.
+const WRAPPED_HEADERS = new Set(["on-geo\nmetry", "off-geo\nmetry", "unveri\nfiable"]);
 
 export interface TableCallbacks {
   onRun(id: string): void;
@@ -56,18 +61,57 @@ export function renderTable(
   const table = doc.createElement("table");
   table.className = "results-table";
 
+  const tbody = doc.createElement("tbody");
+  const rows = new Map<string, Row>();
+
+  // Toggles every row whose checkbox has a result to show, mirroring the row
+  // checkboxes' own semantics rather than reaching into rows still loading.
+  const selectAllCheckbox = doc.createElement("input");
+  selectAllCheckbox.type = "checkbox";
+  selectAllCheckbox.disabled = true;
+  selectAllCheckbox.title = "Toggle all";
+
+  const updateSelectAllState = (): void => {
+    const enabled = [...rows.values()].filter((row) => !row.checkbox.disabled);
+    if (enabled.length === 0) {
+      selectAllCheckbox.disabled = true;
+      selectAllCheckbox.checked = false;
+      selectAllCheckbox.indeterminate = false;
+      return;
+    }
+    selectAllCheckbox.disabled = false;
+    const checkedCount = enabled.filter((row) => row.checkbox.checked).length;
+    selectAllCheckbox.checked = checkedCount === enabled.length;
+    selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < enabled.length;
+  };
+
+  selectAllCheckbox.addEventListener("change", () => {
+    for (const row of rows.values()) {
+      if (row.checkbox.disabled || row.checkbox.checked === selectAllCheckbox.checked) {
+        continue;
+      }
+      row.checkbox.checked = selectAllCheckbox.checked;
+      callbacks.onToggleLayer(row.element.getAttribute("data-adapter-id") ?? "", selectAllCheckbox.checked);
+    }
+    updateSelectAllState();
+  });
+
   const thead = doc.createElement("thead");
   const headRow = doc.createElement("tr");
   for (const header of HEADERS) {
     const th = doc.createElement("th");
-    th.textContent = header;
+    if (header === "show") {
+      th.appendChild(selectAllCheckbox);
+    } else {
+      if (WRAPPED_HEADERS.has(header)) {
+        th.className = "wrap-header";
+      }
+      th.textContent = header;
+    }
     headRow.appendChild(th);
   }
   thead.appendChild(headRow);
   table.appendChild(thead);
-
-  const tbody = doc.createElement("tbody");
-  const rows = new Map<string, Row>();
 
   for (const adapter of adapters) {
     const tr = doc.createElement("tr");
@@ -87,20 +131,14 @@ export function renderTable(
     callCell.textContent = adapter.call;
     tr.appendChild(callCell);
 
-    const resultCells: HTMLTableCellElement[] = [];
-    for (let index = 0; index < 8; index += 1) {
-      const td = doc.createElement("td");
-      td.className = "num";
-      td.textContent = EMPTY;
-      resultCells.push(td);
-      tr.appendChild(td);
-    }
-
     const showCell = doc.createElement("td");
     const checkbox = doc.createElement("input");
     checkbox.type = "checkbox";
     checkbox.disabled = true;
-    checkbox.addEventListener("change", () => callbacks.onToggleLayer(adapter.id, checkbox.checked));
+    checkbox.addEventListener("change", () => {
+      callbacks.onToggleLayer(adapter.id, checkbox.checked);
+      updateSelectAllState();
+    });
     showCell.appendChild(checkbox);
     tr.appendChild(showCell);
 
@@ -112,6 +150,15 @@ export function renderTable(
     runButton.addEventListener("click", () => callbacks.onRun(adapter.id));
     runCell.appendChild(runButton);
     tr.appendChild(runCell);
+
+    const resultCells: HTMLTableCellElement[] = [];
+    for (let index = 0; index < 8; index += 1) {
+      const td = doc.createElement("td");
+      td.className = "num";
+      td.textContent = EMPTY;
+      resultCells.push(td);
+      tr.appendChild(td);
+    }
 
     const errorRow = doc.createElement("tr");
     errorRow.className = "error-row";
@@ -165,6 +212,7 @@ export function renderTable(
       // Programmatic `checked` fires no change event, so this never reaches onToggleLayer.
       row.checkbox.disabled = false;
       row.checkbox.checked = true;
+      updateSelectAllState();
     },
     setError(id: string, message: string): void {
       const row = rowFor(id);
@@ -185,6 +233,7 @@ export function renderTable(
         row.errorRow.hidden = true;
         row.errorCell.textContent = "";
       }
+      updateSelectAllState();
     },
   };
 }
