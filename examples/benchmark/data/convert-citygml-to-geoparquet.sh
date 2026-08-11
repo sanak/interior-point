@@ -27,7 +27,7 @@ mkdir -p "$(dirname "$OUT")"
 for gml in "${gmls[@]}"; do
   echo "Converting $(basename "$gml")"
   # -lco GEOMETRY_NAME=geometry: the .gfs template names the geometry field
-  # lod0RoofEdge, but hyparquet's GeoParquet reader (Task 3) expects "geometry".
+  # lod0RoofEdge, but src/data/parquet.ts expects "geometry".
   # -nlt MULTIPOLYGON: LOD0 roof edges come out of GML as MultiSurface, a
   # curve-capable WKB type hyparquet's decoder does not support; forcing the
   # linear-only MultiPolygon type here keeps the output plain WKB.
