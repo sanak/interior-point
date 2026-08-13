@@ -62,6 +62,15 @@ export default tseslint.config(
     },
   },
   {
+    // wasm-bindgen JS snippets (`#[wasm_bindgen(module = "/js/...")]`) and their hand-written
+    // `.d.ts` declarations: outside any tsconfig project, same reasoning as scripts/**/*.mjs
+    // above. Consumers still get full type checking wherever they import the `.d.ts`.
+    files: ["rs/wasm/js/**/*.js", "rs/wasm/js/**/*.d.ts"],
+    languageOptions: {
+      parserOptions: { projectService: false, project: false },
+    },
+  },
+  {
     // Ported code mirrors the Java statement structure, including declarations JTS
     // initializes before an if/else chain that always assigns. Preserving that shape
     // is what keeps a file diffable against `upstream/jts/main/`.
