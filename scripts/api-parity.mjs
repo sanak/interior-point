@@ -101,9 +101,37 @@ const WASM_ITEM_RE = /^(?:\s*(?:#\[[^\]]*\]|\/\/[^\n]*))*\s*pub\s+(?:fn|struct|e
  * the name it was written with. `js_name` is the only thing that changes a name,
  * which is why every binding in this repository carries one.
  */
+/**
+ * The `[start, end)` span of every `extern "C"` block, so the scan below can skip
+ * what they hold. An `extern` block declares the JavaScript functions the crate
+ * *calls*: a `js_name` inside one names something the Rust side imports, which is
+ * the opposite direction from the surface this manifest tracks. Counting one would
+ * report a member nobody can declare, since declaring it would then claim the name
+ * for the other two targets as well.
+ *
+ * Brace counting is enough because an `extern` block holds signatures alone — no
+ * bodies, and no type in one carries a brace.
+ */
+function externSpans(source) {
+  const spans = [];
+  for (const match of source.matchAll(/\bextern\s*"C"\s*\{/g)) {
+    let depth = 1;
+    let index = match.index + match[0].length;
+    while (index < source.length && depth > 0) {
+      if (source[index] === "{") depth += 1;
+      else if (source[index] === "}") depth -= 1;
+      index += 1;
+    }
+    spans.push([match.index, index]);
+  }
+  return spans;
+}
+
 export function extractWasmExports(source) {
   const names = new Set();
+  const imports = externSpans(source);
   for (const match of source.matchAll(/#\[wasm_bindgen(?:\(([^)]*)\))?\]/g)) {
+    if (imports.some(([from, to]) => match.index > from && match.index < to)) continue;
     const jsName = (match[1] ?? "").match(/js_name\s*=\s*"([^"]+)"/);
     if (jsName) {
       names.add(jsName[1]);

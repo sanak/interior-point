@@ -134,6 +134,24 @@ describe("extractWasmExports", () => {
   it("ignores an attribute on an item that is not published", () => {
     assert.deepEqual([...extractWasmExports(`#[wasm_bindgen]\nfn private_helper() {}\n`)], []);
   });
+
+  it("ignores a binding an extern block imports from JavaScript", () => {
+    // `js_name` inside `extern "C"` names a function the crate calls, not one it
+    // publishes, so it is not part of the surface the manifest declares.
+    const source = [
+      `#[wasm_bindgen(module = "/js/flatten.js")]`,
+      `extern "C" {`,
+      `    /// Doc comment.`,
+      `    #[wasm_bindgen(js_name = "flattenGeometry", catch)]`,
+      `    fn flatten_geometry(geometry: &JsValue) -> Result<js_sys::Float64Array, JsValue>;`,
+      `}`,
+      ``,
+      `#[wasm_bindgen(js_name = "interiorPoint")]`,
+      `pub fn interior_point_wasm() {}`,
+      ``,
+    ].join("\n");
+    assert.deepEqual([...extractWasmExports(source)], ["interiorPoint"]);
+  });
 });
 
 describe("checkSurface", () => {
