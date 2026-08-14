@@ -19,6 +19,8 @@ pub enum DecodeError {
     TruncatedCoords,
     /// The geometry was read but one of the arrays still had values left.
     TrailingData,
+    /// A `GeometryCollection` nested past `MAX_DEPTH`.
+    NestingTooDeep,
 }
 
 impl core::fmt::Display for DecodeError {
@@ -28,9 +30,25 @@ impl core::fmt::Display for DecodeError {
             DecodeError::TruncatedStructure => write!(f, "structure array ended early"),
             DecodeError::TruncatedCoords => write!(f, "coordinate array ended early"),
             DecodeError::TrailingData => write!(f, "trailing data after the geometry"),
+            DecodeError::NestingTooDeep => {
+                write!(
+                    f,
+                    "geometry nesting exceeded the limit of {MAX_DEPTH} levels"
+                )
+            }
         }
     }
 }
+
+/// The deepest chain of nested `GeometryCollection`s `geometry()` will follow before returning
+/// `NestingTooDeep` instead of recursing further.
+///
+/// Real GeoJSON nests one or two levels; `js/flatten.js` is itself recursive, so it cannot
+/// produce anything deep either. 64 is generous by orders of magnitude while sitting far below
+/// any stack limit on any target this crate compiles for — including wasm32's roughly 1MB
+/// default stack, an order of magnitude smaller than a native release build's. The point is to
+/// be nowhere near a measured crash threshold, not to sit just under one.
+const MAX_DEPTH: usize = 64;
 
 pub fn decode(coords: &[f64], structure: &[u32]) -> Result<Geometry<f64>, DecodeError> {
     let mut reader = Reader {
@@ -38,6 +56,7 @@ pub fn decode(coords: &[f64], structure: &[u32]) -> Result<Geometry<f64>, Decode
         structure,
         ci: 0,
         si: 0,
+        depth: 0,
     };
     let geometry = reader.geometry()?;
     if reader.si != structure.len() || reader.ci != coords.len() {
@@ -51,6 +70,9 @@ struct Reader<'a> {
     structure: &'a [u32],
     ci: usize,
     si: usize,
+    /// Current `GeometryCollection` nesting depth. Incremented on entry to `geometry()` and
+    /// decremented on exit, so it reflects the live call chain rather than a running total.
+    depth: usize,
 }
 
 impl Reader<'_> {
@@ -101,7 +123,19 @@ impl Reader<'_> {
         Ok(Polygon::new(exterior, rings))
     }
 
+    /// Depth-checked entry point: every recursive call goes through here rather than through
+    /// `geometry_body` directly, so the bound applies uniformly instead of only at the top level.
     fn geometry(&mut self) -> Result<Geometry<f64>, DecodeError> {
+        if self.depth >= MAX_DEPTH {
+            return Err(DecodeError::NestingTooDeep);
+        }
+        self.depth += 1;
+        let result = self.geometry_body();
+        self.depth -= 1;
+        result
+    }
+
+    fn geometry_body(&mut self) -> Result<Geometry<f64>, DecodeError> {
         Ok(match self.count()? as u32 {
             1 => Geometry::Point(Point::from(self.coord()?)),
             2 => {
@@ -256,5 +290,30 @@ mod tests {
             Err(DecodeError::TrailingData)
         );
         assert_eq!(decode(&[1.0, 2.0], &[1, 7]), Err(DecodeError::TrailingData));
+    }
+
+    #[test]
+    fn decodes_a_geometry_collection_nested_a_few_levels_deep() {
+        // GeometryCollection(GeometryCollection(GeometryCollection(Point))) — well inside
+        // MAX_DEPTH, proving the bound doesn't reject ordinary nesting.
+        let point = Geometry::Point(Point::new(1.0, 2.0));
+        let innermost = Geometry::GeometryCollection(GeometryCollection(vec![point]));
+        let middle = Geometry::GeometryCollection(GeometryCollection(vec![innermost]));
+        let outer = Geometry::GeometryCollection(GeometryCollection(vec![middle]));
+        let decoded = decode(&[1.0, 2.0], &[7, 1, 7, 1, 7, 1, 1]).unwrap();
+        assert_eq!(decoded, outer);
+    }
+
+    #[test]
+    fn rejects_nesting_deeper_than_the_limit() {
+        // MAX_DEPTH + 1 nested GeometryCollections, each holding exactly one child, built
+        // programmatically rather than as a literal. The decoder must return NestingTooDeep
+        // before it ever runs out of structure entries or coordinates to read.
+        let mut structure = Vec::new();
+        for _ in 0..=MAX_DEPTH {
+            structure.push(7);
+            structure.push(1);
+        }
+        assert_eq!(decode(&[], &structure), Err(DecodeError::NestingTooDeep));
     }
 }
