@@ -116,7 +116,7 @@ describe("renderTable", () => {
     assert.equal(checkbox.checked, true);
   });
 
-  it("shows a dash for a null loadMs", () => {
+  it("shows a dash when no run has measured a load yet", () => {
     const container = createContainer();
     const handle = renderTable(container, [fakeAdapter("ts-interior-point", "TS")], noCallbacks);
     handle.setResult("ts-interior-point", { ...RESULT, loadMs: null });
@@ -124,6 +124,18 @@ describe("renderTable", () => {
       (td) => td.textContent,
     );
     assert.equal(cells[4], "—");
+  });
+
+  it("keeps a measured load when a later run reports none", () => {
+    const container = createContainer();
+    const handle = renderTable(container, [fakeAdapter("ts-interior-point", "TS")], noCallbacks);
+    handle.setResult("ts-interior-point", RESULT);
+    handle.setResult("ts-interior-point", { ...RESULT, loadMs: null, totalMs: 100 });
+    const cells = [...container.querySelectorAll("tr[data-adapter-id='ts-interior-point'] td")].map(
+      (td) => td.textContent,
+    );
+    assert.equal(cells[4], "12.3");
+    assert.equal(cells[5], "100.0");
   });
 
   it("reports checkbox toggles after a result exists", () => {
@@ -202,6 +214,38 @@ describe("renderTable", () => {
     assert.equal(button.disabled, true);
   });
 
+  it("setBusy disables every Run button and releases them all again", () => {
+    const container = createContainer();
+    const handle = renderTable(container, [fakeAdapter("a", "A"), fakeAdapter("b", "B")], noCallbacks);
+    const buttons = [...container.querySelectorAll<HTMLButtonElement>("button.run")];
+    assert.equal(buttons.length, 2);
+
+    handle.setBusy(true);
+    assert.deepEqual(
+      buttons.map((button) => button.disabled),
+      [true, true],
+    );
+
+    handle.setBusy(false);
+    assert.deepEqual(
+      buttons.map((button) => button.disabled),
+      [false, false],
+    );
+  });
+
+  it("keeps the Run buttons disabled while busy, even as rows report results", () => {
+    const container = createContainer();
+    const handle = renderTable(container, [fakeAdapter("a", "A"), fakeAdapter("b", "B")], noCallbacks);
+    handle.setBusy(true);
+    handle.setResult("a", RESULT);
+    handle.setError("b", "boom");
+    const buttons = [...container.querySelectorAll<HTMLButtonElement>("button.run")];
+    assert.deepEqual(
+      buttons.map((button) => button.disabled),
+      [true, true],
+    );
+  });
+
   it("surfaces an error message and re-enables the Run button", () => {
     const container = createContainer();
     const handle = renderTable(container, [fakeAdapter("ts-interior-point", "TS")], noCallbacks);
@@ -219,7 +263,7 @@ describe("renderTable", () => {
     assert.equal(row.classList.contains("is-running"), false);
   });
 
-  it("reset restores the initial state", () => {
+  it("reset clears the measured columns but keeps the load", () => {
     const container = createContainer();
     const handle = renderTable(container, [fakeAdapter("ts-interior-point", "TS")], noCallbacks);
     handle.setResult("ts-interior-point", RESULT);
@@ -228,7 +272,10 @@ describe("renderTable", () => {
     const cells = [...container.querySelectorAll("tr[data-adapter-id='ts-interior-point'] td")].map(
       (td) => td.textContent,
     );
-    for (let index = 4; index <= 11; index += 1) {
+    // Loading is a cost of the page, not of the dataset: a new dataset does not
+    // reload the library, so clearing the column would leave it empty for good.
+    assert.equal(cells[4], "12.3");
+    for (let index = 5; index <= 11; index += 1) {
       assert.equal(cells[index], "—");
     }
     const checkbox = container.querySelector<HTMLInputElement>(

@@ -3,6 +3,9 @@ import { ADAPTER_COLORS } from "../adapters/index.ts";
 
 const EMPTY = "—";
 
+/** The Load column's place in a row's result cells; every later cell is re-measured each run. */
+const LOAD_CELL = 0;
+
 const HEADERS = [
   "Library",
   "Call",
@@ -32,6 +35,8 @@ export interface TableHandle {
   setRunning(id: string): void;
   setResult(id: string, result: RunResult): void;
   setError(id: string, message: string): void;
+  /** Holds every Run button down for the length of a Run all, then releases them. */
+  setBusy(busy: boolean): void;
   reset(): void;
 }
 
@@ -63,6 +68,11 @@ export function renderTable(
 
   const tbody = doc.createElement("tbody");
   const rows = new Map<string, Row>();
+
+  // True for the length of a Run all. Every path that would hand a Run button
+  // back to the user consults it, so a row reporting its result mid-sweep does
+  // not reopen the door the sweep closed.
+  let busy = false;
 
   // Toggles every row whose checkbox has a result to show, mirroring the row
   // checkboxes' own semantics rather than reaching into rows still loading.
@@ -193,8 +203,13 @@ export function renderTable(
     setResult(id: string, result: RunResult): void {
       const row = rowFor(id);
       const verification = result.verification;
-      const values = [
-        result.loadMs === null ? EMPTY : formatMs(result.loadMs),
+      // Only the first run of a library measures a load. Later runs leave the
+      // column holding that first figure instead of blanking it, so pressing
+      // Run all again reports the same table rather than a shorter one.
+      if (result.loadMs !== null) {
+        row.resultCells[LOAD_CELL].textContent = formatMs(result.loadMs);
+      }
+      const measured = [
         formatMs(result.totalMs),
         formatPointsPerSecond(result.pointsPerSecond),
         String(verification.interior),
@@ -203,11 +218,11 @@ export function renderTable(
         String(verification.unverifiable),
         String(result.errors),
       ];
-      row.resultCells.forEach((cell, index) => {
-        cell.textContent = values[index] ?? EMPTY;
+      measured.forEach((value, index) => {
+        row.resultCells[LOAD_CELL + 1 + index].textContent = value;
       });
       row.element.classList.remove("is-running");
-      row.runButton.disabled = false;
+      row.runButton.disabled = busy;
       row.errorRow.hidden = true;
       // Programmatic `checked` fires no change event, so this never reaches onToggleLayer.
       row.checkbox.disabled = false;
@@ -217,15 +232,23 @@ export function renderTable(
     setError(id: string, message: string): void {
       const row = rowFor(id);
       row.element.classList.remove("is-running");
-      row.runButton.disabled = false;
+      row.runButton.disabled = busy;
       row.errorCell.textContent = message;
       row.errorRow.hidden = false;
+    },
+    setBusy(next: boolean): void {
+      busy = next;
+      for (const row of rows.values()) {
+        row.runButton.disabled = busy || row.element.classList.contains("is-running");
+      }
     },
     reset(): void {
       for (const row of rows.values()) {
         row.element.classList.remove("is-running");
-        row.runButton.disabled = false;
-        for (const cell of row.resultCells) {
+        row.runButton.disabled = busy;
+        // The Load column survives: a new dataset does not reload the library,
+        // so blanking it here would leave it empty for the rest of the session.
+        for (const cell of row.resultCells.slice(LOAD_CELL + 1)) {
           cell.textContent = EMPTY;
         }
         row.checkbox.checked = false;
