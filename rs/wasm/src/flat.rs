@@ -1,4 +1,5 @@
-//! Decodes the flat geometry encoding that `js/flatten.js` produces.
+//! Decodes the flat geometry encoding that `js/flatten.js` produces: one `f64` buffer laid out as
+//! `[structureLength, ...structure, ...coords]`.
 //!
 //! The two halves are deliberately split: this module never touches `js_sys`, so it compiles and
 //! runs on the host and its tests need no wasm build. `lib.rs` keeps only the typed-array copy.
@@ -8,16 +9,17 @@ use geo_types::{
     Point, Polygon,
 };
 
-/// Why a `(coords, structure)` pair could not be read as a geometry.
+/// Why a buffer could not be read as a geometry.
 #[derive(Debug, PartialEq, Eq)]
 pub enum DecodeError {
     /// A type tag outside the WKB range this encoding covers.
     UnknownTag(u32),
-    /// The structure array ended while a count or tag was still expected.
+    /// The structure section ended while a count or tag was still expected, or the buffer is
+    /// too short to hold the header and the structure that header declares.
     TruncatedStructure,
-    /// The coordinate array ended while a vertex was still expected.
+    /// The coordinate section ended while a vertex was still expected.
     TruncatedCoords,
-    /// The geometry was read but one of the arrays still had values left.
+    /// The geometry was read but one of the two sections still had values left.
     TrailingData,
     /// A `GeometryCollection` nested past `MAX_DEPTH`.
     NestingTooDeep,
@@ -50,7 +52,16 @@ impl core::fmt::Display for DecodeError {
 /// be nowhere near a measured crash threshold, not to sit just under one.
 const MAX_DEPTH: usize = 64;
 
-pub fn decode(coords: &[f64], structure: &[u32]) -> Result<Geometry<f64>, DecodeError> {
+/// Reads `[structureLength, ...structure, ...coords]`. The counts arrive as `f64` because they
+/// share the coordinates' buffer; each is an integer far below 2^53, where `f64` is exact.
+pub fn decode(buffer: &[f64]) -> Result<Geometry<f64>, DecodeError> {
+    let structure_length = *buffer.first().ok_or(DecodeError::TruncatedStructure)? as usize;
+    let coords_start = structure_length
+        .checked_add(1)
+        .filter(|start| *start <= buffer.len())
+        .ok_or(DecodeError::TruncatedStructure)?;
+    let structure = &buffer[1..coords_start];
+    let coords = &buffer[coords_start..];
     let mut reader = Reader {
         coords,
         structure,
@@ -67,7 +78,7 @@ pub fn decode(coords: &[f64], structure: &[u32]) -> Result<Geometry<f64>, Decode
 
 struct Reader<'a> {
     coords: &'a [f64],
-    structure: &'a [u32],
+    structure: &'a [f64],
     ci: usize,
     si: usize,
     /// Current `GeometryCollection` nesting depth. Incremented on entry to `geometry()` and
@@ -173,17 +184,46 @@ impl Reader<'_> {
 mod tests {
     use super::*;
 
+    /// Lays the two logical halves out the way `js/flatten.js` writes them, so every test below
+    /// can go on naming a structure and a coordinate run. The header's position is pinned by
+    /// `reads_the_structure_length_from_the_first_slot`, which spells a buffer out instead.
+    fn packed(structure: &[f64], coords: &[f64]) -> Vec<f64> {
+        let mut buffer = vec![structure.len() as f64];
+        buffer.extend_from_slice(structure);
+        buffer.extend_from_slice(coords);
+        buffer
+    }
+
+    #[test]
+    fn reads_the_structure_length_from_the_first_slot() {
+        // [structureLength = 1, tag 1, x, y]
+        assert_eq!(
+            decode(&[1.0, 1.0, 1.0, 2.0]).unwrap(),
+            Geometry::Point(Point::new(1.0, 2.0))
+        );
+    }
+
+    #[test]
+    fn rejects_a_buffer_with_no_header() {
+        assert_eq!(decode(&[]), Err(DecodeError::TruncatedStructure));
+    }
+
+    #[test]
+    fn rejects_a_structure_length_reaching_past_the_buffer() {
+        assert_eq!(decode(&[4.0, 1.0]), Err(DecodeError::TruncatedStructure));
+    }
+
     #[test]
     fn decodes_a_point() {
         assert_eq!(
-            decode(&[1.0, 2.0], &[1]).unwrap(),
+            decode(&packed(&[1.0], &[1.0, 2.0])).unwrap(),
             Geometry::Point(Point::new(1.0, 2.0))
         );
     }
 
     #[test]
     fn decodes_a_line_string() {
-        let decoded = decode(&[0.0, 0.0, 3.0, 4.0], &[2, 2]).unwrap();
+        let decoded = decode(&packed(&[2.0, 2.0], &[0.0, 0.0, 3.0, 4.0])).unwrap();
         assert_eq!(
             decoded,
             Geometry::LineString(LineString::from(vec![(0.0, 0.0), (3.0, 4.0)]))
@@ -196,7 +236,8 @@ mod tests {
             0.0, 0.0, 4.0, 0.0, 4.0, 4.0, 0.0, 4.0, 0.0, 0.0, 1.0, 1.0, 2.0, 1.0, 2.0, 2.0, 1.0,
             1.0,
         ];
-        let Geometry::Polygon(polygon) = decode(&coords, &[3, 2, 5, 4]).unwrap() else {
+        let Geometry::Polygon(polygon) = decode(&packed(&[3.0, 2.0, 5.0, 4.0], &coords)).unwrap()
+        else {
             panic!("expected a Polygon");
         };
         assert_eq!(polygon.exterior().0.len(), 5);
@@ -207,7 +248,7 @@ mod tests {
 
     #[test]
     fn decodes_a_multi_point() {
-        let decoded = decode(&[0.0, 0.0, 10.0, 0.0], &[4, 2]).unwrap();
+        let decoded = decode(&packed(&[4.0, 2.0], &[0.0, 0.0, 10.0, 0.0])).unwrap();
         assert_eq!(
             decoded,
             Geometry::MultiPoint(MultiPoint::from(vec![(0.0, 0.0), (10.0, 0.0)]))
@@ -217,7 +258,9 @@ mod tests {
     #[test]
     fn decodes_a_multi_line_string() {
         let coords = [0.0, 0.0, 1.0, 1.0, 2.0, 2.0, 3.0, 3.0, 4.0, 4.0];
-        let Geometry::MultiLineString(lines) = decode(&coords, &[5, 2, 2, 3]).unwrap() else {
+        let Geometry::MultiLineString(lines) =
+            decode(&packed(&[5.0, 2.0, 2.0, 3.0], &coords)).unwrap()
+        else {
             panic!("expected a MultiLineString");
         };
         assert_eq!(lines.0.len(), 2);
@@ -230,7 +273,8 @@ mod tests {
         let mut coords = vec![0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0];
         coords.extend([5.0, 5.0, 6.0, 5.0, 6.0, 6.0, 5.0, 5.0]);
         coords.extend([5.2, 5.2, 5.4, 5.2, 5.4, 5.4, 5.2, 5.2]);
-        let Geometry::MultiPolygon(polygons) = decode(&coords, &[6, 2, 1, 4, 2, 4, 4]).unwrap()
+        let Geometry::MultiPolygon(polygons) =
+            decode(&packed(&[6.0, 2.0, 1.0, 4.0, 2.0, 4.0, 4.0], &coords)).unwrap()
         else {
             panic!("expected a MultiPolygon");
         };
@@ -241,9 +285,11 @@ mod tests {
 
     #[test]
     fn decodes_a_geometry_collection_in_order() {
-        let Geometry::GeometryCollection(children) =
-            decode(&[1.0, 2.0, 0.0, 0.0, 3.0, 4.0], &[7, 2, 1, 2, 2]).unwrap()
-        else {
+        let Geometry::GeometryCollection(children) = decode(&packed(
+            &[7.0, 2.0, 1.0, 2.0, 2.0],
+            &[1.0, 2.0, 0.0, 0.0, 3.0, 4.0],
+        ))
+        .unwrap() else {
             panic!("expected a GeometryCollection");
         };
         assert_eq!(children.0.len(), 2);
@@ -252,25 +298,28 @@ mod tests {
 
     #[test]
     fn decodes_an_empty_geometry_from_a_zero_count() {
-        let Geometry::Polygon(polygon) = decode(&[], &[3, 0]).unwrap() else {
+        let Geometry::Polygon(polygon) = decode(&packed(&[3.0, 0.0], &[])).unwrap() else {
             panic!("expected a Polygon");
         };
         assert!(polygon.exterior().0.is_empty());
         assert_eq!(
-            decode(&[], &[4, 0]).unwrap(),
+            decode(&packed(&[4.0, 0.0], &[])).unwrap(),
             Geometry::MultiPoint(MultiPoint(Vec::new()))
         );
     }
 
     #[test]
     fn rejects_an_unknown_tag() {
-        assert_eq!(decode(&[], &[9]), Err(DecodeError::UnknownTag(9)));
+        assert_eq!(
+            decode(&packed(&[9.0], &[])),
+            Err(DecodeError::UnknownTag(9))
+        );
     }
 
     #[test]
     fn rejects_a_truncated_structure() {
         assert_eq!(
-            decode(&[0.0, 0.0], &[2]),
+            decode(&packed(&[2.0], &[0.0, 0.0])),
             Err(DecodeError::TruncatedStructure)
         );
     }
@@ -278,7 +327,7 @@ mod tests {
     #[test]
     fn rejects_truncated_coordinates() {
         assert_eq!(
-            decode(&[0.0, 0.0], &[2, 2]),
+            decode(&packed(&[2.0, 2.0], &[0.0, 0.0])),
             Err(DecodeError::TruncatedCoords)
         );
     }
@@ -286,10 +335,13 @@ mod tests {
     #[test]
     fn rejects_trailing_data() {
         assert_eq!(
-            decode(&[1.0, 2.0, 9.0, 9.0], &[1]),
+            decode(&packed(&[1.0], &[1.0, 2.0, 9.0, 9.0])),
             Err(DecodeError::TrailingData)
         );
-        assert_eq!(decode(&[1.0, 2.0], &[1, 7]), Err(DecodeError::TrailingData));
+        assert_eq!(
+            decode(&packed(&[1.0, 7.0], &[1.0, 2.0])),
+            Err(DecodeError::TrailingData)
+        );
     }
 
     #[test]
@@ -300,7 +352,7 @@ mod tests {
         let innermost = Geometry::GeometryCollection(GeometryCollection(vec![point]));
         let middle = Geometry::GeometryCollection(GeometryCollection(vec![innermost]));
         let outer = Geometry::GeometryCollection(GeometryCollection(vec![middle]));
-        let decoded = decode(&[1.0, 2.0], &[7, 1, 7, 1, 7, 1, 1]).unwrap();
+        let decoded = decode(&packed(&[7.0, 1.0, 7.0, 1.0, 7.0, 1.0, 1.0], &[1.0, 2.0])).unwrap();
         assert_eq!(decoded, outer);
     }
 
@@ -311,9 +363,12 @@ mod tests {
         // before it ever runs out of structure entries or coordinates to read.
         let mut structure = Vec::new();
         for _ in 0..=MAX_DEPTH {
-            structure.push(7);
-            structure.push(1);
+            structure.push(7.0);
+            structure.push(1.0);
         }
-        assert_eq!(decode(&[], &structure), Err(DecodeError::NestingTooDeep));
+        assert_eq!(
+            decode(&packed(&structure, &[])),
+            Err(DecodeError::NestingTooDeep)
+        );
     }
 }

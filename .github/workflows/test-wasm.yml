@@ -65,7 +65,7 @@ jobs:
           assert.deepEqual(centroidFirstInteriorPoint(square), [5, 5]);
           assert.equal(verifyInteriorPoint([5, 5], square), "interior");
 
-          // The geometry crosses as two typed arrays, so every GeoJSON shape the encoder covers is
+          // The geometry crosses as one typed array, so every GeoJSON shape the encoder covers is
           // exercised here: this is the only place the JS encoder and the Rust decoder meet in a
           // real build. Expected points follow from the algorithms, not from a recorded run.
           assert.deepEqual(interiorPoint({ type: "Point", coordinates: [1, 2] }), [1, 2]);

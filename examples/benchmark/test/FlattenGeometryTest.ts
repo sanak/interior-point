@@ -2,12 +2,24 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { flattenGeometry } from "../../../rs/wasm/js/flatten.js";
 
+// Splits the one buffer back into the two logical halves every assertion below is written in
+// terms of. The buffer's own layout is pinned by the first test rather than here.
 function flat(geometry: unknown): { coords: number[]; structure: number[] } {
-  const [coords, structure] = flattenGeometry(geometry as never);
-  return { coords: Array.from(coords), structure: Array.from(structure) };
+  const buffer = flattenGeometry(geometry as never);
+  const structureLength = buffer[0];
+  return {
+    coords: Array.from(buffer.subarray(1 + structureLength)),
+    structure: Array.from(buffer.subarray(1, 1 + structureLength)),
+  };
 }
 
 describe("flattenGeometry", () => {
+  it("returns one Float64Array holding the structure length, the structure, then the coordinates", () => {
+    const buffer = flattenGeometry({ type: "Point", coordinates: [1, 2] } as never);
+    assert.ok(buffer instanceof Float64Array);
+    assert.deepEqual(Array.from(buffer), [1, 1, 1, 2]);
+  });
+
   it("encodes a Point as tag 1 and one position", () => {
     assert.deepEqual(flat({ type: "Point", coordinates: [1, 2] }), { coords: [1, 2], structure: [1] });
   });

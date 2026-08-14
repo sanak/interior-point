@@ -4,9 +4,9 @@
 //! Input is a GeoJSON Geometry object (as a JS value), and the output
 //! is a `[x, y]` array or `null` if the geometry is empty.
 //!
-//! The geometry crosses the boundary as two typed arrays rather than as JSON text: `js/flatten.js`
-//! flattens it on the JS side, so one call and two bulk copies replace a `JSON.stringify` and a
-//! text parse. `flat.rs` turns those arrays back into a geometry.
+//! The geometry crosses the boundary as one typed array rather than as JSON text: `js/flatten.js`
+//! flattens it on the JS side, so one call and one bulk copy replace a `JSON.stringify` and a
+//! text parse. `flat.rs` turns that buffer back into a geometry.
 
 mod flat;
 
@@ -16,24 +16,19 @@ use wasm_bindgen::JsCast;
 
 #[wasm_bindgen(module = "/js/flatten.js")]
 extern "C" {
-    /// Returns `[coords: Float64Array, structure: Uint32Array]`, or throws a `TypeError`.
+    /// Returns `[structureLength, ...structure, ...coords]`, or throws a `TypeError`.
+    ///
+    /// wasm-bindgen casts the return value rather than checking it, which is sound here because
+    /// the snippet is part of this crate: `js/flatten.js` is the only implementation, and
+    /// `examples/benchmark/test/FlattenGeometryTest.ts` pins it to a `Float64Array`.
     #[wasm_bindgen(js_name = "flattenGeometry", catch)]
-    fn flatten_geometry(geometry: &JsValue) -> Result<js_sys::Array, JsValue>;
+    fn flatten_geometry(geometry: &JsValue) -> Result<js_sys::Float64Array, JsValue>;
 }
 
 /// Converts a JsValue (GeoJSON Geometry object) into a `geo::Geometry<f64>`.
 fn js_to_geometry(input: &JsValue) -> Result<Geometry<f64>, JsValue> {
-    let pair = flatten_geometry(input)?;
-    let coords: js_sys::Float64Array = pair
-        .get(0)
-        .dyn_into()
-        .map_err(|_| JsValue::from_str("flattenGeometry did not return a Float64Array"))?;
-    let structure: js_sys::Uint32Array = pair
-        .get(1)
-        .dyn_into()
-        .map_err(|_| JsValue::from_str("flattenGeometry did not return a Uint32Array"))?;
-    flat::decode(&coords.to_vec(), &structure.to_vec())
-        .map_err(|e| JsValue::from_str(&format!("Invalid geometry: {e}")))
+    let buffer = flatten_geometry(input)?;
+    flat::decode(&buffer.to_vec()).map_err(|e| JsValue::from_str(&format!("Invalid geometry: {e}")))
 }
 
 /// Converts a `geo::Coord` to a JS array `[x, y]`.

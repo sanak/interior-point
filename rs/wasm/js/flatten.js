@@ -1,11 +1,17 @@
-// Flattens a GeoJSON geometry into the two typed arrays the wasm bindings decode.
+// Flattens a GeoJSON geometry into the one typed array the wasm bindings decode.
 //
 // This file is a wasm-bindgen JS snippet (`#[wasm_bindgen(module = "/js/flatten.js")]`), so it
 // must stay a self-contained ES module: snippets cannot carry `import` statements.
 //
+// The buffer is [structureLength, ...structure, ...coords].
+//
+// structure holds a type tag followed by counts, in preorder. The tags are WKB's geometry type
+//           codes, which GeoArrow's union type ids also follow, so no numbering is invented here.
 // coords    holds every vertex in preorder as [x0, y0, x1, y1, ...].
-// structure holds a type tag followed by counts, also in preorder. The tags are WKB's geometry
-// type codes, which GeoArrow's union type ids also follow, so no numbering is invented here.
+//
+// The counts share the coordinates' f64 slots because each one is an integer far below 2^53,
+// where f64 is exact. Sending one array rather than a [Float64Array, Uint32Array] pair leaves
+// the wasm side a single bulk copy to make instead of unpacking a JS array first.
 const TAGS = {
   Point: 1,
   LineString: 2,
@@ -18,13 +24,17 @@ const TAGS = {
 
 /**
  * @param {unknown} input a GeoJSON Geometry or Feature
- * @returns {[Float64Array, Uint32Array]}
+ * @returns {Float64Array} `[structureLength, ...structure, ...coords]`
  */
 export function flattenGeometry(input) {
   const coords = [];
   const structure = [];
   writeGeometry(unwrapFeature(input), coords, structure);
-  return [Float64Array.from(coords), Uint32Array.from(structure)];
+  const buffer = new Float64Array(1 + structure.length + coords.length);
+  buffer[0] = structure.length;
+  buffer.set(structure, 1);
+  buffer.set(coords, 1 + structure.length);
+  return buffer;
 }
 
 function unwrapFeature(input) {
