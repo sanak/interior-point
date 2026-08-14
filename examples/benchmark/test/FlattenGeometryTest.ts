@@ -156,6 +156,10 @@ describe("flattenGeometry", () => {
   it("encodes an empty geometry as a zero count", () => {
     assert.deepEqual(flat({ type: "Polygon", coordinates: [] }), { coords: [], structure: [3, 0] });
     assert.deepEqual(flat({ type: "MultiPoint", coordinates: [] }), { coords: [], structure: [4, 0] });
+    assert.deepEqual(flat({ type: "LineString", coordinates: [] }), { coords: [], structure: [2, 0] });
+    assert.deepEqual(flat({ type: "MultiLineString", coordinates: [] }), { coords: [], structure: [5, 0] });
+    assert.deepEqual(flat({ type: "MultiPolygon", coordinates: [] }), { coords: [], structure: [6, 0] });
+    assert.deepEqual(flat({ type: "GeometryCollection", geometries: [] }), { coords: [], structure: [7, 0] });
   });
 
   it("unwraps a Feature envelope", () => {
@@ -165,6 +169,22 @@ describe("flattenGeometry", () => {
 
   it("drops the third ordinate", () => {
     assert.deepEqual(flat({ type: "Point", coordinates: [1, 2, 3] }), { coords: [1, 2], structure: [1] });
+  });
+
+  // Without this the ordinate reaches the buffer as undefined, Float64Array turns it into NaN,
+  // and the geometry decodes into a point nothing can be computed from. The boundary this
+  // replaced rejected the same input with "A position must contain two or more elements".
+  it("throws on a position with fewer than two ordinates", () => {
+    assert.throws(() => flat({ type: "Point", coordinates: [1] }), TypeError);
+    assert.throws(() => flat({ type: "Point", coordinates: [] }), TypeError);
+    assert.throws(
+      () =>
+        flat({
+          type: "LineString",
+          coordinates: [[0, 0], [3]],
+        }),
+      TypeError,
+    );
   });
 
   it("throws on a Feature without a geometry", () => {

@@ -101,7 +101,21 @@ jobs:
           assert.equal(verifyInteriorPoint(interiorPoint(holed), holed), "interior");
 
           assert.equal(interiorPoint({ type: "MultiPoint", coordinates: [] }), null);
-          assert.throws(() => interiorPoint({ type: "FeatureCollection", features: [] }));
+
+          // Everything the encoder rejects, matched on the message a caller would act on rather
+          // than on "it threw": the inputs below reach the wasm side as a panic if the encoder
+          // stops checking them, and a bare assert.throws would call that a pass.
+          const rejects = [
+            [{ type: "FeatureCollection", features: [] }, "Expected a GeoJSON Geometry or Feature object"],
+            [{ type: "Feature", properties: null, geometry: null }, "Feature has no geometry"],
+            [{ type: "Point", coordinates: [1] }, "A position must contain two or more elements"],
+          ];
+          for (const [input, message] of rejects) {
+            assert.throws(() => interiorPoint(input), { name: "TypeError", message }, JSON.stringify(input));
+          }
+          // A rejected geometry must not leave the instance unusable for the next call.
+          assert.deepEqual(interiorPoint(square), [5, 5]);
+
           console.log(`wasm smoke ok: ${declared.length} bindings`);
           EOF
           node smoke.cjs

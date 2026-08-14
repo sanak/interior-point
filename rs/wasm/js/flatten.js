@@ -71,11 +71,16 @@ function writeGeometry(geometry, coords, structure) {
         writeRings(polygon, coords, structure);
       }
       break;
-    default:
+    case TAGS.GeometryCollection:
       structure.push(geometry.geometries.length);
       for (const child of geometry.geometries) {
         writeGeometry(child, coords, structure);
       }
+      break;
+    // Unreachable while every tag above has a case, which is the point: a tag added to TAGS and
+    // not handled here stops loudly instead of being read as a GeometryCollection.
+    default:
+      throw new TypeError(`No encoding for geometry tag ${tag}`);
   }
 }
 
@@ -102,6 +107,15 @@ function writePositions(positions, coords, structure) {
 
 // A third ordinate is dropped: geo_types::Coord<f64> carries no Z, which is what the previous
 // geojson -> geo-types conversion did too.
+//
+// The guard reads the ordinate it is about to write rather than the position's length, which
+// costs a comparison the write already paid for. Without it a short position reaches the buffer
+// as undefined, Float64Array stores NaN, and the decoder hands the algorithm a point it cannot
+// work with — the JSON boundary this replaced rejected the same input outright.
 function writePosition(position, coords) {
-  coords.push(position[0], position[1]);
+  const y = position[1];
+  if (y === undefined) {
+    throw new TypeError("A position must contain two or more elements");
+  }
+  coords.push(position[0], y);
 }
