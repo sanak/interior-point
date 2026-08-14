@@ -64,6 +64,44 @@ jobs:
           assert.deepEqual(interiorPoint(square), [5, 5]);
           assert.deepEqual(centroidFirstInteriorPoint(square), [5, 5]);
           assert.equal(verifyInteriorPoint([5, 5], square), "interior");
+
+          // The geometry crosses as two typed arrays, so every GeoJSON shape the encoder covers is
+          // exercised here: this is the only place the JS encoder and the Rust decoder meet in a
+          // real build. Expected points follow from the algorithms, not from a recorded run.
+          assert.deepEqual(interiorPoint({ type: "Point", coordinates: [1, 2] }), [1, 2]);
+          assert.deepEqual(
+            interiorPoint({ type: "LineString", coordinates: [[0, 0], [10, 0], [11, 0]] }),
+            [10, 0],
+          );
+          assert.deepEqual(
+            interiorPoint({ type: "MultiPoint", coordinates: [[0, 0], [10, 0], [11, 0]] }),
+            [10, 0],
+          );
+          assert.deepEqual(
+            interiorPoint({ type: "MultiLineString", coordinates: [[[0, 0], [10, 0], [11, 0]]] }),
+            [10, 0],
+          );
+          assert.deepEqual(
+            interiorPoint({ type: "MultiPolygon", coordinates: [square.coordinates] }),
+            [5, 5],
+          );
+          assert.deepEqual(
+            interiorPoint({ type: "GeometryCollection", geometries: [{ type: "Point", coordinates: [1, 2] }] }),
+            [1, 2],
+          );
+          assert.deepEqual(
+            interiorPoint({ type: "Feature", properties: null, geometry: { type: "Point", coordinates: [1, 2] } }),
+            [1, 2],
+          );
+
+          // A hole is the one case whose scanline position is not worth predicting by hand; the
+          // guarantee being checked is that the point lands strictly inside, holes and all.
+          const holed = { type: "Polygon", coordinates: [
+            [[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]], [[4, 4], [6, 4], [6, 6], [4, 6], [4, 4]]] };
+          assert.equal(verifyInteriorPoint(interiorPoint(holed), holed), "interior");
+
+          assert.equal(interiorPoint({ type: "MultiPoint", coordinates: [] }), null);
+          assert.throws(() => interiorPoint({ type: "FeatureCollection", features: [] }));
           console.log(`wasm smoke ok: ${declared.length} bindings`);
           EOF
           node smoke.cjs
