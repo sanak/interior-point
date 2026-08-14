@@ -27,6 +27,15 @@ counted as that library's own cost — nothing is pre-converted outside the time
 computed point uses this project's own TypeScript `verifyInteriorPoint`, checked against the geometry through an
 independent point-in-polygon locator; rows 1–2 are therefore self-verification, not an outside check.
 
+Every row runs the dataset twice and only the second pass is timed. Without that warm-up, whichever row ran first
+paid for tiering up the code every row shares: on the shipped dataset it reported up to twice the figure it
+settled on over later presses of **Run all**, and reversing the row order carried the penalty to whatever row had
+become first. A full untimed pass removes it — a row's number no longer depends on where it sits in the table or
+on how many times **Run all** has been pressed — at the cost of roughly a 65% longer sweep.
+
+`Load (ms)` is measured once per library per page. The column keeps that first figure through later runs and
+through a dropped dataset, because loading does not happen again.
+
 ## Dataset
 
 Ships with `public/data/plateau-hiroshima-bldg.parquet`, 6769 LOD0 building footprints from

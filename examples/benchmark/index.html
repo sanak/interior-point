@@ -23,7 +23,8 @@
         <p id="drop-error" class="drop-error" hidden></p>
         <p>
           Each row is measured from a GeoJSON geometry to an <code>[x, y]</code> pair, so whatever conversion a library
-          needs is counted as that library's cost. Verification uses this project's TypeScript
+          needs is counted as that library's cost. Every row runs the dataset twice and only the second pass is timed,
+          so the order the rows run in does not move their numbers. Verification uses this project's TypeScript
           <code>verifyInteriorPoint</code>; rows 1–2 are therefore self-verification.
         </p>
         <p>
