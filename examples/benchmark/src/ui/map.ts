@@ -116,6 +116,8 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
   // time. queryRenderedFeatures also lets the result points take priority over the polygons
   // they sit on.
   const popup = new maplibregl.Popup({ closeButton: true, maxWidth: "320px" });
+  // A popup closed by its own button or by Escape leaves nothing describing the highlight.
+  popup.on("close", () => select([]));
   const DATASET_LAYERS = ["dataset-fill", "dataset-circle"];
 
   const visiblePointLayers = (): string[] => [...points.keys()].map(pointLayerId).filter((id) => map.getLayer(id));
@@ -180,6 +182,8 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
         .setLngLat(event.lngLat)
         .setHTML(pointPopupHtml(groupPointHits(hits)))
         .addTo(map);
+      // `addTo` removes any popup it replaces first, which fires the `close` handler above and
+      // clears the selection — so `select` has to run after `addTo`, not before it.
       select(hits.map((hit) => ({ source: pointLayerId(hit.adapterId), id: hit.index })));
       return;
     }
@@ -192,6 +196,8 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
       return;
     }
     popup.setLngLat(event.lngLat).setHTML(attributePopupHtml(feature.properties)).addTo(map);
+    // See the comment above: `select` must follow `addTo`, since `addTo` fires `close` on the
+    // popup it replaces.
     select(typeof feature.id === "number" ? [{ source: DATASET_SOURCE, id: feature.id }] : []);
   });
 
