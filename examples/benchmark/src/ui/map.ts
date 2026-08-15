@@ -1,12 +1,12 @@
 import maplibregl from "maplibre-gl";
-import type { GeoJSONSource, MapGeoJSONFeature } from "maplibre-gl";
+import type { GeoJSONSource } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { Position } from "geojson";
 import type { Dataset } from "../types.ts";
 import { ADAPTER_COLORS, ADAPTERS } from "../adapters/index.ts";
 import { boundsOf } from "../data/geometry.ts";
 import { datasetCollection, pointsCollection, styleUrl } from "./mapData.ts";
-import { groupPointHits, type PointHit } from "./hits.ts";
+import { groupPointHits, pointLayerId, resolveHits } from "./hits.ts";
 import { attributePopupHtml, pointPopupHtml } from "./popup.ts";
 
 export interface BenchmarkMap {
@@ -18,12 +18,6 @@ export interface BenchmarkMap {
 }
 
 const DATASET_SOURCE = "dataset";
-
-const POINT_LAYER_PREFIX = "points-";
-
-function pointLayerId(id: string): string {
-  return `${POINT_LAYER_PREFIX}${id}`;
-}
 
 /** A feature currently drawn as selected, addressed the way `setFeatureState` wants it. */
 interface Selected {
@@ -142,41 +136,14 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
     writeSelection(true);
   };
 
-  /**
-   * Every visible result point under the pointer, resolved against the run that produced it.
-   *
-   * The outer loop walks the registry rather than the query result, so the popup's sections read
-   * down the table instead of following whatever order the renderer happened to return. A hit
-   * whose coordinate cannot be found is dropped rather than guessed at: `RunResult.points` holds
-   * one entry per input geometry in order, and a dataset's `features` and `geometries` are built
-   * in step, so the same index reaches the feature the point was computed from.
-   */
-  const resolveHits = (features: readonly MapGeoJSONFeature[]): PointHit[] => {
-    const hits: PointHit[] = [];
-    for (const adapter of ADAPTERS) {
-      const layer = pointLayerId(adapter.id);
-      for (const feature of features) {
-        if (feature.layer.id !== layer) continue;
-        // `id` is 0 for the first feature of every source, so this has to be a type test.
-        if (typeof feature.id !== "number") continue;
-        const position = points.get(adapter.id)?.[feature.id];
-        if (!position) continue;
-        hits.push({
-          adapterId: adapter.id,
-          label: adapter.label,
-          color: ADAPTER_COLORS[adapter.id] ?? "#888888",
-          index: feature.id,
-          position,
-          properties: dataset?.features[feature.id]?.properties ?? null,
-        });
-      }
-    }
-    return hits;
-  };
-
   map.on("click", (event) => {
     // Result points sit on top of the polygons they were computed from, so they are asked first.
-    const hits = resolveHits(map.queryRenderedFeatures(event.point, { layers: visiblePointLayers() }));
+    const hits = resolveHits(map.queryRenderedFeatures(event.point, { layers: visiblePointLayers() }), {
+      adapters: ADAPTERS,
+      colors: ADAPTER_COLORS,
+      points,
+      dataset,
+    });
     if (hits.length > 0) {
       popup
         .setLngLat(event.lngLat)

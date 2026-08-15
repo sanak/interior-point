@@ -1,5 +1,6 @@
 /**
- * Folding the result points under one click into the groups a popup shows.
+ * Resolving a click into the result points it hit, then folding those into the groups a popup
+ * shows.
  *
  * Several libraries usually land on the same interior point for the same building, and a popup
  * repeating that coordinate once per library would say nothing new. Two hits belong together when
@@ -7,6 +8,20 @@
  * exactly what a reader would call "the same result".
  */
 import type { Position } from "geojson";
+import type { Adapter, Dataset } from "../types.ts";
+
+const POINT_LAYER_PREFIX = "points-";
+
+/** The map layer id a given adapter's result points are drawn on. */
+export function pointLayerId(adapterId: string): string {
+  return `${POINT_LAYER_PREFIX}${adapterId}`;
+}
+
+/** The two fields `resolveHits` reads off a queried map feature. Structural, so this module stays free of MapLibre. */
+export interface QueriedFeature {
+  readonly layer: { readonly id: string };
+  readonly id?: string | number;
+}
 
 /** One result point under the pointer, resolved against the run it came from. */
 export interface PointHit {
@@ -33,6 +48,49 @@ export interface PointHitGroup {
   readonly labels: readonly PointHitLabel[];
   readonly position: Position;
   readonly properties: Readonly<Record<string, unknown>> | null;
+}
+
+/** The two fields `resolveHits` needs from the map to turn a queried feature into a `PointHit`. */
+export interface ResolveHitsContext {
+  readonly adapters: readonly Adapter[];
+  readonly colors: Readonly<Record<string, string>>;
+  readonly points: ReadonlyMap<string, readonly (Position | null)[]>;
+  readonly dataset: Dataset | null;
+}
+
+/**
+ * Every visible result point under the pointer, resolved against the run that produced it.
+ *
+ * The outer loop walks the registry rather than the query result, so the popup's sections read
+ * down the table instead of following whatever order the renderer happened to return. A hit
+ * whose coordinate cannot be found is dropped rather than guessed at: `RunResult.points` holds
+ * one entry per input geometry in order, and a dataset's `features` and `geometries` are built
+ * in step, so the same index reaches the feature the point was computed from.
+ */
+export function resolveHits(
+  features: readonly QueriedFeature[],
+  { adapters, colors, points, dataset }: ResolveHitsContext,
+): PointHit[] {
+  const hits: PointHit[] = [];
+  for (const adapter of adapters) {
+    const layer = pointLayerId(adapter.id);
+    for (const feature of features) {
+      if (feature.layer.id !== layer) continue;
+      // `id` is 0 for the first feature of every source, so this has to be a type test.
+      if (typeof feature.id !== "number") continue;
+      const position = points.get(adapter.id)?.[feature.id];
+      if (!position) continue;
+      hits.push({
+        adapterId: adapter.id,
+        label: adapter.label,
+        color: colors[adapter.id] ?? "#888888",
+        index: feature.id,
+        position,
+        properties: dataset?.features[feature.id]?.properties ?? null,
+      });
+    }
+  }
+  return hits;
 }
 
 /**
