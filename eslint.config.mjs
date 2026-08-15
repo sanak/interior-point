@@ -48,7 +48,7 @@ export default tseslint.config(
   {
     // Plain untyped ES modules. No type-aware rule is enabled anywhere in this config, so the
     // TypeScript project lookup would be pure cost — and `allowDefaultProject` caps out at 8 files.
-    files: ["scripts/**/*.mjs"],
+    files: ["scripts/**/*.mjs", "examples/cli-benchmark/**/*.mjs"],
     languageOptions: {
       parserOptions: { projectService: false, project: false },
       globals: {
