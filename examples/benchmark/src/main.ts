@@ -1,6 +1,8 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./styles.css";
 
+import datasetUrl from "../../data/plateau-hiroshima-bldg.parquet?url";
+
 import { ADAPTERS } from "./adapters/index.ts";
 import { runAdapter } from "./bench/run.ts";
 import { loadParquetDataset } from "./data/parquet.ts";
@@ -144,9 +146,7 @@ installDropZone(
   showDropError,
 );
 
-const DATASET_URL = `${import.meta.env.BASE_URL}data/plateau-hiroshima-bldg.parquet`;
-
-loadParquetDataset(DATASET_URL, "PLATEAU Hiroshima buildings")
+loadParquetDataset(datasetUrl, "PLATEAU Hiroshima buildings")
   .then((loadedDataset) => {
     adoptDataset(loadedDataset);
   })

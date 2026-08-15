@@ -52,7 +52,4 @@ docs/superpowers/
 
 # Benchmark example: vendored third-party bundles and CityGML intermediates
 examples/benchmark/public/vendor/
-examples/benchmark/data/citygml/
-
-# CLI benchmark: the GeoJSON converted from the browser benchmark's GeoParquet
-examples/cli-benchmark/data/*.geojson
+examples/data/citygml/

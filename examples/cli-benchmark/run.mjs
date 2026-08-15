@@ -20,7 +20,7 @@ const JTSOP_FUNCTION = "Construction.interiorPoint";
 
 function parseArgs(argv) {
   const options = {
-    input: join(HERE, "data", "plateau-hiroshima-bldg.geojson"),
+    input: join(HERE, "..", "data", "plateau-hiroshima-bldg-no-attributes.geojson"),
     jtsJar: process.env.JTS_JAR ?? "",
     runs: 10,
     warmup: 2,
@@ -177,7 +177,7 @@ function main() {
 
   if (!existsSync(options.input)) {
     console.error(`No input at ${options.input}`);
-    console.error("Generate it with `./data/convert-parquet-to-geojson.sh`, or pass --input=<file>.");
+    console.error("Generate it with `../data/convert-citygml.sh`, or pass --input=<file>.");
     process.exit(1);
   }
 

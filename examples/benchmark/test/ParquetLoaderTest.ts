@@ -5,7 +5,7 @@ import { describe, it } from "node:test";
 
 import { parquetToDataset } from "../src/data/parquet.ts";
 
-const PARQUET = join(import.meta.dirname, "..", "public", "data", "plateau-hiroshima-bldg.parquet");
+const PARQUET = join(import.meta.dirname, "..", "..", "data", "plateau-hiroshima-bldg.parquet");
 
 // Recorded from the `ogrinfo -so` run in the data preparation task.
 const EXPECTED_FEATURES = 6769;
