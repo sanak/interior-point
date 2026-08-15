@@ -129,9 +129,26 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
   // style change, and a handler registered inside restoreLayers would stack up a duplicate each
   // time. queryRenderedFeatures also lets the result points take priority over the polygons
   // they sit on.
-  const popup = new maplibregl.Popup({ closeButton: true, maxWidth: "320px" });
-  // A popup closed by its own button or by Escape leaves nothing describing the highlight.
+  // `closeOnClick` is off because MapLibre's own implementation of it turns every click into a
+  // toggle. It registers `_onClose` as a map click listener, and `Evented.fire` snapshots the
+  // listener array before dispatching, so on the next click the handler below opens the new popup
+  // and the *previous* popup's `_onClose` — still in that snapshot even though `addTo` unregistered
+  // it — closes what was just opened. Clicking through features one after another has to work, so
+  // closing is left entirely to the handler below, which removes the popup when a click hits
+  // nothing.
+  const popup = new maplibregl.Popup({ closeButton: true, closeOnClick: false, maxWidth: "320px" });
+  // A popup closed by its own button, or by Escape below, leaves nothing describing the highlight.
   popup.on("close", () => select([]));
+
+  // MapLibre has no keyboard handling for popups at all — `closeOnEscape` is not one of its
+  // options and nothing in Popup listens for a key — so Escape is wired here. `focusAfterOpen`
+  // puts focus on the close button when the popup opens, but any click moves it away again, so
+  // the listener goes on the document rather than the popup.
+  const onKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== "Escape" || !popup.isOpen()) return;
+    popup.remove(); // fires `close`, which clears the selection
+  };
+  document.addEventListener("keydown", onKeyDown);
   const DATASET_LAYERS = ["dataset-fill", "dataset-circle"];
 
   const visiblePointLayers = (): string[] => [...points.keys()].map(pointLayerId).filter((id) => map.getLayer(id));
@@ -226,6 +243,7 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
     },
     destroy(): void {
       darkQuery.removeEventListener("change", onSchemeChange);
+      document.removeEventListener("keydown", onKeyDown);
       popup.remove();
       map.remove();
     },
