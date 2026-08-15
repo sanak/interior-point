@@ -157,22 +157,36 @@ body {
   border-top-color: var(--bg);
 }
 
-.popup-attributes {
+/* The attribute table and the coordinate table share a shape so a point popup carrying both
+   reads as one list rather than two unrelated blocks. */
+.popup-attributes,
+.popup-coordinates {
   border-collapse: collapse;
   font-size: 0.85rem;
 }
 
 .popup-attributes th,
-.popup-attributes td {
+.popup-attributes td,
+.popup-coordinates th,
+.popup-coordinates td {
   padding: 0.15rem 0.5rem 0.15rem 0;
   text-align: left;
   vertical-align: top;
 }
 
-.popup-attributes th {
+.popup-attributes th,
+.popup-coordinates th {
   color: var(--muted);
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* Only when the point popup shows attributes above the coordinates; a rule under a lone
+   coordinate table would have nothing to separate it from. */
+.popup-attributes + .popup-coordinates {
+  border-top: 1px solid var(--border);
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
 }
 
 .popup-empty {
@@ -182,12 +196,13 @@ body {
   margin: 0;
 }
 
+/* The adapter name heading the point popup. */
 .popup-point {
   font-size: 0.85rem;
-  margin: 0;
+  margin: 0 0 0.35rem;
 }
 
-.popup-point code {
+.popup-coordinates code {
   font-family: var(--font-mono);
   word-break: break-all;
 }

@@ -112,9 +112,13 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
       const index = hit.properties?.index;
       const exact = typeof index === "number" ? points.get(adapterId)?.[index] : undefined;
       if (exact) {
+        // `RunResult.points` holds one entry per input geometry in order, and a dataset's
+        // `features` and `geometries` are built in step, so the same index reaches the feature
+        // the point was computed from.
+        const source = typeof index === "number" ? dataset?.features[index] : undefined;
         popup
           .setLngLat(event.lngLat)
-          .setHTML(pointPopupHtml(ADAPTER_LABELS.get(adapterId) ?? adapterId, exact))
+          .setHTML(pointPopupHtml(ADAPTER_LABELS.get(adapterId) ?? adapterId, exact, source?.properties))
           .addTo(map);
         return;
       }
