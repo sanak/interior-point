@@ -38,20 +38,15 @@ through a dropped dataset, because loading does not happen again.
 
 ## Dataset
 
-Ships with `public/data/plateau-hiroshima-bldg.parquet`, 6769 LOD0 building footprints from
-[PLATEAU Hiroshima 2024](https://www.geospatial.jp/ckan/dataset/plateau-34100-hiroshima-shi-2024) (MLIT), converted
-to GeoParquet in EPSG:4326.
+Ships with `../data/plateau-hiroshima-bldg.geojson`, 6769 LOD0 building footprints from
+[PLATEAU Hiroshima 2024](https://www.geospatial.jp/ckan/dataset/plateau-34100-hiroshima-shi-2024) (MLIT),
+in EPSG:4326. Click a building to see its attributes, and a result point to see the exact coordinate the
+library returned.
 
-To regenerate it from the source CityGML — requires `curl`, `jq`, `unzip`, and a GDAL build with both the GML and
-Parquet drivers:
-
-```bash
-./data/download-and-extract-citygml.sh
-./data/convert-citygml-to-geoparquet.sh
-```
-
-Drop your own `.geojson` file onto the page to measure it instead — the dataset it replaces is not committed
-anywhere, so nothing here needs to know about it in advance.
+Drop a `.geojson`, `.json` or `.parquet` file onto the page to measure it instead. GeoParquet is read with
+[hyparquet](https://github.com/hyparam/hyparquet), pulled in only when such a file is dropped;
+`../data/plateau-hiroshima-bldg.parquet` is there to try it with. See [`../data/README.md`](../data/README.md)
+for how the files are regenerated.
 
 ## Data license
 

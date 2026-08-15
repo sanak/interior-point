@@ -42,21 +42,20 @@ that quietly did less work cannot be reported as a fast one.
 ## Setup
 
 ```sh
-# 1. the input, converted from the browser benchmark's GeoParquet (needs GDAL with the Parquet driver)
-./data/convert-parquet-to-geojson.sh
-
-# 2. the npm CLI
+# 1. the npm CLI
 pnpm build:js                                                    # from the repository root
 
-# 3. the crate CLI
+# 2. the crate CLI
 cargo build --release -p interior-point --features cli           # from rs/
 
-# 4. jtsop, from a JTS checkout (needs Maven)
+# 3. jtsop, from a JTS checkout (needs Maven)
 mvn -pl modules/app -am package -DskipTests                      # writes modules/app/target/JTSTestBuilder.jar
 ```
 
-The converted GeoJSON is not committed — it is derived from
-`../benchmark/public/data/plateau-hiroshima-bldg.parquet`, which is.
+The input is `../data/plateau-hiroshima-bldg-no-attributes.geojson`, committed alongside the browser
+benchmark's own dataset — see [`../data/README.md`](../data/README.md). It carries no attributes because
+`jtsop` discards properties on the way through, so keeping them would charge the two commands that do
+preserve them for work the third never does.
 
 ## Running
 
