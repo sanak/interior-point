@@ -33,26 +33,26 @@ describe("pointPopupHtml", () => {
   it("gives each ordinate its own labelled row, at full precision", () => {
     const html = pointPopupHtml("interior-point (TS)", [132.4567890123456, 34.3891234567891]);
     assert.match(html, /interior-point \(TS\)/);
-    assert.match(html, /<th>Longitude<\/th><td><code>132\.4567890123456<\/code><\/td>/);
-    assert.match(html, /<th>Latitude<\/th><td><code>34\.3891234567891<\/code><\/td>/);
+    assert.match(html, /<th>longitude<\/th><td><code>132\.4567890123456<\/code><\/td>/);
+    assert.match(html, /<th>latitude<\/th><td><code>34\.3891234567891<\/code><\/td>/);
     assert.doesNotMatch(html, /132\.4567890123456, 34\.3891234567891/);
   });
 
   it("labels a third ordinate as the elevation", () => {
-    assert.match(pointPopupHtml("x", [1, 2, 3]), /<th>Elevation<\/th><td><code>3<\/code><\/td>/);
+    assert.match(pointPopupHtml("x", [1, 2, 3]), /<th>elevation<\/th><td><code>3<\/code><\/td>/);
   });
 
   it("shows the input feature's attributes above the coordinates", () => {
     const html = pointPopupHtml("x", [1, 2], { building_id: "34100-bldg-370791" });
     assert.match(html, /<th>building_id<\/th><td>34100-bldg-370791<\/td>/);
-    assert.ok(html.indexOf("34100-bldg-370791") < html.indexOf("Longitude"), "attributes must come first");
+    assert.ok(html.indexOf("34100-bldg-370791") < html.indexOf("longitude"), "attributes must come first");
   });
 
   it("omits the attribute table when the feature carries nothing worth showing", () => {
     for (const properties of [undefined, null, {}, { name: null }]) {
       const html = pointPopupHtml("x", [1, 2], properties);
       assert.doesNotMatch(html, /popup-attributes|No attributes/);
-      assert.match(html, /<th>Longitude<\/th>/);
+      assert.match(html, /<th>longitude<\/th>/);
     }
   });
 

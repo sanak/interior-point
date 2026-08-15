@@ -34,8 +34,12 @@ export function attributePopupHtml(properties: Readonly<Record<string, unknown>>
   return attributeTableHtml(properties) || '<p class="popup-empty">No attributes</p>';
 }
 
-/** A GeoJSON position is longitude, latitude and elevation, in that order (RFC 7946 §3.1.1). */
-const ORDINATE_LABELS = ["Longitude", "Latitude", "Elevation"];
+/**
+ * A GeoJSON position is longitude, latitude and elevation, in that order (RFC 7946 §3.1.1).
+ * Lower case, because these sit in the same column as the input feature's own attribute names
+ * and those are lower case throughout the shipped PLATEAU dataset.
+ */
+const ORDINATE_LABELS = ["longitude", "latitude", "elevation"];
 
 /**
  * One computed interior point: the adapter that produced it, the attributes of the feature it
