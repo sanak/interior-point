@@ -39,9 +39,10 @@ export function attributePopupHtml(properties: Readonly<Record<string, unknown>>
 }
 
 /**
- * A GeoJSON position is longitude, latitude and elevation, in that order (RFC 7946 §3.1.1).
- * Lower case, because these sit in the same column as the input feature's own attribute names
- * and those are lower case throughout the shipped PLATEAU dataset.
+ * A GeoJSON position is longitude, latitude and elevation, in that order (RFC 7946 §3.1.1), so the
+ * labels hold for any file dropped on the page. Lower case, because they sit in the same column as
+ * the input feature's own attribute names and those are lower case throughout the shipped PLATEAU
+ * dataset.
  */
 const ORDINATE_LABELS = ["longitude", "latitude", "elevation"];
 

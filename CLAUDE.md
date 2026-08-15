@@ -36,7 +36,10 @@ sync workflow, `pin.json`/`portedMembers` semantics, and the vendored-test rules
 
 `node scripts/jts-citations.mjs` scans tracked files for comments citing something outside this
 repository — a design doc, a numbered task, a numbered rule — and exits non-zero if it finds one;
-it runs in `test-js.yml` beside `anchors` and is covered by `pnpm test:scripts`.
+it runs in `test-js.yml` beside `anchors` and is covered by `pnpm test:scripts`. A section marker
+written as `RFC 7946 §3.1.1` is the one exception, since that document is public and permanent. The
+name has to sit immediately before the marker on the same line — that adjacency is what a reader
+needs to resolve the citation, and it is what the guard matches on.
 
 ### API surface parity
 

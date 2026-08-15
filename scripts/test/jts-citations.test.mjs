@@ -38,8 +38,8 @@ describe("CITATION_RE", () => {
     assert.ok(CITATION_RE.test("see design doc §2.4 for the rationale"));
   });
 
-  it("does not match the RFC 7946 section it is built to exempt", () => {
-    assert.ok(!CITATION_RE.test("RFC 7946 §3.1.6 requires polygon rings to be closed"));
+  it("matches every section symbol, attributed or not — the exemption is scanCitations' job", () => {
+    assert.ok(CITATION_RE.test("RFC 7946 §3.1.6 requires polygon rings to be closed"));
   });
 
   it("matches a bare plan/plans reference", () => {
@@ -106,17 +106,37 @@ describe("scanCitations", () => {
     assert.equal(scanCitations(root).length, 2);
   });
 
-  it("exempts RFC 7946 §3.1.6 only in the two files where it is cited", () => {
+  it("exempts a section symbol that names RFC 7946, in any file and at any section", () => {
     const root = fixtureRoot({
       "js/CHANGELOG.md": "RFC 7946 §3.1.6 requires polygon rings to be closed.\n",
-      "js/test/algorithm/InteriorPointTest.ts": "// §3.1.6 requires polygon rings to be closed.\n",
-      "js/src/other.ts": "// §3.1.6 requires polygon rings to be closed.\n",
+      "js/src/a.ts": "// A position is longitude, latitude, elevation (RFC 7946 §3.1.1).\n",
+      "docs/site/guide.md": "The bounding box order is RFC 7946 §5.\n",
     });
-    const violations = scanCitations(root);
-    assert.deepEqual(
-      violations.map((v) => v.path),
-      ["js/src/other.ts"],
-    );
+    assert.deepEqual(scanCitations(root), []);
+  });
+
+  it("flags a section symbol with nothing saying which document it indexes", () => {
+    const root = fixtureRoot({ "js/src/a.ts": "// §3.1.6 requires polygon rings to be closed.\n" });
+    assert.equal(scanCitations(root).length, 1);
+  });
+
+  it("flags a section symbol attributed to some other document", () => {
+    const root = fixtureRoot({
+      "js/src/a.ts": "// RFC 1234 §2 says otherwise\n// the spec §4 disagrees\n",
+    });
+    assert.equal(scanCitations(root).length, 2);
+  });
+
+  it("does not let an RFC 7946 citation launder other vocabulary on the same line", () => {
+    const root = fixtureRoot({
+      "js/src/a.ts": "// RFC 7946 §3.1.1, and see the design for why\n// RFC 7946 §3.1.1 — per rule 3\n",
+    });
+    assert.equal(scanCitations(root).length, 2);
+  });
+
+  it("flags a bare section symbol sitting beside an attributed one", () => {
+    const root = fixtureRoot({ "js/src/a.ts": "// RFC 7946 §3.1.1 and §9 of the other doc\n" });
+    assert.equal(scanCitations(root).length, 1);
   });
 
   it("exempts upstream/ and docs/site/public/ entirely", () => {

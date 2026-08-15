@@ -95,8 +95,9 @@ describe("InteriorPointArea - odd scanline crossings (even-crossing assertion)",
   // even count -- crossing the scan line flips inside/outside, and a closed
   // curve returns to where it started -- so only a ring that is not closed can
   // reach the assertion. JTS's LinearRing enforces closure in its constructor;
-  // GeoJSON does not, which is why this is reachable here at all. RFC 7946
-  // §3.1.6 requires polygon rings to be closed, so these inputs are invalid.
+  // GeoJSON does not, which is why this is reachable here at all.
+  // RFC 7946 §3.1.6 requires polygon rings to be closed, so these
+  // inputs are invalid.
   //
   // Neither TestInteriorPoint.xml (24 cases) nor world.wkt (244 geometries)
   // contains an input that reaches the assertion; both suites pass with it in

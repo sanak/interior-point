@@ -12,8 +12,7 @@ import { REPO_ROOT } from "./jts-pin.mjs";
  * than guessed: three earlier drafts of this pattern each missed a real class of
  * citation, so narrowing it further without re-running that audit is not safe.
  */
-export const CITATION_RE =
-  /§(?!3\.1\.6)|\bplans?\b|\btasks?\s*\d|\bthe design\b|\bdesign's\b|\btasks?\s*$|\brules?[- ]\d/i;
+export const CITATION_RE = /§|\bplans?\b|\btasks?\s*\d|\bthe design\b|\bdesign's\b|\btasks?\s*$|\brules?[- ]\d/i;
 
 /**
  * Whole directories exempt from the scan: `upstream/` is vendored JTS source, never
@@ -31,19 +30,27 @@ const EXEMPT_DIRS = ["upstream/", "docs/site/public/"];
 const EXEMPT_FILES = new Set(["scripts/jts-citations.mjs", "scripts/test/jts-citations.test.mjs"]);
 
 /**
- * `CITATION_RE`'s own `(?!3\.1\.6)` lookahead would silently wave through a
- * `§3.1.6` citation anywhere in the repository, not just in the two files that
- * actually cite RFC 7946 §3.1.6 (a public, permanent standard, unlike a design
- * doc). That would leave the exemption invisible and unbounded, so this check
- * re-tests every non-exempt-directory line for the literal section number,
- * independently of the lookahead, and only waves it through on the two lines
- * where it belongs. Anywhere else, `§3.1.6` is still a violation.
+ * What makes a `§` unresolvable is not the symbol but the missing document: a design doc's `§4` is
+ * machine-local and gone once the doc is, while RFC 7946 is public and permanent, so a reader can
+ * follow `RFC 7946 §3.1.1` forever. The exemption is therefore written as what the line says, not
+ * as where the line lives — an earlier version pinned a literal section number to two file paths,
+ * which meant every later file that legitimately cited the GeoJSON spec had to amend the guard.
+ *
+ * The standard's name has to sit immediately before the section marker, so a line cannot earn the
+ * exemption by naming RFC 7946 somewhere else on it. Only this one standard is covered; any other
+ * `RFC nnnn §n` is still a violation, because nothing in this repository cites one.
+ *
+ * Used with `replace` only — the `g` flag makes `test` stateful.
  */
-const RFC_7946_SECTION_RE = /§3\.1\.6\b/;
-const RFC_7946_FILES = new Set(["js/CHANGELOG.md", "js/test/algorithm/InteriorPointTest.ts"]);
+const RFC_7946_CITATION_RE = /\bRFC\s*7946\s*§\d+(?:\.\d+)*/gi;
 
-function isRfcExempt(path, line) {
-  return RFC_7946_FILES.has(path) && RFC_7946_SECTION_RE.test(line);
+/**
+ * Strips the citations a reader can resolve, so `CITATION_RE` sees only what is left. Stripping
+ * rather than skipping the line is what stops an attributed citation from laundering the rest of
+ * it: `RFC 7946 §3.1.1, and see the design` still has `the design` in it afterwards.
+ */
+function withoutResolvableCitations(line) {
+  return line.replace(RFC_7946_CITATION_RE, "");
 }
 
 /** Repo-relative, forward-slash-separated paths — what `git ls-files` reports. */
@@ -77,8 +84,7 @@ export function scanCitations(root = REPO_ROOT) {
     if (looksBinary(buffer)) continue;
     const lines = buffer.toString("utf8").split("\n");
     lines.forEach((line, index) => {
-      const rogueRfcCitation = RFC_7946_SECTION_RE.test(line) && !isRfcExempt(path, line);
-      if (!rogueRfcCitation && !CITATION_RE.test(line)) return;
+      if (!CITATION_RE.test(withoutResolvableCitations(line))) return;
       violations.push({ path, line: index + 1, text: line.trim() });
     });
   }
