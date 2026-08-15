@@ -1,7 +1,7 @@
-import { parseDroppedGeoJson } from "../data/drop.ts";
+import { datasetFromBytes } from "../data/drop.ts";
 import type { Dataset } from "../types.ts";
 
-const NO_FILE_MESSAGE = "Drop a single .geojson or .json file.";
+const NO_FILE_MESSAGE = "Drop a single .geojson, .json or .parquet file.";
 
 export function installDropZone(
   target: HTMLElement,
@@ -20,8 +20,9 @@ export function installDropZone(
       return;
     }
     try {
-      const text = await file.text();
-      onDataset(parseDroppedGeoJson(text, file.name));
+      // Read once as bytes: the format is decided from them, and a large GeoParquet
+      // file must not be pulled through `text()` first.
+      onDataset(await datasetFromBytes(await file.arrayBuffer(), file.name));
     } catch (error) {
       onError(error instanceof Error ? error.message : String(error));
     }

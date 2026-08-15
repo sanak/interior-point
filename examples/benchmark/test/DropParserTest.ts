@@ -3,9 +3,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 
-import { parseDroppedGeoJson } from "../src/data/drop.ts";
+import { datasetFromBytes, parseDroppedGeoJson } from "../src/data/drop.ts";
 
 const SHIPPED_GEOJSON = join(import.meta.dirname, "..", "..", "data", "plateau-hiroshima-bldg.geojson");
+const SHIPPED_PARQUET = join(import.meta.dirname, "..", "..", "data", "plateau-hiroshima-bldg.parquet");
 
 const collection = JSON.stringify({
   type: "FeatureCollection",
@@ -89,5 +90,38 @@ describe("the shipped GeoJSON dataset", () => {
     assert.equal(dataset.skipped, 0);
     assert.equal(dataset.features[0]?.properties?.building_id, "34100-bldg-370791");
     assert.equal(dataset.features[0]?.properties?.measured_height, 35.3);
+  });
+});
+
+function parquetBytes(): ArrayBuffer {
+  const buffer = readFileSync(SHIPPED_PARQUET);
+  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
+}
+
+function utf8(text: string): ArrayBuffer {
+  const encoded = new TextEncoder().encode(text);
+  return encoded.buffer as ArrayBuffer;
+}
+
+describe("datasetFromBytes", () => {
+  it("reads GeoParquet when the name ends in .parquet", async () => {
+    const dataset = await datasetFromBytes(parquetBytes(), "buildings.parquet");
+    assert.equal(dataset.name, "buildings.parquet");
+    assert.equal(dataset.geometries.length, 6769);
+  });
+
+  it("reads GeoParquet from the PAR1 magic even when the name does not say so", async () => {
+    const dataset = await datasetFromBytes(parquetBytes(), "buildings.bin");
+    assert.equal(dataset.geometries.length, 6769);
+  });
+
+  it("reads GeoJSON when the bytes are not Parquet", async () => {
+    const dataset = await datasetFromBytes(utf8('{"type":"Point","coordinates":[1,2]}'), "point.geojson");
+    assert.equal(dataset.geometries.length, 1);
+    assert.deepEqual(dataset.geometries[0], { type: "Point", coordinates: [1, 2] });
+  });
+
+  it("rejects bytes that are neither GeoParquet nor GeoJSON", async () => {
+    await assert.rejects(() => datasetFromBytes(utf8("not geojson at all"), "junk.txt"));
   });
 });

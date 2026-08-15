@@ -66,3 +66,27 @@ function toFeatures(parsed: unknown, name: string): Feature[] {
 
   throw new Error(`${name} is not GeoJSON.`);
 }
+
+/** Parquet files begin and end with this 4-byte magic number. */
+const PARQUET_MAGIC = "PAR1";
+
+function looksLikeParquet(bytes: ArrayBuffer, name: string): boolean {
+  if (name.toLowerCase().endsWith(".parquet")) return true;
+  if (bytes.byteLength < PARQUET_MAGIC.length) return false;
+  const head = new Uint8Array(bytes, 0, PARQUET_MAGIC.length);
+  return String.fromCharCode(...head) === PARQUET_MAGIC;
+}
+
+/**
+ * Reads dropped bytes into a dataset, picking the format from the file name and,
+ * failing that, from the leading magic number. GeoParquet pulls hyparquet in on
+ * demand: the shipped dataset is GeoJSON, so nothing loads the decoder until a
+ * GeoParquet file is actually dropped.
+ */
+export async function datasetFromBytes(bytes: ArrayBuffer, name: string): Promise<Dataset> {
+  if (looksLikeParquet(bytes, name)) {
+    const { parquetToDataset } = await import("./parquet.ts");
+    return parquetToDataset(bytes, name);
+  }
+  return parseDroppedGeoJson(new TextDecoder().decode(bytes), name);
+}

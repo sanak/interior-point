@@ -1,6 +1,4 @@
 import type { Feature, Geometry } from "geojson";
-import { compressors } from "hyparquet-compressors";
-import { parquetReadObjects } from "hyparquet";
 
 import type { Dataset } from "../types.ts";
 import { isEmptyGeometry } from "./geometry.ts";
@@ -23,6 +21,12 @@ function toJsonSafe(properties: Record<string, unknown>): Record<string, unknown
 
 /** Reads GeoParquet bytes into a dataset, skipping geometries with no coordinates. */
 export async function parquetToDataset(bytes: ArrayBuffer, name: string): Promise<Dataset> {
+  // Imported here rather than at module scope so the decoder stays out of the initial
+  // bundle — the shipped dataset is GeoJSON and only a dropped file needs this path.
+  const [{ parquetReadObjects }, { compressors }] = await Promise.all([
+    import("hyparquet"),
+    import("hyparquet-compressors"),
+  ]);
   const rows = await parquetReadObjects({ file: bytes, compressors });
 
   const geometries: Geometry[] = [];

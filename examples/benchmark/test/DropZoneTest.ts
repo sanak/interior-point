@@ -17,7 +17,7 @@ function fakeTarget(): { element: HTMLElement; listeners: Map<string, Listener> 
 
 interface FakeFile {
   name: string;
-  text(): Promise<string>;
+  arrayBuffer(): Promise<ArrayBuffer>;
 }
 
 function fakeDropEvent(files: FakeFile[]): { event: unknown; wasPrevented(): boolean } {
@@ -37,6 +37,10 @@ const VALID_GEOJSON = JSON.stringify({
   type: "FeatureCollection",
   features: [{ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: [1, 2] } }],
 });
+
+function bytesOf(text: string): Promise<ArrayBuffer> {
+  return Promise.resolve(new TextEncoder().encode(text).buffer as ArrayBuffer);
+}
 
 describe("installDropZone", () => {
   it("prevents the default dragover so the browser allows the drop", () => {
@@ -64,7 +68,9 @@ describe("installDropZone", () => {
       (dataset) => datasets.push(dataset),
       (message) => errors.push(message),
     );
-    const { event, wasPrevented } = fakeDropEvent([{ name: "points.geojson", text: async () => VALID_GEOJSON }]);
+    const { event, wasPrevented } = fakeDropEvent([
+      { name: "points.geojson", arrayBuffer: () => bytesOf(VALID_GEOJSON) },
+    ]);
     await listeners.get("drop")?.(event);
     assert.equal(wasPrevented(), true);
     assert.deepEqual(errors, []);
@@ -84,7 +90,7 @@ describe("installDropZone", () => {
       },
       (message) => errors.push(message),
     );
-    const { event } = fakeDropEvent([{ name: "broken.geojson", text: async () => "not geojson at all" }]);
+    const { event } = fakeDropEvent([{ name: "broken.geojson", arrayBuffer: () => bytesOf("not geojson at all") }]);
     await listeners.get("drop")?.(event);
     assert.equal(datasetCalls, 0);
     assert.equal(errors.length, 1);
@@ -106,6 +112,6 @@ describe("installDropZone", () => {
     await listeners.get("drop")?.(event);
     assert.equal(wasPrevented(), true);
     assert.equal(datasetCalls, 0);
-    assert.deepEqual(errors, ["Drop a single .geojson or .json file."]);
+    assert.deepEqual(errors, ["Drop a single .geojson, .json or .parquet file."]);
   });
 });
