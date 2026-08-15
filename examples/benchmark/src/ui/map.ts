@@ -109,13 +109,14 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
     const hit = map.queryRenderedFeatures(event.point, { layers: visiblePointLayers() })[0];
     if (hit) {
       const adapterId = hit.layer.id.slice(POINT_LAYER_PREFIX.length);
-      const index = hit.properties?.index;
-      const exact = typeof index === "number" ? points.get(adapterId)?.[index] : undefined;
+      // `id` is 0 for the first feature of every source, so this must be a type test.
+      const index = typeof hit.id === "number" ? hit.id : undefined;
+      const exact = index === undefined ? undefined : points.get(adapterId)?.[index];
       if (exact) {
         // `RunResult.points` holds one entry per input geometry in order, and a dataset's
         // `features` and `geometries` are built in step, so the same index reaches the feature
         // the point was computed from.
-        const source = typeof index === "number" ? dataset?.features[index] : undefined;
+        const source = index === undefined ? undefined : dataset?.features[index];
         popup
           .setLngLat(event.lngLat)
           .setHTML(pointPopupHtml(ADAPTER_LABELS.get(adapterId) ?? adapterId, exact, source?.properties))

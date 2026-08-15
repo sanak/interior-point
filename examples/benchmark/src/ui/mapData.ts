@@ -8,14 +8,25 @@ export function styleUrl(dark: boolean): string {
   return dark ? CARTO_DARK : CARTO_LIGHT;
 }
 
+/**
+ * The input features the map draws. Each carries its index in `Dataset.features` as a top-level
+ * `id`, which is what `setFeatureState` selects on and what ties a feature to the interior point
+ * computed from it. Any `id` a dropped file carried is replaced: only the index has that meaning
+ * here. The index cannot live in `properties`, because everything there is rendered into the
+ * attribute popup.
+ */
 export function datasetCollection(dataset: Dataset | null): FeatureCollection {
-  return { type: "FeatureCollection", features: dataset ? [...dataset.features] : [] };
+  return {
+    type: "FeatureCollection",
+    features: dataset ? dataset.features.map((feature, index) => ({ ...feature, id: index })) : [],
+  };
 }
 
 /**
- * The drawn result points. Each carries the index it had in the run's `points` array so a click
- * can be traced back to the exact coordinate — the drawn geometry is quantised by MapLibre's
- * tiler and is not precise enough to display.
+ * The drawn result points. Each carries the index it had in the run's `points` array as its
+ * top-level `id`, so a click can be traced back to the exact coordinate — the drawn geometry is
+ * quantised by MapLibre's tiler and is not precise enough to display. `properties` stays empty:
+ * a result point has no attributes of its own.
  */
 export function pointsCollection(points: readonly (Position | null)[]): FeatureCollection {
   const features: Feature[] = [];
@@ -23,7 +34,8 @@ export function pointsCollection(points: readonly (Position | null)[]): FeatureC
     if (point === null) return;
     features.push({
       type: "Feature",
-      properties: { index },
+      id: index,
+      properties: {},
       geometry: { type: "Point", coordinates: [...point] },
     });
   });
