@@ -119,6 +119,7 @@ export function groupPointHits(hits: readonly PointHit[]): PointHitGroup[] {
       labelsByKey.set(key, labels);
       groups.push({ labels, position: hit.position, properties: hit.properties });
     }
+    // the group holds this array by reference; later hits append to it
     labels.push({ label: hit.label, color: hit.color });
   }
   return groups;

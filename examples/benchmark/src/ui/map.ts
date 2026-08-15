@@ -90,6 +90,26 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
     });
   };
 
+  /**
+   * Writes the current selection into the map, or takes it back out.
+   *
+   * The source has to be checked each time: a style change tears every source down and rebuilds
+   * it, and `setData` drops the feature state of the source it replaces, so a write can arrive
+   * with nothing to write to.
+   */
+  const writeSelection = (on: boolean): void => {
+    for (const target of selected) {
+      if (map.getSource(target.source)) map.setFeatureState(target, { selected: on });
+    }
+  };
+
+  /** Replaces the selection wholesale: a click selects what it hit and nothing else. */
+  const select = (next: readonly Selected[]): void => {
+    writeSelection(false);
+    selected = next;
+    writeSelection(true);
+  };
+
   // Setting a new style wipes every custom source and layer, so everything is
   // rebuilt from local state on style.load — which also covers the initial load.
   // `styleReady` tracks readiness ourselves instead of calling `map.isStyleLoaded()`:
@@ -117,23 +137,12 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
   const visiblePointLayers = (): string[] => [...points.keys()].map(pointLayerId).filter((id) => map.getLayer(id));
 
   /**
-   * Writes the current selection into the map, or takes it back out.
-   *
-   * The source has to be checked each time: a style change tears every source down and rebuilds
-   * it, and `setData` drops the feature state of the source it replaces, so a write can arrive
-   * with nothing to write to.
+   * Whatever the popup was describing has just been superseded. Clearing before the write also
+   * means the state is taken off the old sources while they still exist.
    */
-  const writeSelection = (on: boolean): void => {
-    for (const target of selected) {
-      if (map.getSource(target.source)) map.setFeatureState(target, { selected: on });
-    }
-  };
-
-  /** Replaces the selection wholesale: a click selects what it hit and nothing else. */
-  const select = (next: readonly Selected[]): void => {
-    writeSelection(false);
-    selected = next;
-    writeSelection(true);
+  const resetSelection = (): void => {
+    select([]);
+    popup.remove();
   };
 
   map.on("click", (event) => {
@@ -181,10 +190,7 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
 
   return {
     setDataset(next: Dataset): void {
-      // Whatever the popup was describing has just been superseded. Clearing before the write also
-      // means the state is taken off the old sources while they still exist.
-      select([]);
-      popup.remove();
+      resetSelection();
       dataset = next;
       const source = map.getSource(DATASET_SOURCE) as GeoJSONSource | undefined;
       if (source) source.setData(datasetCollection(dataset));
@@ -192,10 +198,7 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
       if (bounds) map.fitBounds(bounds, { padding: 40, maxZoom: 17 });
     },
     setPoints(id: string, next: readonly (Position | null)[]): void {
-      // Whatever the popup was describing has just been superseded. Clearing before the write also
-      // means the state is taken off the old sources while they still exist.
-      select([]);
-      popup.remove();
+      resetSelection();
       const known = points.has(id);
       points.set(id, next);
       if (!styleReady) return; // restoreLayers picks it up on style.load
@@ -213,10 +216,7 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
       }
     },
     clearResults(): void {
-      // Whatever the popup was describing has just been superseded. Clearing before the write also
-      // means the state is taken off the old sources while they still exist.
-      select([]);
-      popup.remove();
+      resetSelection();
       for (const id of points.keys()) {
         const layer = pointLayerId(id);
         if (map.getLayer(layer)) map.removeLayer(layer);

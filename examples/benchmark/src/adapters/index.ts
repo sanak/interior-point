@@ -13,10 +13,10 @@ export const ADAPTER_COLORS: Record<string, string> = {
   "rs-interior-point": "#009E73",
   "rs-centroid-first": "#F0E442",
   jsts: "#0072B2",
-  wasmts: "#D55E00",
-  "geos-wasm": "#CC79A7",
-  "geo-wasm": "#000000",
   turf: "#999999",
+  "geo-wasm": "#000000",
+  "geos-wasm": "#CC79A7",
+  wasmts: "#D55E00",
 };
 
 // This project's four rows lead, since they are what the page is about. The rest ascend by the year

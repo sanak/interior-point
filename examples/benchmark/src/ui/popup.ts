@@ -46,14 +46,18 @@ export function attributePopupHtml(properties: Readonly<Record<string, unknown>>
  */
 const ORDINATE_LABELS = ["longitude", "latitude", "elevation"];
 
-/** The libraries that produced one coordinate, each with the swatch the results table shows. */
+/**
+ * The libraries that produced one coordinate, each with the swatch the results table shows. One
+ * chip per line: at five libraries in a 320px popup, chips sharing a line wrap mid-token and the
+ * swatch/name pairing stops being obvious.
+ */
 function labelsHtml(labels: readonly PointHitLabel[]): string {
   const chips = labels
     .map(
       (entry) =>
         `<span class="popup-swatch" style="background-color:${escapeHtml(entry.color)}"></span>${escapeHtml(entry.label)}`,
     )
-    .join(" ");
+    .join("<br>");
   return `<p class="popup-point">${chips}</p>`;
 }
 
