@@ -6,6 +6,7 @@ import type { Dataset } from "../types.ts";
 import { ADAPTER_COLORS } from "../adapters/index.ts";
 import { boundsOf } from "../data/geometry.ts";
 import { datasetCollection, pointsCollection, styleUrl } from "./mapData.ts";
+import { attributePopupHtml } from "./popup.ts";
 
 export interface BenchmarkMap {
   setDataset(dataset: Dataset): void;
@@ -90,6 +91,29 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
   };
   map.on("style.load", restoreLayers);
 
+  // One delegated handler rather than per-layer ones: layers are torn down and rebuilt on every
+  // style change, and a handler registered inside restoreLayers would stack up a duplicate each
+  // time. queryRenderedFeatures also lets the result points take priority over the polygons
+  // they sit on.
+  const popup = new maplibregl.Popup({ closeButton: true, maxWidth: "320px" });
+  const DATASET_LAYERS = ["dataset-fill", "dataset-circle"];
+
+  map.on("click", (event) => {
+    const layers = DATASET_LAYERS.filter((id) => map.getLayer(id));
+    const feature = map.queryRenderedFeatures(event.point, { layers })[0];
+    if (!feature) {
+      popup.remove();
+      return;
+    }
+    popup.setLngLat(event.lngLat).setHTML(attributePopupHtml(feature.properties)).addTo(map);
+  });
+
+  map.on("mousemove", (event) => {
+    const layers = DATASET_LAYERS.filter((id) => map.getLayer(id));
+    const over = map.queryRenderedFeatures(event.point, { layers }).length > 0;
+    map.getCanvas().style.cursor = over ? "pointer" : "";
+  });
+
   const onSchemeChange = (event: MediaQueryListEvent): void => {
     styleReady = false;
     map.setStyle(styleUrl(event.matches));
@@ -131,6 +155,7 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
     },
     destroy(): void {
       darkQuery.removeEventListener("change", onSchemeChange);
+      popup.remove();
       map.remove();
     },
   };

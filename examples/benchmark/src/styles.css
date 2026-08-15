@@ -139,3 +139,45 @@ body {
   color: #cf222e;
   white-space: normal;
 }
+
+/* MapLibre paints its own white popup; without this it stays white in dark mode. */
+.maplibregl-popup-content {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--fg);
+  max-height: 18rem;
+  overflow-y: auto;
+}
+
+.maplibregl-popup-anchor-top .maplibregl-popup-tip {
+  border-bottom-color: var(--bg);
+}
+
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+  border-top-color: var(--bg);
+}
+
+.popup-attributes {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.popup-attributes th,
+.popup-attributes td {
+  padding: 0.15rem 0.5rem 0.15rem 0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.popup-attributes th {
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.popup-empty {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-style: italic;
+  margin: 0;
+}
