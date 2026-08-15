@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { attributePopupHtml } from "../src/ui/popup.ts";
+import { attributePopupHtml, pointPopupHtml } from "../src/ui/popup.ts";
 
 describe("attributePopupHtml", () => {
   it("renders one row per attribute", () => {
@@ -26,5 +26,21 @@ describe("attributePopupHtml", () => {
     assert.doesNotMatch(html, /<img>|<b>/);
     assert.match(html, /&lt;img&gt;/);
     assert.match(html, /&quot;x&quot; &amp; &lt;b&gt;y&lt;\/b&gt;/);
+  });
+});
+
+describe("pointPopupHtml", () => {
+  it("shows the adapter label and the coordinate at full precision", () => {
+    const html = pointPopupHtml("interior-point (TS)", [132.4567890123456, 34.3891234567891]);
+    assert.match(html, /interior-point \(TS\)/);
+    assert.match(html, /132\.4567890123456, 34\.3891234567891/);
+  });
+
+  it("includes a third ordinate when the position carries one", () => {
+    assert.match(pointPopupHtml("x", [1, 2, 3]), /1, 2, 3/);
+  });
+
+  it("escapes the label", () => {
+    assert.doesNotMatch(pointPopupHtml("<b>x</b>", [1, 2]), /<b>/);
   });
 });

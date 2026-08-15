@@ -181,3 +181,13 @@ body {
   font-style: italic;
   margin: 0;
 }
+
+.popup-point {
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.popup-point code {
+  font-family: var(--font-mono);
+  word-break: break-all;
+}

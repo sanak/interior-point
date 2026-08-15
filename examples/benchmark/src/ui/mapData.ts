@@ -12,13 +12,20 @@ export function datasetCollection(dataset: Dataset | null): FeatureCollection {
   return { type: "FeatureCollection", features: dataset ? [...dataset.features] : [] };
 }
 
+/**
+ * The drawn result points. Each carries the index it had in the run's `points` array so a click
+ * can be traced back to the exact coordinate — the drawn geometry is quantised by MapLibre's
+ * tiler and is not precise enough to display.
+ */
 export function pointsCollection(points: readonly (Position | null)[]): FeatureCollection {
-  const features: Feature[] = points
-    .filter((point): point is Position => point !== null)
-    .map((point) => ({
+  const features: Feature[] = [];
+  points.forEach((point, index) => {
+    if (point === null) return;
+    features.push({
       type: "Feature",
-      properties: {},
+      properties: { index },
       geometry: { type: "Point", coordinates: [...point] },
-    }));
+    });
+  });
   return { type: "FeatureCollection", features };
 }

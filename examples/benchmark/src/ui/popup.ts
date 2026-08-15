@@ -3,6 +3,7 @@
  * Each one is built when a feature is clicked, never ahead of time: a dataset carries
  * thousands of features and only one popup is ever open.
  */
+import type { Position } from "geojson";
 
 /** Values that say nothing. Shown as blank rows they would bury the ones that matter. */
 function isEmpty(value: unknown): boolean {
@@ -22,4 +23,14 @@ export function attributePopupHtml(properties: Readonly<Record<string, unknown>>
     .map(([key, value]) => `<tr><th>${escapeHtml(key)}</th><td>${escapeHtml(String(value))}</td></tr>`)
     .join("");
   return `<table class="popup-attributes">${cells}</table>`;
+}
+
+/**
+ * One computed interior point. The caller passes the value straight out of `RunResult.points`
+ * rather than the clicked feature's geometry: MapLibre quantises a GeoJSON source's coordinates
+ * when it tiles it, so the drawn point is not the exact number the library returned.
+ */
+export function pointPopupHtml(label: string, position: Position): string {
+  const ordinates = position.map((value) => String(value)).join(", ");
+  return `<p class="popup-point"><strong>${escapeHtml(label)}</strong><br><code>${escapeHtml(ordinates)}</code></p>`;
 }

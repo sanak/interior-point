@@ -3,10 +3,10 @@ import type { GeoJSONSource } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { Position } from "geojson";
 import type { Dataset } from "../types.ts";
-import { ADAPTER_COLORS } from "../adapters/index.ts";
+import { ADAPTER_COLORS, ADAPTERS } from "../adapters/index.ts";
 import { boundsOf } from "../data/geometry.ts";
 import { datasetCollection, pointsCollection, styleUrl } from "./mapData.ts";
-import { attributePopupHtml } from "./popup.ts";
+import { attributePopupHtml, pointPopupHtml } from "./popup.ts";
 
 export interface BenchmarkMap {
   setDataset(dataset: Dataset): void;
@@ -18,9 +18,13 @@ export interface BenchmarkMap {
 
 const DATASET_SOURCE = "dataset";
 
+const POINT_LAYER_PREFIX = "points-";
+
 function pointLayerId(id: string): string {
-  return `points-${id}`;
+  return `${POINT_LAYER_PREFIX}${id}`;
 }
+
+const ADAPTER_LABELS = new Map(ADAPTERS.map((adapter) => [adapter.id, adapter.label]));
 
 export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
   const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -98,7 +102,24 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
   const popup = new maplibregl.Popup({ closeButton: true, maxWidth: "320px" });
   const DATASET_LAYERS = ["dataset-fill", "dataset-circle"];
 
+  const visiblePointLayers = (): string[] => [...points.keys()].map(pointLayerId).filter((id) => map.getLayer(id));
+
   map.on("click", (event) => {
+    // Result points sit on top of the polygons they were computed from, so they are asked first.
+    const hit = map.queryRenderedFeatures(event.point, { layers: visiblePointLayers() })[0];
+    if (hit) {
+      const adapterId = hit.layer.id.slice(POINT_LAYER_PREFIX.length);
+      const index = hit.properties?.index;
+      const exact = typeof index === "number" ? points.get(adapterId)?.[index] : undefined;
+      if (exact) {
+        popup
+          .setLngLat(event.lngLat)
+          .setHTML(pointPopupHtml(ADAPTER_LABELS.get(adapterId) ?? adapterId, exact))
+          .addTo(map);
+        return;
+      }
+    }
+
     const layers = DATASET_LAYERS.filter((id) => map.getLayer(id));
     const feature = map.queryRenderedFeatures(event.point, { layers })[0];
     if (!feature) {
@@ -109,9 +130,8 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
   });
 
   map.on("mousemove", (event) => {
-    const layers = DATASET_LAYERS.filter((id) => map.getLayer(id));
-    const over = map.queryRenderedFeatures(event.point, { layers }).length > 0;
-    map.getCanvas().style.cursor = over ? "pointer" : "";
+    const layers = [...visiblePointLayers(), ...DATASET_LAYERS.filter((id) => map.getLayer(id))];
+    map.getCanvas().style.cursor = map.queryRenderedFeatures(event.point, { layers }).length > 0 ? "pointer" : "";
   });
 
   const onSchemeChange = (event: MediaQueryListEvent): void => {

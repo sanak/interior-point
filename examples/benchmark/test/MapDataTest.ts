@@ -33,6 +33,15 @@ describe("pointsCollection", () => {
   });
 });
 
+describe("pointsCollection indices", () => {
+  it("carries the index each point had in the original array, skipping nulls", () => {
+    const collection = pointsCollection([null, [1, 2], null, [3, 4]]);
+    assert.equal(collection.features.length, 2);
+    assert.equal(collection.features[0]?.properties?.index, 1);
+    assert.equal(collection.features[1]?.properties?.index, 3);
+  });
+});
+
 describe("datasetCollection", () => {
   it("returns an empty collection for a missing dataset", () => {
     assert.deepEqual(datasetCollection(null), { type: "FeatureCollection", features: [] });
