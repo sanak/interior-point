@@ -23,10 +23,10 @@ describe("ADAPTERS", () => {
         "rs-interior-point",
         "rs-centroid-first",
         "jsts",
-        "wasmts",
-        "geos-wasm",
-        "geo-wasm",
         "turf",
+        "geo-wasm",
+        "geos-wasm",
+        "wasmts",
       ],
     );
   });
@@ -40,10 +40,10 @@ describe("ADAPTERS", () => {
         "interiorPoint",
         "centroidFirstInteriorPoint",
         "Geometry#getInteriorPoint",
-        "InteriorPoint.getInteriorPoint",
-        "GEOSPointOnSurface",
-        "interior_point",
         "pointOnFeature",
+        "interior_point",
+        "GEOSPointOnSurface",
+        "InteriorPoint.getInteriorPoint",
       ],
     );
   });

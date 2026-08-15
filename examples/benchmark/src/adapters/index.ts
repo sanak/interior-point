@@ -19,14 +19,17 @@ export const ADAPTER_COLORS: Record<string, string> = {
   turf: "#999999",
 };
 
+// This project's four rows lead, since they are what the page is about. The rest ascend by the
+// year their package was first published, which makes the table a timeline. Reordering moves no
+// measurement: every row runs the dataset twice and only the second pass is timed.
 export const ADAPTERS: readonly Adapter[] = [
   tsInteriorPointAdapter,
   tsCentroidFirstAdapter,
   rsInteriorPointAdapter,
   rsCentroidFirstAdapter,
   jstsAdapter,
-  wasmtsAdapter,
-  geosWasmAdapter,
-  geoWasmAdapter,
   turfAdapter,
+  geoWasmAdapter,
+  geosWasmAdapter,
+  wasmtsAdapter,
 ];
