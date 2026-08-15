@@ -1,11 +1,11 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./styles.css";
 
-import datasetUrl from "../../data/plateau-hiroshima-bldg.parquet?url";
+import datasetUrl from "../../data/plateau-hiroshima-bldg.geojson?url";
 
 import { ADAPTERS } from "./adapters/index.ts";
 import { runAdapter } from "./bench/run.ts";
-import { loadParquetDataset } from "./data/parquet.ts";
+import { parseDroppedGeoJson } from "./data/drop.ts";
 import { renderTable } from "./ui/table.ts";
 import { createBenchmarkMap } from "./ui/map.ts";
 import { installDropZone } from "./ui/drop.ts";
@@ -146,7 +146,11 @@ installDropZone(
   showDropError,
 );
 
-loadParquetDataset(datasetUrl, "PLATEAU Hiroshima buildings")
+fetch(datasetUrl)
+  .then(async (response) => {
+    if (!response.ok) throw new Error(`Failed to fetch the dataset: ${response.status} ${response.statusText}`);
+    return parseDroppedGeoJson(await response.text(), "PLATEAU Hiroshima buildings");
+  })
   .then((loadedDataset) => {
     adoptDataset(loadedDataset);
   })

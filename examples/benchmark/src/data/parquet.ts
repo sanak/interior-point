@@ -42,10 +42,3 @@ export async function parquetToDataset(bytes: ArrayBuffer, name: string): Promis
 
   return { name, geometries, features, skipped };
 }
-
-/** Fetches a GeoParquet file and reads it into a dataset. */
-export async function loadParquetDataset(url: string, name: string): Promise<Dataset> {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
-  return parquetToDataset(await response.arrayBuffer(), name);
-}

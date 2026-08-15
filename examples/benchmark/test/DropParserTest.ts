@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it } from "node:test";
 
 import { parseDroppedGeoJson } from "../src/data/drop.ts";
+
+const SHIPPED_GEOJSON = join(import.meta.dirname, "..", "..", "data", "plateau-hiroshima-bldg.geojson");
 
 const collection = JSON.stringify({
   type: "FeatureCollection",
@@ -75,5 +79,15 @@ describe("parseDroppedGeoJson", () => {
     const empty = JSON.stringify({ type: "FeatureCollection", features: [] });
 
     assert.throws(() => parseDroppedGeoJson(empty, "empty.geojson"), /no non-empty geometries/);
+  });
+});
+
+describe("the shipped GeoJSON dataset", () => {
+  it("parses into 6769 geometries with their attributes intact", () => {
+    const dataset = parseDroppedGeoJson(readFileSync(SHIPPED_GEOJSON, "utf8"), "PLATEAU Hiroshima buildings");
+    assert.equal(dataset.geometries.length, 6769);
+    assert.equal(dataset.skipped, 0);
+    assert.equal(dataset.features[0]?.properties?.building_id, "34100-bldg-370791");
+    assert.equal(dataset.features[0]?.properties?.measured_height, 35.3);
   });
 });
