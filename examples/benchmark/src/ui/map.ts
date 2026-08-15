@@ -119,7 +119,20 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
         const source = index === undefined ? undefined : dataset?.features[index];
         popup
           .setLngLat(event.lngLat)
-          .setHTML(pointPopupHtml(ADAPTER_LABELS.get(adapterId) ?? adapterId, exact, source?.properties))
+          .setHTML(
+            pointPopupHtml([
+              {
+                labels: [
+                  {
+                    label: ADAPTER_LABELS.get(adapterId) ?? adapterId,
+                    color: ADAPTER_COLORS[adapterId] ?? "#888888",
+                  },
+                ],
+                position: exact,
+                properties: source?.properties ?? null,
+              },
+            ]),
+          )
           .addTo(map);
         return;
       }

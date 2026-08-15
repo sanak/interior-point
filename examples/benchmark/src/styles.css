@@ -218,3 +218,29 @@ body {
   font-family: var(--font-mono);
   word-break: break-all;
 }
+
+/* One group of result points inside the popup. The rule separates a group from the one above it,
+   the same way the coordinate table is separated from the attributes folded under it. */
+.popup-group + .popup-group {
+  border-top: 1px solid var(--border);
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+/* The same legend swatch the results table draws, sized for a popup line. */
+.popup-swatch {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-right: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  vertical-align: -1px;
+}
+
+/* Says how many groups are stacked below, since the popup scrolls rather than growing. */
+.popup-count {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin: 0 0 0.35rem;
+}

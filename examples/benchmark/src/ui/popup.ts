@@ -3,7 +3,7 @@
  * Each one is built when a feature is clicked, never ahead of time: a dataset carries
  * thousands of features and only one popup is ever open.
  */
-import type { Position } from "geojson";
+import type { PointHitGroup, PointHitLabel } from "./hits.ts";
 
 /** Values that say nothing. Shown as blank rows they would bury the ones that matter. */
 function isEmpty(value: unknown): boolean {
@@ -46,35 +46,36 @@ export function attributePopupHtml(properties: Readonly<Record<string, unknown>>
  */
 const ORDINATE_LABELS = ["longitude", "latitude", "elevation"];
 
+/** The libraries that produced one coordinate, each with the swatch the results table shows. */
+function labelsHtml(labels: readonly PointHitLabel[]): string {
+  const chips = labels
+    .map(
+      (entry) =>
+        `<span class="popup-swatch" style="background-color:${escapeHtml(entry.color)}"></span>${escapeHtml(entry.label)}`,
+    )
+    .join(" ");
+  return `<p class="popup-point">${chips}</p>`;
+}
+
 /**
- * One computed interior point: the adapter that produced it, one row per ordinate, then the
- * attributes of the feature it was computed from, folded away. The coordinate is what the click
- * was for, so it comes first and needs no opening; the attributes are the same ones a click on the
- * polygon underneath already shows, and a dataset with many of them would otherwise push the
- * coordinate out of a popup this size.
+ * One group: the libraries that agreed on it, one row per ordinate, then the attributes of the
+ * feature it was computed from, folded away. The coordinate is what the click was for, so it comes
+ * first and needs no opening; the attributes are the same ones a click on the polygon underneath
+ * already shows, and a dataset with many of them would otherwise push the coordinate out of a
+ * popup this size.
  *
- * The caller passes the coordinate straight out of `RunResult.points` rather than the clicked
- * feature's geometry, because MapLibre quantises a GeoJSON source's coordinates when it tiles it,
- * so the drawn point is not the exact number the library returned. Each ordinate gets its own row
- * rather than a comma-separated line: at full double precision the pair is too long to read as one
- * string.
+ * Each ordinate gets its own row rather than a comma-separated line: at full double precision the
+ * pair is too long to read as one string.
  */
-export function pointPopupHtml(
-  label: string,
-  position: Position,
-  properties?: Readonly<Record<string, unknown>> | null,
-): string {
-  const ordinates = position
+function groupHtml(group: PointHitGroup): string {
+  const ordinates = group.position
     .map((value, index) => {
       const name = ORDINATE_LABELS[index] ?? `[${index}]`;
       return `<tr><th>${name}</th><td><code>${escapeHtml(String(value))}</code></td></tr>`;
     })
     .join("");
-  const parts = [
-    `<p class="popup-point"><strong>${escapeHtml(label)}</strong></p>`,
-    `<table class="popup-coordinates">${ordinates}</table>`,
-  ];
-  const rows = shownAttributes(properties);
+  const parts = [labelsHtml(group.labels), `<table class="popup-coordinates">${ordinates}</table>`];
+  const rows = shownAttributes(group.properties);
   if (rows.length > 0) {
     // <details> rather than a click handler: the popup's HTML is replaced on every click, so any
     // listener bound here would have to be rebound each time. The browser handles this one.
@@ -82,5 +83,24 @@ export function pointPopupHtml(
       `<details class="popup-details"><summary>Attributes (${rows.length})</summary>${attributeTableHtml(rows)}</details>`,
     );
   }
-  return parts.join("");
+  return `<div class="popup-group">${parts.join("")}</div>`;
+}
+
+/**
+ * Every computed interior point under one click, as one popup.
+ *
+ * The groups are stacked rather than spread across one popup each: the popup content scrolls at
+ * `max-height`, so a stack costs no screen space beyond the first, while one popup per group would
+ * cost it in proportion to their number. The coordinates the groups disagree on differ in the
+ * sixth decimal place of a degree, which is under a pixel at the zoom levels this app uses, so
+ * separate popups would not have pointed anywhere distinguishable anyway.
+ *
+ * The caller passes coordinates straight out of `RunResult.points` rather than the clicked
+ * features' geometry, because MapLibre quantises a GeoJSON source's coordinates when it tiles it,
+ * so the drawn point is not the exact number the library returned.
+ */
+export function pointPopupHtml(groups: readonly PointHitGroup[]): string {
+  if (groups.length === 0) return "";
+  const count = groups.length > 1 ? `<p class="popup-count">${groups.length} results here</p>` : "";
+  return count + groups.map(groupHtml).join("");
 }
