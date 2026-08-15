@@ -25,11 +25,18 @@ function pointLayerId(id: string): string {
   return `${POINT_LAYER_PREFIX}${id}`;
 }
 
+/** A feature currently drawn as selected, addressed the way `setFeatureState` wants it. */
+interface Selected {
+  readonly source: string;
+  readonly id: number;
+}
+
 export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
   const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
   let dataset: Dataset | null = null;
   const points = new Map<string, readonly (Position | null)[]>();
   const hidden = new Set<string>();
+  let selected: readonly Selected[] = [];
 
   const map = new maplibregl.Map({
     container,
@@ -46,20 +53,29 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
       id: "dataset-fill",
       type: "fill",
       source: DATASET_SOURCE,
-      paint: { "fill-color": "#888888", "fill-opacity": 0.25 },
+      paint: {
+        "fill-color": "#888888",
+        "fill-opacity": ["case", ["boolean", ["feature-state", "selected"], false], 0.45, 0.25],
+      },
     });
     map.addLayer({
       id: "dataset-outline",
       type: "line",
       source: DATASET_SOURCE,
-      paint: { "line-color": "#888888", "line-width": 1 },
+      paint: {
+        "line-color": "#888888",
+        "line-width": ["case", ["boolean", ["feature-state", "selected"], false], 3, 1],
+      },
     });
     map.addLayer({
       id: "dataset-circle",
       type: "circle",
       source: DATASET_SOURCE,
       filter: ["==", ["geometry-type"], "Point"],
-      paint: { "circle-color": "#888888", "circle-radius": 4 },
+      paint: {
+        "circle-color": "#888888",
+        "circle-radius": ["case", ["boolean", ["feature-state", "selected"], false], 7, 4],
+      },
     });
   };
 
@@ -73,9 +89,9 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
       layout: { visibility: hidden.has(id) ? "none" : "visible" },
       paint: {
         "circle-color": ADAPTER_COLORS[id] ?? "#888888",
-        "circle-radius": 4,
+        "circle-radius": ["case", ["boolean", ["feature-state", "selected"], false], 7, 4],
         "circle-stroke-color": "#ffffff",
-        "circle-stroke-width": 2,
+        "circle-stroke-width": ["case", ["boolean", ["feature-state", "selected"], false], 3, 2],
       },
     });
   };
@@ -91,6 +107,7 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
     styleReady = true;
     addDatasetLayers();
     for (const id of points.keys()) addPointLayer(id);
+    writeSelection(true);
   };
   map.on("style.load", restoreLayers);
 
@@ -102,6 +119,26 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
   const DATASET_LAYERS = ["dataset-fill", "dataset-circle"];
 
   const visiblePointLayers = (): string[] => [...points.keys()].map(pointLayerId).filter((id) => map.getLayer(id));
+
+  /**
+   * Writes the current selection into the map, or takes it back out.
+   *
+   * The source has to be checked each time: a style change tears every source down and rebuilds
+   * it, and `setData` drops the feature state of the source it replaces, so a write can arrive
+   * with nothing to write to.
+   */
+  const writeSelection = (on: boolean): void => {
+    for (const target of selected) {
+      if (map.getSource(target.source)) map.setFeatureState(target, { selected: on });
+    }
+  };
+
+  /** Replaces the selection wholesale: a click selects what it hit and nothing else. */
+  const select = (next: readonly Selected[]): void => {
+    writeSelection(false);
+    selected = next;
+    writeSelection(true);
+  };
 
   /**
    * Every visible result point under the pointer, resolved against the run that produced it.
@@ -143,6 +180,7 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
         .setLngLat(event.lngLat)
         .setHTML(pointPopupHtml(groupPointHits(hits)))
         .addTo(map);
+      select(hits.map((hit) => ({ source: pointLayerId(hit.adapterId), id: hit.index })));
       return;
     }
 
@@ -150,9 +188,11 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
     const feature = map.queryRenderedFeatures(event.point, { layers })[0];
     if (!feature) {
       popup.remove();
+      select([]);
       return;
     }
     popup.setLngLat(event.lngLat).setHTML(attributePopupHtml(feature.properties)).addTo(map);
+    select(typeof feature.id === "number" ? [{ source: DATASET_SOURCE, id: feature.id }] : []);
   });
 
   map.on("mousemove", (event) => {
@@ -168,6 +208,10 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
 
   return {
     setDataset(next: Dataset): void {
+      // Whatever the popup was describing has just been superseded. Clearing before the write also
+      // means the state is taken off the old sources while they still exist.
+      select([]);
+      popup.remove();
       dataset = next;
       const source = map.getSource(DATASET_SOURCE) as GeoJSONSource | undefined;
       if (source) source.setData(datasetCollection(dataset));
@@ -175,6 +219,10 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
       if (bounds) map.fitBounds(bounds, { padding: 40, maxZoom: 17 });
     },
     setPoints(id: string, next: readonly (Position | null)[]): void {
+      // Whatever the popup was describing has just been superseded. Clearing before the write also
+      // means the state is taken off the old sources while they still exist.
+      select([]);
+      popup.remove();
       const known = points.has(id);
       points.set(id, next);
       if (!styleReady) return; // restoreLayers picks it up on style.load
@@ -192,6 +240,10 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
       }
     },
     clearResults(): void {
+      // Whatever the popup was describing has just been superseded. Clearing before the write also
+      // means the state is taken off the old sources while they still exist.
+      select([]);
+      popup.remove();
       for (const id of points.keys()) {
         const layer = pointLayerId(id);
         if (map.getLayer(layer)) map.removeLayer(layer);
