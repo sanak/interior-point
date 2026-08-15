@@ -18,9 +18,24 @@ function copyWasmtsVendorPlugin(): Plugin {
   };
 }
 
+function gracefulShutdownPlugin(): Plugin {
+  return {
+    name: "graceful-shutdown",
+    configureServer() {
+      // Ctrl+C signals the whole foreground process group, so vite dies from SIGINT
+      // rather than exiting. pnpm turns a child killed by a signal into a failed
+      // script and re-raises the signal on itself, so `pnpm examples:dev` reports
+      // ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL and ELIFECYCLE, one per pnpm layer, on
+      // every ordinary shutdown. There is no pnpm flag for this; exiting 0 is what
+      // keeps it quiet. Dev only — `vite build` never calls configureServer.
+      process.once("SIGINT", () => process.exit(0));
+    },
+  };
+}
+
 export default defineConfig({
   base: "/interior-point/examples/benchmark/",
-  plugins: [copyWasmtsVendorPlugin()],
+  plugins: [copyWasmtsVendorPlugin(), gracefulShutdownPlugin()],
   resolve: {
     alias: {
       "interior-point-wasm": fileURLToPath(new URL("../../rs/wasm/pkg-web/interior_point_wasm.js", import.meta.url)),
