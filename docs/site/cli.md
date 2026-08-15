@@ -33,9 +33,10 @@ flag is what turns the binary on: `cargo install interior-point` on its own inst
 | `-i`  | `--input`          | `<geom\|file>` | WKT literal, GeoJSON literal, or a path. Defaults to stdin |
 | `-f`  | `--format`         | `<fmt>`        | Output format: geojson (default) or wkt                    |
 | `-o`  | `--output`         | `<file>`       | Write to a file instead of stdout                          |
-| `-c`  | `--centroid-first` | —              | Return the centroid when it lies strictly inside           |
-| `-q`  | `--quiet`          | —              | Suppress the result; exit code only                        |
 | `-v`  | `--verify`         | —              | Check each result against its input geometry               |
+| `-c`  | `--centroid-first` | —              | Return the centroid when it lies strictly inside           |
+| `-t`  | `--time`           | —              | Report elapsed time per phase on stderr                    |
+| `-q`  | `--quiet`          | —              | Suppress the result; exit code only                        |
 | `-h`  | `--help`           | —              | Print this help                                            |
 
 The exact `--help` layout differs between the two CLIs: each language renders it with its own
@@ -112,6 +113,45 @@ flags is silent while a failing one still names the offending record:
 | `--verify`, some record fails           | unchanged | the summary line, then one line per failure | 2    |
 | `--verify --quiet`, every record passes | nothing   | nothing                                     | 0    |
 | `--verify --quiet`, some record fails   | nothing   | one line per failure                        | 2    |
+
+## Timing
+
+`--time` reports where a run spent itself, as one line on stderr. stdout is byte for byte what the
+same run produces without the flag, and the exit code is unchanged.
+
+```sh
+interior-point --input buildings.geojson --output centres.geojson --time
+# time: 6769 records, read 24.3 ms, compute 11.0 ms, write 5.1 ms, total 40.3 ms
+```
+
+| Phase     | Covers                                                               |
+| --------- | -------------------------------------------------------------------- |
+| `read`    | reading the input, detecting its format, and parsing it into records |
+| `compute` | computing one point per record                                       |
+| `verify`  | checking those points — present only under `--verify`                |
+| `write`   | serialising the result and writing it — absent under `--quiet`       |
+| `total`   | the sum of the phases above                                          |
+
+Only the phases that happened are named, so the line under `--quiet` is shorter than the line
+without it. `--time` survives `--quiet`, unlike `--verify`'s summary: a run asked to report its
+timing and to produce no output is the ordinary way to measure parsing and computation on their
+own.
+
+**`total` is not how long the command took.** It is the sum of the phases, and those begin after
+the language runtime has started and end before the process exits, so process startup is outside
+what either CLI can see. On the same 6769-record file the Node command's startup is around 40 ms
+and the Rust command's around 4 ms, neither of which appears above. For the figure a user actually
+waits for, time the whole process from the shell.
+
+The two CLIs report the same phases in the same order with the same units, but the durations are
+measurements and will not agree — this is the one part of the surface where byte-for-byte
+agreement is not a goal. They are not comparable between languages except as an ordering of costs
+within one run.
+
+The prior art is jtsop's `-time`, which reports a single figure covering the operation alone; that
+figure corresponds to `compute` here. Splitting the rest out is this CLI's own addition, and it
+earns its place: on real input `read` has consistently been the largest of the phases and
+`compute` the smallest.
 
 ## Input
 

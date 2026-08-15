@@ -30,9 +30,10 @@ mod args_tests {
                 input: None,
                 format: OutputFormat::Geojson,
                 output: None,
-                centroid_first: false,
-                quiet: false,
                 verify: false,
+                centroid_first: false,
+                time: false,
+                quiet: false,
                 help: false,
             }
         );
@@ -133,28 +134,17 @@ mod args_tests {
     }
 
     #[test]
-    fn lists_centroid_first_between_output_and_quiet_in_the_help_text() {
-        let help = help_text();
-        let lines: Vec<&str> = help.lines().collect();
-        let index = |flag: &str| {
-            lines
-                .iter()
-                .position(|line| line.contains(flag))
-                .unwrap_or_else(|| panic!("{flag} missing from help text"))
-        };
-        assert_eq!(index("--centroid-first"), index("--output") + 1);
-        assert_eq!(index("--quiet"), index("--centroid-first") + 1);
-        assert_eq!(
-            lines[index("--centroid-first")],
-            "  -c, --centroid-first     Prefer the centroid when it lies inside"
-        );
-    }
-
-    #[test]
     fn sets_verify_from_either_spelling() {
         assert!(parse_cli_args(&args(&["-v"])).unwrap().verify);
         assert!(parse_cli_args(&args(&["--verify"])).unwrap().verify);
         assert!(!parse_cli_args(&args(&["-q"])).unwrap().verify);
+    }
+
+    #[test]
+    fn sets_time_from_either_spelling() {
+        assert!(parse_cli_args(&args(&["-t"])).unwrap().time);
+        assert!(parse_cli_args(&args(&["--time"])).unwrap().time);
+        assert!(!parse_cli_args(&args(&["-q"])).unwrap().time);
     }
 
     #[test]
@@ -164,20 +154,52 @@ mod args_tests {
         assert!(options.quiet);
     }
 
+    /// One assertion over the whole list rather than one per adjacent pair: the
+    /// order is the surface, and comparing the whole vector also catches a flag
+    /// added without being placed.
     #[test]
-    fn help_text_names_every_long_flag() {
+    fn lists_every_long_flag_in_the_help_text_in_surface_order() {
         let help = help_text();
-        for flag in [
-            "--input",
-            "--format",
-            "--output",
-            "--centroid-first",
-            "--quiet",
-            "--verify",
-            "--help",
-        ] {
-            assert!(help.contains(flag), "{flag} missing from help text");
-        }
+        let flags: Vec<&str> = help
+            .lines()
+            .filter_map(|line| line.split_whitespace().find(|word| word.starts_with("--")))
+            .collect();
+        assert_eq!(
+            flags,
+            [
+                "--input",
+                "--format",
+                "--output",
+                "--verify",
+                "--centroid-first",
+                "--time",
+                "--quiet",
+                "--help",
+            ]
+        );
+    }
+
+    /// Pins clap's own column, which the TypeScript CLI does not share. Adding a
+    /// flag shorter than `--centroid-first` must not move it.
+    #[test]
+    fn aligns_each_flag_description_at_claps_column() {
+        let help = help_text();
+        let lines: Vec<&str> = help.lines().collect();
+        let line = |flag: &str| {
+            *lines
+                .iter()
+                .find(|line| line.contains(flag))
+                .unwrap_or_else(|| panic!("{flag} missing from help text"))
+        };
+        assert_eq!(
+            line("--centroid-first"),
+            "  -c, --centroid-first     Prefer the centroid when it lies inside"
+        );
+        assert!(
+            line("--time").contains("Report elapsed time per phase on stderr"),
+            "unexpected --time line: {:?}",
+            line("--time")
+        );
     }
 }
 
@@ -982,5 +1004,136 @@ mod centroid_first_tests {
             err,
             "verify: 1 records, 1 off-geometry\nverify: record 1: off-geometry\n"
         );
+    }
+}
+
+mod time_tests {
+    use super::*;
+
+    /// Drives `run` against in-memory sinks and returns (exit code, stdout, stderr).
+    fn drive(argv: &[&str]) -> (i32, String, String) {
+        let (mut out, mut err) = (Vec::new(), Vec::new());
+        let mut read_stdin = || Ok(String::new());
+        let code = run(&args(argv), &mut out, &mut err, &mut read_stdin);
+        (
+            code,
+            String::from_utf8(out).unwrap(),
+            String::from_utf8(err).unwrap(),
+        )
+    }
+
+    const SQUARE: &str = "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0))";
+
+    /// The one input shape that reaches exit 2, so the timing line can be
+    /// checked against a failing verification rather than only a passing one.
+    const HOLE_LARGER_THAN_SHELL: &str =
+        "POLYGON ((0 0, 10 0, 10 10, 0 10, 0 0), (-5 -5, 15 -5, 15 15, -5 15, -5 -5))";
+
+    const TWO_FEATURES: &str = r#"{"type":"FeatureCollection","features":[
+        {"type":"Feature","properties":null,
+         "geometry":{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,10],[0,10],[0,0]]]}},
+        {"type":"Feature","properties":null,"geometry":null}]}"#;
+
+    /// `12.3 ms` — digits, exactly one decimal place, then the unit.
+    fn is_millis(text: &str) -> bool {
+        let Some(number) = text.strip_suffix(" ms") else {
+            return false;
+        };
+        let Some((whole, fraction)) = number.split_once('.') else {
+            return false;
+        };
+        !whole.is_empty()
+            && whole.bytes().all(|b| b.is_ascii_digit())
+            && fraction.len() == 1
+            && fraction.bytes().all(|b| b.is_ascii_digit())
+    }
+
+    /// Splits the `--time` line into its record count and the phases it names,
+    /// in order. Each duration is checked for shape and then dropped: asserting
+    /// a number would make the suite fail on a slow machine rather than on a bug.
+    fn time_line(err: &str) -> (usize, Vec<String>) {
+        let line = err
+            .lines()
+            .find(|line| line.starts_with("time: "))
+            .unwrap_or_else(|| panic!("no time line in {err:?}"));
+        let rest = line.strip_prefix("time: ").unwrap();
+        let (count, segments) = rest
+            .split_once(" records, ")
+            .unwrap_or_else(|| panic!("unexpected time line {line:?}"));
+        let phases = segments
+            .split(", ")
+            .map(|segment| {
+                let (name, duration) = segment
+                    .split_once(' ')
+                    .unwrap_or_else(|| panic!("unexpected segment {segment:?}"));
+                assert!(is_millis(duration), "unexpected duration in {segment:?}");
+                name.to_string()
+            })
+            .collect();
+        (count.parse().unwrap(), phases)
+    }
+
+    #[test]
+    fn names_read_compute_write_and_total_in_that_order() {
+        let (code, _, err) = drive(&["-i", SQUARE, "-t"]);
+        assert_eq!(code, 0);
+        let (records, phases) = time_line(&err);
+        assert_eq!(records, 1);
+        assert_eq!(phases, ["read", "compute", "write", "total"]);
+    }
+
+    #[test]
+    fn leaves_stdout_exactly_as_it_was_without_the_flag() {
+        let (_, plain, _) = drive(&["-i", TWO_FEATURES]);
+        let (_, timed, _) = drive(&["-i", TWO_FEATURES, "-t"]);
+        assert_eq!(timed, plain);
+    }
+
+    #[test]
+    fn drops_the_write_phase_under_quiet() {
+        let (code, out, err) = drive(&["-i", SQUARE, "-t", "-q"]);
+        assert_eq!(code, 0);
+        assert!(out.is_empty());
+        assert_eq!(time_line(&err).1, ["read", "compute", "total"]);
+    }
+
+    #[test]
+    fn adds_a_verify_phase_between_compute_and_write() {
+        let (code, _, err) = drive(&["-i", SQUARE, "-t", "-v"]);
+        assert_eq!(code, 0);
+        assert_eq!(
+            time_line(&err).1,
+            ["read", "compute", "verify", "write", "total"]
+        );
+    }
+
+    #[test]
+    fn prints_its_line_after_the_verification_lines_and_keeps_their_exit_code() {
+        let (code, _, err) = drive(&["-i", HOLE_LARGER_THAN_SHELL, "-t", "-v"]);
+        assert_eq!(code, 2);
+        let lines: Vec<&str> = err.lines().collect();
+        assert_eq!(
+            lines[..2],
+            [
+                "verify: 1 records, 1 off-geometry",
+                "verify: record 1: off-geometry"
+            ]
+        );
+        assert_eq!(lines.len(), 3);
+        assert!(lines[2].starts_with("time: "));
+    }
+
+    #[test]
+    fn counts_every_record_of_a_feature_collection() {
+        let (code, _, err) = drive(&["-i", TWO_FEATURES, "-t"]);
+        assert_eq!(code, 0);
+        assert_eq!(time_line(&err).0, 2);
+    }
+
+    #[test]
+    fn says_nothing_about_time_when_the_input_could_not_be_read() {
+        let (code, _, err) = drive(&["-i", "NOTAGEOM (1 2)", "-t"]);
+        assert_eq!(code, 1);
+        assert!(!err.contains("time: "));
     }
 }

@@ -23,9 +23,10 @@ describe("args", () => {
       input: undefined,
       format: "geojson",
       output: undefined,
-      centroidFirst: false,
-      quiet: false,
       verify: false,
+      centroidFirst: false,
+      time: false,
+      quiet: false,
       help: false,
     });
   });
@@ -66,35 +67,43 @@ describe("args", () => {
     assert.equal(parseCliArgs(["--centroid-first"]).centroidFirst, true);
   });
 
-  it("lists --centroid-first between --output and --quiet in the help text", () => {
-    const lines = HELP_TEXT.split("\n");
-    const output = lines.findIndex((line) => line.includes("--output"));
-    const centroidFirst = lines.findIndex((line) => line.includes("--centroid-first"));
-    const quiet = lines.findIndex((line) => line.includes("--quiet"));
-    assert.equal(centroidFirst, output + 1);
-    assert.equal(quiet, centroidFirst + 1);
-    assert.equal(lines[centroidFirst], "  -c, --centroid-first      Prefer the centroid when it lies inside.");
-  });
-
   it("sets verify from -v and from --verify", () => {
     assert.equal(parseCliArgs(["-v"]).verify, true);
     assert.equal(parseCliArgs(["--verify"]).verify, true);
   });
 
-  it("lists --verify between --quiet and --help in the help text", () => {
-    const lines = HELP_TEXT.split("\n");
-    const quiet = lines.findIndex((line) => line.includes("--quiet"));
-    const verify = lines.findIndex((line) => line.includes("--verify"));
-    const help = lines.findIndex((line) => line.includes("--help"));
-    assert.equal(verify, quiet + 1);
-    assert.equal(help, verify + 1);
-    assert.equal(lines[verify], "  -v, --verify              Check each result against its input geometry.");
+  it("sets time from -t and from --time", () => {
+    assert.equal(parseCliArgs(["-t"]).time, true);
+    assert.equal(parseCliArgs(["--time"]).time, true);
   });
 
-  it("help text names every long flag", () => {
-    for (const flag of ["--input", "--format", "--output", "--centroid-first", "--quiet", "--verify", "--help"]) {
-      assert.ok(HELP_TEXT.includes(flag), flag);
-    }
+  /**
+   * One assertion over the whole list rather than one per adjacent pair: the
+   * order is the surface, and a deepEqual also catches a flag that appears
+   * twice or one that was added without being placed.
+   */
+  it("lists every long flag in the help text, in surface order", () => {
+    const flags = HELP_TEXT.split("\n")
+      .map((line) => /--[a-z-]+/.exec(line)?.[0])
+      .filter((flag) => flag !== undefined);
+    assert.deepEqual(flags, [
+      "--input",
+      "--format",
+      "--output",
+      "--verify",
+      "--centroid-first",
+      "--time",
+      "--quiet",
+      "--help",
+    ]);
+  });
+
+  it("aligns each flag's description at the same column", () => {
+    const lines = HELP_TEXT.split("\n");
+    const line = (flag: string) => lines[lines.findIndex((l) => l.includes(flag))];
+    assert.equal(line("--centroid-first"), "  -c, --centroid-first      Prefer the centroid when it lies inside.");
+    assert.equal(line("--verify"), "  -v, --verify              Check each result against its input geometry.");
+    assert.equal(line("--time"), "  -t, --time                Report elapsed time per phase on stderr.");
   });
 });
 
@@ -708,5 +717,80 @@ describe("run --centroid-first", () => {
     assert.equal(run(["-i", OFF_GEOMETRY_WKT, "-c", "-v"], out.sink, err.sink, readStdinUnused), 2);
     assert.equal(out.text, '{"type":"Point","coordinates":[-2.5,5]}\n');
     assert.equal(err.text, "verify: 1 records, 1 off-geometry\nverify: record 1: off-geometry\n");
+  });
+});
+
+/**
+ * Splits the `--time` line into its record count and the phases it names, in
+ * order. Each duration is checked for shape and then dropped: asserting a
+ * number would make the suite fail on a slow machine rather than on a bug.
+ */
+function timeLine(text: string): { records: number; phases: string[] } {
+  const line = text.split("\n").find((l) => l.startsWith("time:"));
+  assert.ok(line !== undefined, `no time line in ${JSON.stringify(text)}`);
+  const match = /^time: (\d+) records, (.+)$/.exec(line);
+  assert.ok(match !== null, `unexpected time line ${JSON.stringify(line)}`);
+  const phases = match[2].split(", ").map((segment) => {
+    const parsed = /^([a-z]+) \d+\.\d ms$/.exec(segment);
+    assert.ok(parsed !== null, `unexpected segment ${JSON.stringify(segment)}`);
+    return parsed[1];
+  });
+  return { records: Number(match[1]), phases };
+}
+
+describe("run --time", () => {
+  it("names read, compute, write and total, in that order", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", BOX_WKT, "-t"], out.sink, err.sink, readStdinUnused), 0);
+    assert.deepEqual(timeLine(err.text), { records: 1, phases: ["read", "compute", "write", "total"] });
+  });
+
+  it("leaves stdout exactly as it was without the flag", () => {
+    const plain = capture();
+    const timed = capture();
+    const err = capture();
+    run(["-i", MIXED_FC], plain.sink, err.sink, readStdinUnused);
+    run(["-i", MIXED_FC, "-t"], timed.sink, err.sink, readStdinUnused);
+    assert.equal(timed.text, plain.text);
+  });
+
+  it("drops the write phase under --quiet", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", BOX_WKT, "-t", "-q"], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(out.text, "");
+    assert.deepEqual(timeLine(err.text).phases, ["read", "compute", "total"]);
+  });
+
+  it("adds a verify phase between compute and write under --verify", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", BOX_WKT, "-t", "-v"], out.sink, err.sink, readStdinUnused), 0);
+    assert.deepEqual(timeLine(err.text).phases, ["read", "compute", "verify", "write", "total"]);
+  });
+
+  it("prints its line after the verification lines, and keeps their exit code", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", OFF_GEOMETRY_WKT, "-t", "-v"], out.sink, err.sink, readStdinUnused), 2);
+    const lines = err.text.split("\n").filter((line) => line !== "");
+    assert.deepEqual(lines.slice(0, 2), ["verify: 1 records, 1 off-geometry", "verify: record 1: off-geometry"]);
+    assert.equal(lines.length, 3);
+    assert.ok(lines[2].startsWith("time:"));
+  });
+
+  it("counts every record of a FeatureCollection", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", MIXED_FC, "-t"], out.sink, err.sink, readStdinUnused), 0);
+    assert.equal(timeLine(err.text).records, 2);
+  });
+
+  it("says nothing about time when the input could not be read", () => {
+    const out = capture();
+    const err = capture();
+    assert.equal(run(["-i", "NOTAGEOM (1 2)", "-t"], out.sink, err.sink, readStdinUnused), 1);
+    assert.ok(!err.text.includes("time:"));
   });
 });

@@ -6,6 +6,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `interior-point --time` reports where a run spent itself, as one line on
+  stderr naming each phase that happened: `read`, `compute`, `verify` under
+  `--verify`, `write` unless `--quiet`, and their sum. stdout and the exit code
+  are exactly what the same run produces without the flag, and the line survives
+  `--quiet`, so `--time --quiet` measures parsing and computation with nothing
+  written. `total` is the sum of the phases, not the command's wall clock:
+  process startup begins before the CLI is handed control, so it is outside
+  anything the flag can see. jtsop's `-time` is the prior art and reports one
+  figure covering the operation alone, which is `compute` here.
+
+### Changed
+
+- `--help` lists the flags after `--output` in a new order: `--verify`,
+  `--centroid-first`, `--time`, `--quiet`, `--help`. Parsing is unaffected —
+  every flag is still accepted anywhere on the command line — so this changes
+  only what the help text and the documentation show.
+
 ## [1.0.0-rc.1] - 2026-08-08
 
 ### Added

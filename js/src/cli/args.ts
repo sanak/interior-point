@@ -12,13 +12,19 @@ export class UsageError extends Error {}
 
 export type OutputFormat = "geojson" | "wkt";
 
+/**
+ * Field order is the surface order: what the input is, what comes out of it,
+ * then the flags that change or describe the run, with `--quiet` and `--help`
+ * last because they answer whether there is any output at all.
+ */
 export interface CliOptions {
   input: string | undefined;
   format: OutputFormat;
   output: string | undefined;
-  centroidFirst: boolean;
-  quiet: boolean;
   verify: boolean;
+  centroidFirst: boolean;
+  time: boolean;
+  quiet: boolean;
   help: boolean;
 }
 
@@ -27,9 +33,10 @@ export const HELP_TEXT = `Usage: interior-point [options]
                             Defaults to stdin.
   -f, --format <fmt>        Output format: geojson (default) or wkt.
   -o, --output <file>       Write to a file instead of stdout.
-  -c, --centroid-first      Prefer the centroid when it lies inside.
-  -q, --quiet               Suppress the result; exit code only.
   -v, --verify              Check each result against its input geometry.
+  -c, --centroid-first      Prefer the centroid when it lies inside.
+  -t, --time                Report elapsed time per phase on stderr.
+  -q, --quiet               Suppress the result; exit code only.
   -h, --help                Print this help.
 `;
 
@@ -39,9 +46,10 @@ export function parseCliArgs(argv: string[]): CliOptions {
     input: values.input,
     format: parseFormat(values.format),
     output: values.output,
-    centroidFirst: values["centroid-first"] ?? false,
-    quiet: values.quiet ?? false,
     verify: values.verify ?? false,
+    centroidFirst: values["centroid-first"] ?? false,
+    time: values.time ?? false,
+    quiet: values.quiet ?? false,
     help: values.help ?? false,
   };
 }
@@ -56,9 +64,10 @@ function parsedArgs(argv: string[]) {
         input: { type: "string", short: "i" },
         format: { type: "string", short: "f" },
         output: { type: "string", short: "o" },
-        "centroid-first": { type: "boolean", short: "c" },
-        quiet: { type: "boolean", short: "q" },
         verify: { type: "boolean", short: "v" },
+        "centroid-first": { type: "boolean", short: "c" },
+        time: { type: "boolean", short: "t" },
+        quiet: { type: "boolean", short: "q" },
         help: { type: "boolean", short: "h" },
       },
       allowPositionals: false,
