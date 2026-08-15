@@ -28,7 +28,7 @@ export const tsInteriorPointAdapter: Adapter = {
 
 export const tsCentroidFirstAdapter: Adapter = {
   id: "ts-centroid-first",
-  label: "interior-point (TS)",
+  label: "interior-point (TS)′",
   call: "centroidFirstInteriorPoint",
   load,
   interiorPoint(geometry: Geometry): Position | null {

@@ -13,7 +13,7 @@ describe("rsInteriorPointAdapter", () => {
 describe("rsCentroidFirstAdapter", () => {
   it("matches ledger row 4", () => {
     assert.equal(rsCentroidFirstAdapter.id, "rs-centroid-first");
-    assert.equal(rsCentroidFirstAdapter.label, "interior-point (Rust/WASM)");
+    assert.equal(rsCentroidFirstAdapter.label, "interior-point (Rust/WASM)′");
     assert.equal(rsCentroidFirstAdapter.call, "centroidFirstInteriorPoint");
   });
 

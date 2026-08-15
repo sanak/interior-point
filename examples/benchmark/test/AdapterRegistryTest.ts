@@ -97,4 +97,14 @@ describe("ADAPTERS", () => {
       assert.ok(y > 0 && y < 10, `y=${y} not strictly inside`);
     }
   });
+
+  // U+2032 PRIME, not an apostrophe: the two interior-point rows per language differ only by the
+  // method they call, and the map legend and popups show the label without the Call column beside it.
+  it("marks the centroid-first rows with a prime, leaving the interiorPoint rows unmarked", () => {
+    const labels = new Map(ADAPTERS.map((adapter) => [adapter.id, adapter.label]));
+    assert.equal(labels.get("ts-interior-point"), "interior-point (TS)");
+    assert.equal(labels.get("ts-centroid-first"), "interior-point (TS)′");
+    assert.equal(labels.get("rs-interior-point"), "interior-point (Rust/WASM)");
+    assert.equal(labels.get("rs-centroid-first"), "interior-point (Rust/WASM)′");
+  });
 });

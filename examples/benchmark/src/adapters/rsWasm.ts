@@ -34,7 +34,7 @@ export const rsInteriorPointAdapter: Adapter = {
 
 export const rsCentroidFirstAdapter: Adapter = {
   id: "rs-centroid-first",
-  label: "interior-point (Rust/WASM)",
+  label: "interior-point (Rust/WASM)′",
   call: "centroidFirstInteriorPoint",
   load,
   interiorPoint(geometry: Geometry): Position | null {
