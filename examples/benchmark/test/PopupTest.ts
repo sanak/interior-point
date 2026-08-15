@@ -42,16 +42,22 @@ describe("pointPopupHtml", () => {
     assert.match(pointPopupHtml("x", [1, 2, 3]), /<th>elevation<\/th><td><code>3<\/code><\/td>/);
   });
 
-  it("shows the input feature's attributes above the coordinates", () => {
+  it("puts the coordinates ahead of the input feature's attributes", () => {
     const html = pointPopupHtml("x", [1, 2], { building_id: "34100-bldg-370791" });
     assert.match(html, /<th>building_id<\/th><td>34100-bldg-370791<\/td>/);
-    assert.ok(html.indexOf("34100-bldg-370791") < html.indexOf("longitude"), "attributes must come first");
+    assert.ok(html.indexOf("longitude") < html.indexOf("34100-bldg-370791"), "coordinates must come first");
   });
 
-  it("omits the attribute table when the feature carries nothing worth showing", () => {
+  it("folds the attributes away, counting them in the summary", () => {
+    const html = pointPopupHtml("x", [1, 2], { building_id: "34100-bldg-370791", city_code: "34101" });
+    assert.match(html, /<summary>Attributes \(2\)<\/summary>/);
+    assert.doesNotMatch(html, /<details[^>]*\sopen[\s>]/, "the disclosure must start closed");
+  });
+
+  it("omits the disclosure entirely when the feature carries nothing worth showing", () => {
     for (const properties of [undefined, null, {}, { name: null }]) {
       const html = pointPopupHtml("x", [1, 2], properties);
-      assert.doesNotMatch(html, /popup-attributes|No attributes/);
+      assert.doesNotMatch(html, /<details|popup-attributes|No attributes/);
       assert.match(html, /<th>longitude<\/th>/);
     }
   });
