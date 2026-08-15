@@ -59,7 +59,17 @@ export interface ResolveHitsContext {
 }
 
 /**
- * Every visible result point under the pointer, resolved against the run that produced it.
+ * Every library's result point for the one input feature the click landed on.
+ *
+ * The click is answered for a single input feature, not for everything the query box happened to
+ * cover. That distinction is invisible when zoomed in — the box covers one building, and the hits
+ * are the several libraries that landed on it — but at city-wide zoom the whole dataset collapses
+ * into a few pixels and one box covers thousands of buildings, which would otherwise become
+ * thousands of popup sections. The feature the query returns first is the one drawn topmost under
+ * the pointer, so its index is what the reader means by "this one", and every hit is filtered to
+ * it. The index is the identity here rather than the attributes it carries: all libraries store
+ * their result for input feature N at `points[N]`, so a shared index *is* a shared input feature,
+ * and it still holds for a dropped file whose features carry no attributes to compare.
  *
  * The outer loop walks the registry rather than the query result, so the popup's sections read
  * down the table instead of following whatever order the renderer happened to return. A hit
@@ -71,22 +81,30 @@ export function resolveHits(
   features: readonly QueriedFeature[],
   { adapters, colors, points, dataset }: ResolveHitsContext,
 ): PointHit[] {
+  let index: number | undefined;
+  for (const feature of features) {
+    // `id` is 0 for the first feature of every source, so this has to be a type test.
+    if (typeof feature.id === "number") {
+      index = feature.id;
+      break;
+    }
+  }
+  if (index === undefined) return [];
+
   const hits: PointHit[] = [];
   for (const adapter of adapters) {
     const layer = pointLayerId(adapter.id);
     for (const feature of features) {
-      if (feature.layer.id !== layer) continue;
-      // `id` is 0 for the first feature of every source, so this has to be a type test.
-      if (typeof feature.id !== "number") continue;
-      const position = points.get(adapter.id)?.[feature.id];
+      if (feature.layer.id !== layer || feature.id !== index) continue;
+      const position = points.get(adapter.id)?.[index];
       if (!position) continue;
       hits.push({
         adapterId: adapter.id,
         label: adapter.label,
         color: colors[adapter.id] ?? "#888888",
-        index: feature.id,
+        index,
         position,
-        properties: dataset?.features[feature.id]?.properties ?? null,
+        properties: dataset?.features[index]?.properties ?? null,
       });
     }
   }

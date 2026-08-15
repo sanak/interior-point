@@ -142,4 +142,91 @@ describe("resolveHits", () => {
     const withDataset = resolveHits(features, { adapters, colors, points, dataset });
     assert.deepEqual(withDataset[0].properties, { k: "v" });
   });
+
+  // Zoomed far out, one click's query box covers thousands of different input features, not just
+  // the several libraries that landed on the one under the pointer. Without this the popup grows a
+  // section per building.
+  it("keeps only the feature the click landed on, dropping every other input feature", () => {
+    const adapters = [adapter("a"), adapter("b")];
+    const points = new Map([
+      [
+        "a",
+        [
+          [1, 2],
+          [10, 20],
+        ],
+      ],
+      [
+        "b",
+        [
+          [3, 4],
+          [30, 40],
+        ],
+      ],
+    ]);
+    // Feature 1 is on top, so it is what was clicked; feature 0 is a different building nearby.
+    const features = [feature(pointLayerId("a"), 1), feature(pointLayerId("b"), 1), feature(pointLayerId("a"), 0)];
+    const hits = resolveHits(features, { adapters, colors, points, dataset: null });
+    assert.deepEqual(
+      hits.map((h) => [h.adapterId, h.index]),
+      [
+        ["a", 1],
+        ["b", 1],
+      ],
+    );
+  });
+
+  it("anchors on the topmost feature the query returned, not on the lowest index present", () => {
+    const adapters = [adapter("a")];
+    const points = new Map([
+      [
+        "a",
+        [
+          [1, 2],
+          [10, 20],
+        ],
+      ],
+    ]);
+    const hits = resolveHits([feature(pointLayerId("a"), 1), feature(pointLayerId("a"), 0)], {
+      adapters,
+      colors,
+      points,
+      dataset: null,
+    });
+    assert.deepEqual(
+      hits.map((h) => h.index),
+      [1],
+    );
+  });
+
+  // The anchor scan has to be a type test for the same reason every other id read does.
+  it("anchors on feature 0 when that is what the click landed on", () => {
+    const adapters = [adapter("a")];
+    const points = new Map([
+      [
+        "a",
+        [
+          [1, 2],
+          [10, 20],
+        ],
+      ],
+    ]);
+    const hits = resolveHits([feature(pointLayerId("a"), 0), feature(pointLayerId("a"), 1)], {
+      adapters,
+      colors,
+      points,
+      dataset: null,
+    });
+    assert.deepEqual(
+      hits.map((h) => h.index),
+      [0],
+    );
+  });
+
+  it("returns nothing when no queried feature carries a numeric id", () => {
+    const adapters = [adapter("a")];
+    const points = new Map([["a", [[1, 2]]]]);
+    const features = [feature(pointLayerId("a")), feature(pointLayerId("a"), "not-a-number")];
+    assert.deepEqual(resolveHits(features, { adapters, colors, points, dataset: null }), []);
+  });
 });
