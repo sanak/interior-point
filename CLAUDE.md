@@ -244,9 +244,10 @@ neither target model has a supertype spanning rings and geometries, and the two 
 apart by their tags.
 
 Rust computes the ring envelope in the adapter rather than through `geo`'s `BoundingRect`:
-`geo` is a dev-dependency and the port adds no runtime ones, while `Rect` itself lives in
-`geo-types`. It returns `Option<Rect<f64>>`, since `Rect` cannot represent the empty
-envelope JTS returns for an empty ring; both take the "intersects nothing" path.
+`geo` is not a dependency of any kind, not even a dev one, while `Rect` itself lives in
+`geo-types`, the crate's only required dependency. It returns `Option<Rect<f64>>`, since
+`Rect` cannot represent the empty envelope JTS returns for an empty ring; both take the
+"intersects nothing" path.
 
 The last four rows have no JTS member behind them, so every one of them is tagged `@jts-adapter`
 rather than `@jts`. The nearest thing JTS has to `verifyInteriorPoint` is the private test helper
