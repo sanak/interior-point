@@ -2,7 +2,9 @@
 
 Compute an interior point (representative point) of a geometry.
 
-Ported from the [JTS Topology Suite](https://github.com/locationtech/jts) `InteriorPoint` algorithm. Uses [`geo`](https://crates.io/crates/geo) / [`geo-types`](https://crates.io/crates/geo-types) crates.
+Ported from the [JTS Topology Suite](https://github.com/locationtech/jts) `InteriorPoint` algorithm. Geometries are
+[`geo-types`](https://crates.io/crates/geo-types), which is the crate's only required dependency; the `cli` feature
+adds the rest.
 
 ## Usage
 
@@ -10,7 +12,7 @@ Add to `Cargo.toml`:
 
 ```toml
 [dependencies]
-interior-point = "0.3"
+interior-point = "1.0"
 geo-types = "0.7"
 ```
 

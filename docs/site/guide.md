@@ -43,7 +43,7 @@ Or pin the versions in `Cargo.toml`:
 
 ```toml
 [dependencies]
-interior-point = "0.3"
+interior-point = "1.0"
 geo-types = "0.7"
 ```
 
