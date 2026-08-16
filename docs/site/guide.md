@@ -21,13 +21,27 @@ cargo add geo-types
 
 :::
 
-Or pin the versions in `Cargo.toml`:
+Or pin the versions in your manifest:
 
-```toml
+::: code-group
+
+```json [TypeScript]
+// package.json
+{
+  "dependencies": {
+    "interior-point": "^1.0.0"
+  }
+}
+```
+
+```toml [Rust]
+# Cargo.toml
 [dependencies]
 interior-point = "1.0"
 geo-types = "0.7"
 ```
+
+:::
 
 ## Usage
 
