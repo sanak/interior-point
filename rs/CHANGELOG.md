@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-08-16
+
 ### Added
 
 - `interior-point --time` (`-t`), behind the `cli` feature, reports where a run
