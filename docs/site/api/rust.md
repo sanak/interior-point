@@ -44,34 +44,6 @@ let empty = Geometry::GeometryCollection(GeometryCollection::<f64>(vec![]));
 assert_eq!(interior_point::interior_point(&empty), None);
 ```
 
-## `centroid_first_interior_point(geometry)`
-
-Computes the geometry's centroid and returns it when it lies strictly inside the geometry; otherwise falls back to `interior_point`. A representative point is more useful when it is the centroid: the fallback returns whichever point the scanline algorithm lands on, which depends on how the algorithm is implemented, so this entry point reaches for it as rarely as it can.
-
-**Parameters:**
-
-- `geometry: &Geometry<f64>` — A reference to a `geo_types::Geometry`
-
-**Returns:** `Option<Coord<f64>>` — The point, or `None` if empty
-
-Area geometries take the centroid only when it locates as interior. Strictly inside means the interior and nothing else: a centroid lying exactly on the boundary is rejected and `interior_point` runs. Line and point geometries delegate to `interior_point` unchanged, since at those dimensions it already returns the vertex nearest the centroid.
-
-```rust
-use geo_types::{Geometry, LineString, Polygon};
-use interior_point::{centroid_first_interior_point, interior_point};
-
-let triangle: Geometry<f64> = Polygon::new(
-    LineString::from(vec![(0.0, 0.0), (6.0, 0.0), (0.0, 6.0), (0.0, 0.0)]),
-    vec![],
-)
-.into();
-
-centroid_first_interior_point(&triangle); // => Some(Coord { x: 2.0, y: 2.0 })
-interior_point(&triangle); // => Some(Coord { x: 1.5, y: 3.0 })
-```
-
-The return value is the point alone; which of the two branches produced it is not reported. A caller that needs to know can compare the result against a centroid it computes itself. Every path that does not accept the centroid ends in `interior_point`, so a degenerate geometry behaves exactly as it does through `interior_point`.
-
 ## `verify_interior_point(point, geometry)`
 
 Checks a point against the geometry it was computed from, using a point-in-polygon locator that shares no code with the algorithm that produced the point. It answers a question about this crate's output, not about the input's OGC validity — an invalid geometry can still yield a point that verifies.
@@ -107,6 +79,34 @@ assert_eq!(verify_interior_point(point, Some(&geometry)), Verification::Interior
 ```
 
 `Some(&geometry)` rather than `&geometry`: one signature serves both the library caller and the CLI, whose records carry an optional geometry because GeoJSON permits a Feature with none.
+
+## `centroid_first_interior_point(geometry)`
+
+Computes the geometry's centroid and returns it when it lies strictly inside the geometry; otherwise falls back to `interior_point`. A representative point is more useful when it is the centroid: the fallback returns whichever point the scanline algorithm lands on, which depends on how the algorithm is implemented, so this entry point reaches for it as rarely as it can.
+
+**Parameters:**
+
+- `geometry: &Geometry<f64>` — A reference to a `geo_types::Geometry`
+
+**Returns:** `Option<Coord<f64>>` — The point, or `None` if empty
+
+Area geometries take the centroid only when it locates as interior. Strictly inside means the interior and nothing else: a centroid lying exactly on the boundary is rejected and `interior_point` runs. Line and point geometries delegate to `interior_point` unchanged, since at those dimensions it already returns the vertex nearest the centroid.
+
+```rust
+use geo_types::{Geometry, LineString, Polygon};
+use interior_point::{centroid_first_interior_point, interior_point};
+
+let triangle: Geometry<f64> = Polygon::new(
+    LineString::from(vec![(0.0, 0.0), (6.0, 0.0), (0.0, 6.0), (0.0, 0.0)]),
+    vec![],
+)
+.into();
+
+centroid_first_interior_point(&triangle); // => Some(Coord { x: 2.0, y: 2.0 })
+interior_point(&triangle); // => Some(Coord { x: 1.5, y: 3.0 })
+```
+
+The return value is the point alone; which of the two branches produced it is not reported. A caller that needs to know can compare the result against a centroid it computes itself. Every path that does not accept the centroid ends in `interior_point`, so a degenerate geometry behaves exactly as it does through `interior_point`.
 
 ## Type Reference
 
