@@ -5,6 +5,7 @@
 // network, so it is run by hand and its output is committed. See CLAUDE.md.
 
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -20,6 +21,44 @@ async function settleMap(page, selector) {
   await page.waitForTimeout(MAP_SETTLE_MS);
 }
 
+const WASM_OUTPUTS = ["rs/wasm/pkg-web", "examples/benchmark/geo-wasm/pkg-web"];
+
+/**
+ * The benchmark build resolves two wasm-pack outputs through Vite aliases, and a missing one fails
+ * deep inside the bundler. wasm-pack is not run from here because the version this repository
+ * builds with is pinned in CI, not on the machine holding the checkout.
+ */
+function requireWasmOutputs() {
+  const missing = WASM_OUTPUTS.filter((path) => !existsSync(join(REPO_ROOT, path)));
+  if (missing.length > 0) {
+    throw new Error(`missing ${missing.join(", ")}; run \`pnpm examples:wasm\` first`);
+  }
+}
+
+const RUN_ALL = "#run-all";
+/** The first sweep warms every adapter up; the second is what the image shows. */
+const RUN_PASSES = 2;
+const RUN_TIMEOUT_MS = 300_000;
+
+/**
+ * Presses Run all and waits for the sweep to settle, once per pass.
+ *
+ * The page disables the button for the length of a sweep and enables it again when the sweep ends,
+ * so both edges are observable from outside. Waiting for the disabled edge first is what keeps the
+ * frame between the click and the first row from reading as a finished sweep.
+ */
+async function runAllPasses(page) {
+  await page.waitForSelector(`${RUN_ALL}:not([disabled])`, { timeout: RUN_TIMEOUT_MS });
+  for (let pass = 0; pass < RUN_PASSES; pass += 1) {
+    await page.click(RUN_ALL);
+    await page.waitForSelector(`${RUN_ALL}[disabled]`);
+    await page.waitForSelector(`${RUN_ALL}:not([disabled])`, { timeout: RUN_TIMEOUT_MS });
+  }
+}
+
+const BENCHMARK_BUILD = ["pnpm", "examples:build"];
+const BENCHMARK_SERVE = ["pnpm", "--filter", "@interior-point/benchmark", "run", "preview"];
+
 export const TARGETS = [
   {
     name: "docs",
@@ -30,8 +69,46 @@ export const TARGETS = [
       await settleMap(page, ".map-demo .maplibregl-canvas");
     },
   },
-  { name: "benchmark-table", publish: "examples/benchmark/public/og-image.png" },
-  { name: "benchmark-map-table", publish: "examples/benchmark/public/og-image.png" },
+  {
+    name: "benchmark-table",
+    publish: "examples/benchmark/public/og-image.png",
+    requires: requireWasmOutputs,
+    build: BENCHMARK_BUILD,
+    serve: BENCHMARK_SERVE,
+    prepare: async (page) => {
+      await settleMap(page, "#map .maplibregl-canvas");
+      await runAllPasses(page);
+      await page.addStyleTag({
+        content: `
+          .page-header, .map, .controls, .page-footer { display: none; }
+          .page { min-height: 100vh; justify-content: center; padding: 1rem; max-width: 1160px; }
+        `,
+      });
+    },
+  },
+  {
+    name: "benchmark-map-table",
+    publish: "examples/benchmark/public/og-image.png",
+    requires: requireWasmOutputs,
+    build: BENCHMARK_BUILD,
+    serve: BENCHMARK_SERVE,
+    prepare: async (page) => {
+      await settleMap(page, "#map .maplibregl-canvas");
+      await runAllPasses(page);
+      await page.addStyleTag({
+        content: `
+          .lede, .controls, .page-footer { display: none; }
+          .page { padding: 0.75rem 1rem; gap: 0.75rem; max-width: 1160px; }
+          .map { height: 185px; min-height: 0; }
+        `,
+      });
+      // MapLibre resizes itself from the window's resize event, which shrinking the container alone
+      // does not raise; without this the canvas keeps the height it was built at.
+      // eslint-disable-next-line no-undef -- runs in the browser page via page.evaluate, not Node.
+      await page.evaluate(() => window.dispatchEvent(new Event("resize")));
+      await page.waitForTimeout(MAP_SETTLE_MS);
+    },
+  },
 ];
 
 /**
@@ -125,6 +202,9 @@ function startServer(command) {
 /** Captures one target. The browser package is imported here so `node --test` never loads it. */
 export async function capture(target, outPath) {
   const { chromium } = await import("playwright");
+  if (target.requires) {
+    target.requires();
+  }
   if (target.build) {
     await build(target.build);
   }
