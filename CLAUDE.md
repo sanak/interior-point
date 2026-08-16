@@ -77,6 +77,17 @@ errors but not type errors; the Rust half becomes a real crate under `rs/target/
 and goes through `cargo`, so it catches both. `rs/core/README.md` is exempt because
 `rs/core/src/lib.rs` pulls it in with `include_str!`, making it a doctest already.
 
+### OGP images
+
+`node scripts/og-images.mjs` (`pnpm og`) regenerates the Open Graph images from the real pages
+through Playwright, in dark mode, at 1200x630. It is the one script in `scripts/` that is not a CI
+guard: it needs a browser and a network, so it is run by hand and its output is committed. Its
+targets are `docs`, `benchmark-table` and `benchmark-map-table`; the two benchmark targets publish
+to the same path, which is why `--write` is only accepted beside `--only`. Without `--write` it
+writes to `tmp/og/`. The benchmark targets need `pnpm examples:wasm` to have run, and the script
+stops with that instruction rather than running wasm-pack itself. Only the parsing and path
+resolution are covered by `pnpm test:scripts`; the images themselves are checked by looking at them.
+
 ### CLI
 
 `cargo test --workspace` alone does **not** exercise the Rust CLI: the `cli` feature is off by
