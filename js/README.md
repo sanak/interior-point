@@ -42,8 +42,8 @@ Supported geometry types are `Polygon`, `MultiPolygon`, `LineString`, `MultiLine
 | Export                       | Signature                                                                 | Returns                                                                                    |
 | ---------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `interiorPoint`              | `(geometry: Geometry \| null) => Coordinate \| null`                      | a point inside the geometry, or on it for lines and points                                 |
-| `centroidFirstInteriorPoint` | `(geometry: Geometry \| null) => Coordinate \| null`                      | the geometry's centroid when it lies strictly inside, and `interiorPoint` when it does not |
 | `verifyInteriorPoint`        | `(point: Coordinate \| null, geometry: Geometry \| null) => Verification` | one of `"interior"`, `"on-geometry"`, `"off-geometry"`, `"unverifiable"`                   |
+| `centroidFirstInteriorPoint` | `(geometry: Geometry \| null) => Coordinate \| null`                      | the geometry's centroid when it lies strictly inside, and `interiorPoint` when it does not |
 
 `Coordinate` is the package's re-exported alias of GeoJSON's `Position`. Verification runs through a point-in-polygon locator that shares no code with the algorithm that produced the point, and checks this library's own output rather than the input's OGC validity.
 

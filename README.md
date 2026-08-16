@@ -34,8 +34,8 @@ Both libraries publish the same three functions, spelled for their language, and
 | TypeScript                   | Rust                            | CLI                | What it returns                                                                                              |
 | ---------------------------- | ------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------ |
 | `interiorPoint`              | `interior_point`                | —                  | the interior point of a geometry, by the algorithm above                                                     |
-| `centroidFirstInteriorPoint` | `centroid_first_interior_point` | `--centroid-first` | the geometry's centroid when it lies strictly inside, and the interior point when it does not                |
 | `verifyInteriorPoint`        | `verify_interior_point`         | `--verify`         | whether a computed point lies on or in its geometry, checked through an independent point-in-polygon locator |
+| `centroidFirstInteriorPoint` | `centroid_first_interior_point` | `--centroid-first` | the geometry's centroid when it lies strictly inside, and the interior point when it does not                |
 
 Verification is a check on this port's own output, not an OGC geometry validity check.
 
