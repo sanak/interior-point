@@ -3,7 +3,7 @@ members = ["core", "wasm"]
 resolver = "2"
 
 [workspace.package]
-version = "1.0.0-rc.1"
+version = "1.0.0"
 # Edition 2024 is what sets this floor; declaring it makes cargo say so on an
 # older toolchain instead of failing somewhere in the parse.
 rust-version = "1.85"
