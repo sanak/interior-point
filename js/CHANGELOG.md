@@ -8,15 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `interior-point --time` reports where a run spent itself, as one line on
-  stderr naming each phase that happened: `read`, `compute`, `verify` under
+- `interior-point --time` (`-t`) reports where a run spent itself, as one line
+  on stderr naming each phase that happened: `read`, `compute`, `verify` under
   `--verify`, `write` unless `--quiet`, and their sum. stdout and the exit code
   are exactly what the same run produces without the flag, and the line survives
   `--quiet`, so `--time --quiet` measures parsing and computation with nothing
-  written. `total` is the sum of the phases, not the command's wall clock:
-  process startup begins before the CLI is handed control, so it is outside
-  anything the flag can see. jtsop's `-time` is the prior art and reports one
-  figure covering the operation alone, which is `compute` here.
+  written. `total` is the sum of the phases, not the command's wall clock: `run`
+  is handed control after the runtime has started and gives it back before the
+  process exits, so startup is outside anything the flag can see. jtsop's
+  `-time` is the prior art and reports one figure covering the operation alone,
+  which is `compute` here. Both CLIs name the same phases in the same order with
+  the same units; the durations are measurements and are not expected to agree.
 
 ### Changed
 
