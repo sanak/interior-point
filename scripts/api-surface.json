@@ -1,17 +1,17 @@
 {
   "members": [
     { "ts": "interiorPoint", "rs": "interior_point", "wasm": "interiorPoint" },
-    {
-      "ts": "centroidFirstInteriorPoint",
-      "rs": "centroid_first_interior_point",
-      "wasm": "centroidFirstInteriorPoint"
-    },
     { "ts": "verifyInteriorPoint", "rs": "verify_interior_point", "wasm": "verifyInteriorPoint" },
     {
       "ts": "Verification",
       "rs": "Verification",
       "wasm": null,
       "wasmNote": "verifyInteriorPoint hands JavaScript the enum's string value directly, so there is no type to bind."
+    },
+    {
+      "ts": "centroidFirstInteriorPoint",
+      "rs": "centroid_first_interior_point",
+      "wasm": "centroidFirstInteriorPoint"
     },
     {
       "ts": "Coordinate",

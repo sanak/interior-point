@@ -84,22 +84,6 @@ pub fn interior_point_wasm(geometry: &JsValue) -> Result<JsValue, JsValue> {
     }
 }
 
-/// Computes the geometry's centroid and returns it when it lies strictly
-/// inside the geometry, falling back to `interiorPoint` when it does not.
-///
-/// Accepts a GeoJSON Geometry object or `null`, and returns `[x, y]` or `null`.
-#[wasm_bindgen(js_name = "centroidFirstInteriorPoint")]
-pub fn centroid_first_interior_point_wasm(geometry: &JsValue) -> Result<JsValue, JsValue> {
-    if is_nullish(geometry) {
-        return Ok(JsValue::NULL);
-    }
-    let geo_geom = js_to_geometry(geometry)?;
-    match interior_point::centroid_first_interior_point(&geo_geom) {
-        Some(coord) => Ok(coord_to_js(coord)),
-        None => Ok(JsValue::NULL),
-    }
-}
-
 /// Checks a computed point against the geometry it came from.
 ///
 /// Takes `[x, y]` or `null` and a GeoJSON Geometry object or `null`. Returns
@@ -115,4 +99,20 @@ pub fn verify_interior_point_wasm(point: &JsValue, geometry: &JsValue) -> Result
         Some(js_to_geometry(geometry)?)
     };
     Ok(interior_point::verify_interior_point(point, geometry.as_ref()).to_string())
+}
+
+/// Computes the geometry's centroid and returns it when it lies strictly
+/// inside the geometry, falling back to `interiorPoint` when it does not.
+///
+/// Accepts a GeoJSON Geometry object or `null`, and returns `[x, y]` or `null`.
+#[wasm_bindgen(js_name = "centroidFirstInteriorPoint")]
+pub fn centroid_first_interior_point_wasm(geometry: &JsValue) -> Result<JsValue, JsValue> {
+    if is_nullish(geometry) {
+        return Ok(JsValue::NULL);
+    }
+    let geo_geom = js_to_geometry(geometry)?;
+    match interior_point::centroid_first_interior_point(&geo_geom) {
+        Some(coord) => Ok(coord_to_js(coord)),
+        None => Ok(JsValue::NULL),
+    }
 }
