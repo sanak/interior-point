@@ -46,6 +46,10 @@ Full documentation: https://sanak.github.io/interior-point/
 - [CLI](https://sanak.github.io/interior-point/cli) — installing the bundled `interior-point` command, its flags and its exit codes
 - API reference — every entry point, with the reasoning behind each: [TypeScript](https://sanak.github.io/interior-point/api/typescript), [Rust](https://sanak.github.io/interior-point/api/rust)
 
+## Development
+
+This project was developed with the assistance of [Claude Code](https://claude.com/claude-code). Every ported member carries a `@jts` anchor naming its upstream counterpart, and the ported test suites run against JTS's own test resources, so the result is verifiable against the original Java sources rather than taken on trust.
+
 ## License
 
 [MIT](./LICENSE)

@@ -73,6 +73,11 @@ flag, the output shapes and the exit codes.
 
 Full documentation: [sanak.github.io/interior-point](https://sanak.github.io/interior-point/)
 
+## Development
+
+This crate was developed with the assistance of [Claude Code](https://claude.com/claude-code); every ported member is
+anchored to its JTS counterpart and checked against JTS's own test resources.
+
 ## License
 
 [MIT](./LICENSE)

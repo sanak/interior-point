@@ -65,6 +65,10 @@ It reads WKT or GeoJSON — as a literal, a file, or on stdin — and writes Geo
 
 Full documentation: https://sanak.github.io/interior-point/
 
+## Development
+
+This library was developed with the assistance of [Claude Code](https://claude.com/claude-code); every ported member is anchored to its JTS counterpart and checked against JTS's own test resources.
+
 ## License
 
 [MIT](./LICENSE)
