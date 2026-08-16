@@ -116,4 +116,4 @@ The return value is the point alone; which of the two branches produced it is no
 | `Coord<f64>`    | `geo_types::Coord { x: f64, y: f64 }`                            |
 | `Verification`  | an enum: `Interior`, `OnGeometry`, `OffGeometry`, `Unverifiable` |
 
-With the default features, `interior_point`, `centroid_first_interior_point`, `verify_interior_point` and `Verification` are the crate's whole public surface; the locator behind the check is crate-internal and is not documented here as a callable item.
+With the default features, `interior_point`, `verify_interior_point`, `Verification` and `centroid_first_interior_point` are the crate's whole public surface; the locator behind the check is crate-internal and is not documented here as a callable item.
