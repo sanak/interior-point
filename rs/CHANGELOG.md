@@ -6,6 +6,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `interior-point --time` (`-t`), behind the `cli` feature, reports where a run
+  spent itself, as one line on stderr naming each phase that happened: `read`,
+  `compute`, `verify` under `--verify`, `write` unless `--quiet`, and their sum.
+  stdout and the exit code are exactly what the same run produces without the
+  flag, and the line survives `--quiet`, so `--time --quiet` measures parsing
+  and computation with nothing written. `total` is the sum of the phases, not
+  the command's wall clock: `run` is handed control after the runtime has
+  started and gives it back before the process exits, so startup is outside
+  anything the flag can see. jtsop's `-time` is the prior art and reports one
+  figure covering the operation alone, which is `compute` here. Both CLIs name
+  the same phases in the same order with the same units; the durations are
+  measurements and are not expected to agree.
+
+### Changed
+
+- `--help` lists the flags after `--output` in a new order: `--verify`,
+  `--centroid-first`, `--time`, `--quiet`, `--help`. `clap` renders help in
+  declaration order, so the order lives in the struct in `cli::args`. Parsing is
+  unaffected — every flag is still accepted anywhere on the command line — so
+  this changes only what the help text and the documentation show.
+
 ## [1.0.0-rc.1] - 2026-08-08
 
 ### Added
