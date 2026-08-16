@@ -6,24 +6,6 @@ layout: doc
 
 Interior Point computes a representative point guaranteed to lie inside a geometry. It is a faithful port of the [JTS (Java Topology Suite)](https://github.com/locationtech/jts) InteriorPoint algorithm, available as both a TypeScript library and a Rust crate.
 
-## Why not the centroid?
-
-A polygon's centroid is not guaranteed to lie inside the polygon. The C-shaped one below has its centroid at `(2.5, 4)`, in the gap between the two arms — outside the polygon altogether. What this library returns is inside it:
-
-```sh
-interior-point -f wkt -i "POLYGON ((0 0, 6 0, 6 2, 2 2, 2 6, 6 6, 6 8, 0 8, 0 0))"
-# POINT (1 4)
-```
-
-Taking the centroid when it does happen to lie inside is still worth doing, and a second entry point does exactly that. For this polygon it changes nothing, because the centroid is rejected:
-
-```sh
-interior-point -c -f wkt -i "POLYGON ((0 0, 6 0, 6 2, 2 2, 2 6, 6 6, 6 8, 0 8, 0 0))"
-# POINT (1 4)
-```
-
-Which of the two entry points to reach for, and what each returns for a degenerate geometry, is covered in the API reference ([TypeScript](/api/typescript) | [Rust](/api/rust)).
-
 ## Installation
 
 ::: code-group
