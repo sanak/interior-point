@@ -129,22 +129,26 @@ export async function capture(target, outPath) {
     await build(target.build);
   }
   const server = await startServer(target.serve);
-  const browser = await chromium.launch();
   try {
-    const context = await browser.newContext({
-      colorScheme: "dark",
-      viewport: { width: OG_WIDTH, height: OG_HEIGHT },
-      deviceScaleFactor: 1,
-    });
-    const page = await context.newPage();
-    await page.goto(server.url, { waitUntil: "networkidle" });
-    await target.prepare(page);
-    const absolute = join(REPO_ROOT, outPath);
-    await mkdir(dirname(absolute), { recursive: true });
-    await page.screenshot({ path: absolute });
-    console.log(`${target.name} -> ${outPath}`);
+    const browser = await chromium.launch();
+    try {
+      const context = await browser.newContext({
+        colorScheme: "dark",
+        viewport: { width: OG_WIDTH, height: OG_HEIGHT },
+        deviceScaleFactor: 1,
+      });
+      const page = await context.newPage();
+      await page.goto(server.url, { waitUntil: "networkidle" });
+      await target.prepare(page);
+      const absolute = join(REPO_ROOT, outPath);
+      await mkdir(dirname(absolute), { recursive: true });
+      await page.screenshot({ path: absolute });
+      console.log(`${target.name} -> ${outPath}`);
+    } finally {
+      // A close failure must not stop `server.stop()` below from running.
+      await browser.close().catch(() => {});
+    }
   } finally {
-    await browser.close();
     server.stop();
   }
 }
