@@ -5,6 +5,9 @@ footprints, in your browser.
 
 Live: <https://sanak.github.io/interior-point/examples/benchmark/>
 
+What the two benchmarks in this repository each measure, and the figures from the command-line one, are on the
+documentation site: <https://sanak.github.io/interior-point/benchmark>
+
 ## What it measures
 
 | #   | Library                    | Call                             |
