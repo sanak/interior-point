@@ -14,10 +14,10 @@ hero:
       link: https://github.com/sanak/interior-point
 
 features:
-  - title: Always lands inside the shape
-    details: A polygon's centroid can fall outside the polygon entirely, as it does for a C-shaped one. The point returned here is inside the geometry whatever its shape.
-  - title: Take the centroid, then check the result
-    details: A second entry point returns the centroid whenever it lies strictly inside, falling back to the algorithm only when it does not. A third checks a computed point against its geometry, through a point-in-polygon locator sharing no code with what produced it.
   - title: A faithful port of JTS
-    details: Every ported member carries an anchor back to the JTS source it came from, and a scheduled job checks those anchors against upstream for drift.
+    details: The algorithm is ported member for member into TypeScript and Rust, and the two are held to the same results, so a geometry gives the same point in either language.
+  - title: The same command in both languages
+    details: Each package ships an interior-point command that reads WKT or GeoJSON from a file, a literal or stdin, and the two are held to byte-for-byte agreement on what they write.
+  - title: Two utilities beyond the port
+    details: Alongside JTS's interiorPoint, the port offers verifyInteriorPoint, which checks a point against its geometry through an independent point-in-polygon locator, and centroidFirstInteriorPoint, which returns the centroid when it lies strictly inside.
 ---
