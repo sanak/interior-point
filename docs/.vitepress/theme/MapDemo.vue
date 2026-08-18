@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { FeatureCollection } from "geojson";
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { useData } from "vitepress";
 
@@ -35,7 +36,8 @@ const PLACEMENT = { center: [132.4553, 34.3853] as [number, number], emHeight: 0
  */
 const FIT_PADDING = { top: 56, bottom: 52, left: 24, right: 24 };
 
-const empty = { type: "FeatureCollection", features: [] } as const;
+/** What the sources hold until the first rebuild, and whenever the input is empty. */
+const empty: FeatureCollection = { type: "FeatureCollection", features: [] };
 
 const polygonData = () => ({
   type: "FeatureCollection" as const,

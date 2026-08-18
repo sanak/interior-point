@@ -10,6 +10,7 @@
     "format:check": "prettier --check \"**/*.{js,ts,mts,mjs,json,md,yml,yaml,vue,css}\"",
     "build:js": "pnpm --filter ./js run build",
     "typecheck:js": "pnpm --filter ./js run typecheck",
+    "typecheck:docs": "pnpm --filter ./docs run typecheck",
     "test:scripts": "node --test \"scripts/test/*.test.mjs\"",
     "test:js": "pnpm --filter ./js run test",
     "test:rs": "cd rs && cargo test --workspace --all-features",

@@ -25,6 +25,9 @@ jobs:
       - run: pnpm test:scripts
       - run: pnpm test:js
       - run: pnpm build:js
+      # After `build:js`, not beside `typecheck:js`: the theme imports `interior-point`,
+      # whose types are the declarations that build emits.
+      - run: pnpm typecheck:docs
       # `npm pack`, not `pnpm pack`: this is the tarball the release workflow publishes,
       # and the two tools do not write the same manifest.
       - name: Smoke-test the packed CLI via npx

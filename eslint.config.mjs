@@ -34,14 +34,10 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: {
-          allowDefaultProject: [
-            "eslint.config.mjs",
-            "js/vite.config.ts",
-            "docs/.vitepress/config.ts",
-            "docs/.vitepress/theme/index.ts",
-            "docs/.vitepress/theme/glyphSource.ts",
-            "docs/.vitepress/theme/textGeometry.ts",
-          ],
+          // `docs/.vitepress/**` used to be listed here and is now covered by
+          // `docs/tsconfig.json`, which `pnpm typecheck:docs` runs against. A file
+          // in a project must not also appear below, so the two cannot overlap.
+          allowDefaultProject: ["eslint.config.mjs", "js/vite.config.ts"],
         },
         tsconfigRootDir: import.meta.dirname,
       },

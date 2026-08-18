@@ -39,8 +39,10 @@ async function loadFont(url: string): Promise<ParsedFont> {
 function glyphFrom(font: ParsedFont, char: string): Glyph | null {
   const glyph = font.charToGlyph(char);
   // Index 0 is the font's stand-in for a character it has no outline for, and
-  // drawing its box would be a worse answer than drawing nothing.
-  if (glyph === undefined || glyph.index === 0) return null;
+  // drawing its box would be a worse answer than drawing nothing. A glyph with no
+  // advance cannot be laid out either, and both answer the same way: the caller
+  // falls back to a half-em gap, which is the one place that policy lives.
+  if (glyph === undefined || glyph.index === 0 || glyph.advanceWidth === undefined) return null;
   return {
     advance: (glyph.advanceWidth / font.unitsPerEm) * EM,
     commands: glyph.getPath(0, 0, EM).commands as GlyphCommand[],

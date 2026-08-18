@@ -77,6 +77,15 @@ errors but not type errors; the Rust half becomes a real crate under `rs/target/
 and goes through `cargo`, so it catches both. `rs/core/README.md` is exempt because
 `rs/core/src/lib.rs` pulls it in with `include_str!`, making it a doctest already.
 
+### Docs typecheck
+
+`docs/tsconfig.json` covers `docs/.vitepress/**`, and `pnpm typecheck:docs` runs `vue-tsc` over it
+so the `.vue` theme components are checked alongside the `.ts` ones. It runs in `test-js.yml`
+**after** `pnpm build:js`, not beside `pnpm typecheck:js`: the theme imports `interior-point`, and
+its types are the declarations that build emits. Files under `docs/.vitepress/` must therefore not
+appear in `eslint.config.mjs`'s `allowDefaultProject`, since typescript-eslint rejects a file that
+is both in a project and listed there.
+
 ### OGP images
 
 `node scripts/og-images.mjs` (`pnpm og`) regenerates the Open Graph images from the real pages

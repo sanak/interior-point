@@ -264,8 +264,13 @@ export function textToCharGeometries(text: string, source: GlyphSource, placemen
   return results;
 }
 
-/** The bounding box of everything drawn, for the map to fit to. */
-export function boundsOf(charGeometries: CharGeometry[]): [Position, Position] | null {
+/**
+ * The bounding box of everything drawn, for the map to fit to.
+ *
+ * The corners are pairs rather than {@link Position}s because a `Position` may
+ * carry an elevation, and the map's bounds take two coordinates and nothing else.
+ */
+export function boundsOf(charGeometries: CharGeometry[]): [[number, number], [number, number]] | null {
   let west = Infinity;
   let south = Infinity;
   let east = -Infinity;
