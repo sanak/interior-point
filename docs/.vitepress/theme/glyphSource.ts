@@ -3,13 +3,13 @@ import latinFontUrl from "../../fonts/Inter-Bold.ttf?url";
 import { EM, type Glyph, type GlyphCommand, type GlyphSource } from "./textGeometry.ts";
 
 /**
- * Route A — outlines are read out of real fonts in the browser.
+ * Reads glyph outlines out of real fonts, in the browser.
  *
  * opentype.js parses a font and hands back the same M/L/Q/C/Z commands the
  * geometry module consumes, so any character a loaded font carries can be typed.
  * The cost is what has to arrive first: the parser plus the whole font, since
- * subsetting it would take away the coverage that is the point of doing this at
- * runtime.
+ * subsetting it would take away the coverage that is the point of parsing a font
+ * at runtime at all.
  *
  * Two fonts, loaded in two stages. Inter matches the site's own typeface and is
  * what the hero draws with; a Japanese face is four times its size, so it is not

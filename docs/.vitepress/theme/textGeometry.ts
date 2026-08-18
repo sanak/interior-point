@@ -9,9 +9,8 @@ import { interiorPoint } from "interior-point";
  * `o` has one, `8` has two — and they are what makes an interior point worth
  * showing, since a centroid falls straight through the counter of an `o`.
  *
- * Where the outlines come from is left to a {@link GlyphSource}, so the two halves
- * this demo compares — parsing a font in the browser, and shipping a table of
- * outlines built ahead of time — differ in that one module and nowhere else.
+ * Where the outlines come from is left to a {@link GlyphSource}. Nothing here
+ * knows what a font is, which is what keeps this module about geometry alone.
  */
 
 /** Glyph outlines are normalised to this em size before anything else runs. */
