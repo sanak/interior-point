@@ -39,6 +39,8 @@ export default tseslint.config(
             "js/vite.config.ts",
             "docs/.vitepress/config.ts",
             "docs/.vitepress/theme/index.ts",
+            "docs/.vitepress/theme/glyphSource.ts",
+            "docs/.vitepress/theme/textGeometry.ts",
           ],
         },
         tsconfigRootDir: import.meta.dirname,

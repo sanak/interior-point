@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "interior-point": "workspace:*",
-    "maplibre-gl": "^5.24.0"
+    "maplibre-gl": "^5.24.0",
+    "opentype.js": "^2.0.0"
   },
   "devDependencies": {
     "vitepress": "2.0.0-alpha.18"
