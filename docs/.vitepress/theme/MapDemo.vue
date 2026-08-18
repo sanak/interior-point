@@ -7,7 +7,7 @@ import { boundsOf, textToCharGeometries, type CharGeometry, type GlyphSource } f
 
 const { isDark } = useData();
 const mapContainer = ref<HTMLElement | null>(null);
-const text = ref("Hiroshima");
+const text = ref("L");
 const status = ref("loading outlines…");
 
 let map: import("maplibre-gl").Map | null = null;
@@ -44,9 +44,25 @@ const pointData = () => ({
     })),
 });
 
-/** Rebuilds every character's geometry, then pushes it at whatever the map already has. */
-const rebuild = () => {
+/**
+ * Rebuilds every character's geometry, then pushes it at whatever the map already has.
+ *
+ * A source may have to fetch something before it can answer, so this awaits and
+ * then checks that no later keystroke has started its own rebuild — otherwise a
+ * slow load could land after a fast one and put stale text on the map.
+ */
+let rebuildSequence = 0;
+const rebuild = async () => {
   if (!glyphSource) return;
+  const sequence = ++rebuildSequence;
+
+  if (glyphSource.prepare) {
+    const before = status.value;
+    status.value = "loading outlines\u2026";
+    await glyphSource.prepare(text.value);
+    if (sequence !== rebuildSequence) return;
+    status.value = before;
+  }
 
   const started = performance.now();
   charGeometries = textToCharGeometries(text.value, glyphSource, PLACEMENT);
@@ -138,7 +154,14 @@ onUnmounted(() => {
 <template>
   <div class="map-demo">
     <div ref="mapContainer" class="map-container">
-      <input v-model="text" class="text-input" type="text" spellcheck="false" aria-label="Text to draw on the map" />
+      <input
+        v-model="text"
+        class="text-input"
+        type="text"
+        spellcheck="false"
+        placeholder="Type text here"
+        aria-label="Text to draw on the map"
+      />
     </div>
     <p class="status">{{ ROUTE_LABEL }} — {{ status }}</p>
   </div>
@@ -175,6 +198,12 @@ onUnmounted(() => {
   background: var(--vp-c-bg-soft);
   color: var(--vp-c-text-1);
   font-size: 14px;
+  /* The map sets a grab cursor over its whole container, this included. */
+  cursor: text;
+}
+
+.text-input::placeholder {
+  color: var(--vp-c-text-3);
 }
 
 .status {

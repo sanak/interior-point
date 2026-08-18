@@ -50,6 +50,16 @@ export interface Glyph {
 export interface GlyphSource {
   /** The outline of one character, or null when the source cannot draw it. */
   glyph(char: string): Glyph | null;
+
+  /**
+   * Loads whatever `text` needs and this source does not have yet.
+   *
+   * It exists so that `glyph` can stay synchronous: a source that reaches for a
+   * second font when a character is out of the first one's range has somewhere
+   * to await, and everything downstream of it stays a plain function. A source
+   * that is complete the moment it is built simply omits this.
+   */
+  prepare?(text: string): Promise<void>;
 }
 
 export interface CharGeometry {
