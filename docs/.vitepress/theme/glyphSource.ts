@@ -80,6 +80,3 @@ export function loadGlyphSource(): Promise<GlyphSource> {
   })();
   return pending;
 }
-
-/** Shown next to the map so the two routes can be told apart at a glance. */
-export const ROUTE_LABEL = "A: opentype.js in the browser";

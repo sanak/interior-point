@@ -2,13 +2,12 @@
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { useData } from "vitepress";
 
-import { ROUTE_LABEL, loadGlyphSource } from "./glyphSource.ts";
+import { loadGlyphSource } from "./glyphSource.ts";
 import { boundsOf, textToCharGeometries, type CharGeometry, type GlyphSource } from "./textGeometry.ts";
 
 const { isDark } = useData();
 const mapContainer = ref<HTMLElement | null>(null);
 const text = ref("L");
-const status = ref("loading outlines…");
 
 let map: import("maplibre-gl").Map | null = null;
 let maplibregl: typeof import("maplibre-gl") | null = null;
@@ -21,6 +20,20 @@ const CARTO_DARK = "https://basemaps.cartocdn.com/gl/dark-matter-nolabels-gl-sty
 
 // The string is laid out around this point, an em box spanning this much latitude.
 const PLACEMENT = { center: [132.4553, 34.3853] as [number, number], emHeight: 0.05 };
+
+/**
+ * Room `fitBounds` has to leave for the two things floating over the map.
+ *
+ * Neither is part of the map's own layout, so nothing else would keep the text
+ * from being drawn under them. The input occupies the first 44px — 10px of offset
+ * and 34px of its own height — and MapLibre's attribution the last 44px, being a
+ * 24px control inside a 10px margin. The rest of each figure is breathing room.
+ *
+ * The attribution is left in the state MapLibre gives it. Collapsing it to its
+ * info button would put the basemap's required credit behind a click, which is
+ * not this component's call to make, so the text moves out of its way instead.
+ */
+const FIT_PADDING = { top: 56, bottom: 52, left: 24, right: 24 };
 
 const empty = { type: "FeatureCollection", features: [] } as const;
 
@@ -57,22 +70,11 @@ const rebuild = async () => {
   const sequence = ++rebuildSequence;
 
   if (glyphSource.prepare) {
-    const before = status.value;
-    status.value = "loading outlines\u2026";
     await glyphSource.prepare(text.value);
     if (sequence !== rebuildSequence) return;
-    status.value = before;
   }
 
-  const started = performance.now();
   charGeometries = textToCharGeometries(text.value, glyphSource, PLACEMENT);
-  const elapsed = performance.now() - started;
-
-  const vertices = charGeometries.reduce(
-    (total, { geometry }) => total + geometry.coordinates.flat().reduce((n, ring) => n + ring.length, 0),
-    0,
-  );
-  status.value = `${charGeometries.length} glyphs · ${vertices} vertices · ${elapsed.toFixed(2)} ms`;
 
   const polygons = map?.getSource("glyph-polygons") as import("maplibre-gl").GeoJSONSource | undefined;
   const points = map?.getSource("glyph-points") as import("maplibre-gl").GeoJSONSource | undefined;
@@ -82,7 +84,7 @@ const rebuild = async () => {
   const bounds = boundsOf(charGeometries);
   if (map && maplibregl && bounds) {
     map.fitBounds(new maplibregl.LngLatBounds(bounds[0], bounds[1]), {
-      padding: { top: 56, bottom: 24, left: 24, right: 24 },
+      padding: FIT_PADDING,
       duration: 0,
     });
   }
@@ -135,10 +137,7 @@ onMounted(async () => {
   map.addControl(new maplibregl.AttributionControl({ compact: true }));
   map.on("style.load", addLayers);
 
-  const started = performance.now();
   glyphSource = await loadGlyphSource();
-  const loadMs = performance.now() - started;
-  status.value = `outlines ready in ${loadMs.toFixed(0)} ms`;
   rebuild();
 
   watch(text, rebuild);
@@ -163,22 +162,19 @@ onUnmounted(() => {
         aria-label="Text to draw on the map"
       />
     </div>
-    <p class="status">{{ ROUTE_LABEL }} — {{ status }}</p>
   </div>
 </template>
 
 <style scoped>
 .map-demo {
-  display: flex;
-  flex-direction: column;
   width: 100%;
   height: 100%;
 }
 
 .map-container {
   position: relative;
-  flex: 1;
   width: 100%;
+  height: 100%;
   min-height: 220px;
   border-radius: 8px;
   overflow: hidden;
@@ -203,14 +199,6 @@ onUnmounted(() => {
 }
 
 .text-input::placeholder {
-  color: var(--vp-c-text-3);
-}
-
-.status {
-  margin: 6px 2px 0;
-  font-family: var(--vp-font-family-mono);
-  font-size: 11px;
-  line-height: 1.4;
   color: var(--vp-c-text-3);
 }
 
