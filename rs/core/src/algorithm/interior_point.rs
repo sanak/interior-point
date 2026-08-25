@@ -32,6 +32,10 @@ pub fn interior_point(geom: &Geometry<f64>) -> Option<Coord<f64>> {
         return None;
     }
 
+    // JTS declares `interiorPt` ahead of the branches and returns it at the end. An
+    // if-expression is the Rust shape, but it would stop lining up with InteriorPoint.java,
+    // so the declaration stays where JTS puts it and the lint is silenced here.
+    #[allow(clippy::needless_late_init)]
     let interior_pt;
     let dim = dimension_non_empty(geom);
     // this should not happen, but just in case...
