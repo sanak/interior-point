@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 380" width="1000" height="380"
+     font-family="system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif" role="img"
+     aria-label="Three panels over one comb-shaped polygon: a horizontal scan line is chosen, the three interior sections of that line are found, and the midpoint of the widest section becomes the interior point.">
+
+  <!-- Panel 1: pick a scan line -->
+  <g transform="translate(20 0)">
+    <circle cx="18" cy="28" r="14" fill="#1f2328"/>
+    <text x="18" y="34" text-anchor="middle" font-size="17" font-weight="700" fill="#ffffff">1</text>
+    <text x="42" y="34" font-size="18" font-weight="600" fill="#1f2328">Pick a scan line</text>
+
+    <path d="M 30 70 L 290 70 L 290 280 L 240 280 L 240 120 L 210 120 L 210 280 L 120 280 L 120 120 L 90 120 L 90 280 L 30 280 Z"
+          fill="#dfe3e8" stroke="#3a4048" stroke-width="2.5" stroke-linejoin="round"/>
+    <line x1="8" y1="200" x2="312" y2="200" stroke="#c65d00" stroke-width="3" stroke-dasharray="10 6"/>
+  </g>
+
+  <!-- Panel 2: the interior sections of that line -->
+  <g transform="translate(345 0)">
+    <circle cx="18" cy="28" r="14" fill="#1f2328"/>
+    <text x="18" y="34" text-anchor="middle" font-size="17" font-weight="700" fill="#ffffff">2</text>
+    <text x="42" y="34" font-size="18" font-weight="600" fill="#1f2328">Find interior sections</text>
+
+    <path d="M 30 70 L 290 70 L 290 280 L 240 280 L 240 120 L 210 120 L 210 280 L 120 280 L 120 120 L 90 120 L 90 280 L 30 280 Z"
+          fill="#dfe3e8" stroke="#3a4048" stroke-width="2.5" stroke-linejoin="round"/>
+
+    <!-- the whole scan line, faded -->
+    <line x1="8" y1="200" x2="312" y2="200" stroke="#b9c0c8" stroke-width="2" stroke-dasharray="10 6"/>
+    <!-- the sections interior to the polygon at y = 200 -->
+    <g stroke="#c65d00" stroke-width="9">
+      <line x1="30" y1="200" x2="90" y2="200"/>
+      <line x1="120" y1="200" x2="210" y2="200"/>
+      <line x1="240" y1="200" x2="290" y2="200"/>
+    </g>
+    <!-- the six edge crossings that bound them -->
+    <g fill="#ffffff" stroke="#8a3d00" stroke-width="2.2">
+      <circle cx="30" cy="200" r="4.5"/>
+      <circle cx="90" cy="200" r="4.5"/>
+      <circle cx="120" cy="200" r="4.5"/>
+      <circle cx="210" cy="200" r="4.5"/>
+      <circle cx="240" cy="200" r="4.5"/>
+      <circle cx="290" cy="200" r="4.5"/>
+    </g>
+  </g>
+
+  <!-- Panel 3: the widest section and its midpoint -->
+  <g transform="translate(670 0)">
+    <circle cx="18" cy="28" r="14" fill="#1f2328"/>
+    <text x="18" y="34" text-anchor="middle" font-size="17" font-weight="700" fill="#ffffff">3</text>
+    <text x="42" y="34" font-size="18" font-weight="600" fill="#1f2328">Widest one, midpoint</text>
+
+    <path d="M 30 70 L 290 70 L 290 280 L 240 280 L 240 120 L 210 120 L 210 280 L 120 280 L 120 120 L 90 120 L 90 280 L 30 280 Z"
+          fill="#dfe3e8" stroke="#3a4048" stroke-width="2.5" stroke-linejoin="round"/>
+
+    <line x1="8" y1="200" x2="312" y2="200" stroke="#c9cfd6" stroke-width="2" stroke-dasharray="10 6"/>
+    <!-- the two narrower sections, set back -->
+    <g stroke="#aeb6bf" stroke-width="6">
+      <line x1="30" y1="200" x2="90" y2="200"/>
+      <line x1="240" y1="200" x2="290" y2="200"/>
+    </g>
+    <!-- the widest section: 120 to 210 -->
+    <line x1="120" y1="200" x2="210" y2="200" stroke="#0b5fbf" stroke-width="10"/>
+    <text x="165" y="184" text-anchor="middle" font-size="16" font-weight="600" fill="#0b5fbf">widest</text>
+
+    <!-- leader down to the label -->
+    <line x1="165" y1="212" x2="165" y2="302" stroke="#0b5fbf" stroke-width="2.5"/>
+
+    <!-- midpoint of the widest section: x = (120 + 210) / 2 = 165 -->
+    <g transform="translate(165 200)">
+      <circle r="11" fill="#ffffff"/>
+      <circle r="7" fill="#0b5fbf"/>
+    </g>
+
+    <text x="165" y="326" text-anchor="middle" font-size="18" font-weight="600" fill="#0b5fbf">interior point</text>
+  </g>
+</svg>

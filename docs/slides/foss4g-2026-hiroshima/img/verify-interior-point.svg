@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 360" width="560" height="360"
+     font-family="system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif" role="img"
+     aria-label="One polygon with a hole, carrying the three points a verification can place: interior inside the shell, off-geometry inside the hole, and on-geometry on the boundary. A fourth value, unverifiable, has no place to draw.">
+
+  <!-- The ringed polygon of centroid-vs-interior-point.svg, redrawn to this canvas: a 440 by 200
+       shell with a hole from 190 to 370 in x and 105 to 200 in y. Its height matches the shapes of
+       the centroid-first figure, which is what keeps the label row off both drawings. -->
+  <path d="M 30 50 L 470 50 L 470 250 L 30 250 Z M 190 105 L 370 105 L 370 200 L 190 200 Z"
+        fill-rule="evenodd" fill="#dfe3e8" stroke="#3a4048" stroke-width="2.5" stroke-linejoin="round"/>
+
+  <!-- The three values that place a point. One marker shape throughout, so the colour is the only
+       thing that differs: the position is what the call reports, and the label is what it returns.
+       Each label sits over a plain background rather than across an edge. -->
+
+  <!-- interior: inside the shell and outside the hole -->
+  <text x="110" y="130" text-anchor="middle" font-size="20" font-weight="600" fill="#0b5fbf">interior</text>
+  <g transform="translate(110 155)">
+    <circle r="15" fill="#ffffff"/>
+    <circle r="11" fill="#0b5fbf"/>
+  </g>
+
+  <!-- off-geometry: inside the hole, which is exterior. The command line counts this one alone
+       as a failure, which is why it is the only marker in red. -->
+  <text x="280" y="130" text-anchor="middle" font-size="20" font-weight="600" fill="#b3261e">off-geometry</text>
+  <g transform="translate(280 155)">
+    <circle r="15" fill="#ffffff"/>
+    <circle r="11" fill="#b3261e"/>
+  </g>
+
+  <!-- on-geometry: on the boundary itself, drawn on the top edge so the halo interrupts the line -->
+  <text x="410" y="32" text-anchor="middle" font-size="20" font-weight="600" fill="#c65d00">on-geometry</text>
+  <g transform="translate(410 50)">
+    <circle r="15" fill="#ffffff"/>
+    <circle r="11" fill="#c65d00"/>
+  </g>
+
+  <!-- the fourth value has no position to mark, so it is written where the other figure's rows are -->
+  <text x="250" y="326" text-anchor="middle" font-size="20" fill="#6b7280"><tspan font-weight="600">unverifiable</tspan> - no point, or no geometry</text>
+</svg>
