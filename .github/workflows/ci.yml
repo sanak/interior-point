@@ -26,6 +26,7 @@ jobs:
     needs: [test-js, test-rs, test-wasm]
     if: github.ref == 'refs/heads/main'
     permissions:
+      contents: read
       pages: write
       id-token: write
     environment:
@@ -56,12 +57,17 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:js
       - run: pnpm docs:build
+      - run: pnpm slides:build
       - run: pnpm examples:wasm
       - run: pnpm examples:build
       # examples/benchmark's own base is /interior-point/examples/benchmark/, so this is the one
       # path inside docs/.vitepress/dist that makes the built app resolve there once the whole
       # tree is uploaded as the Pages artifact below.
       - run: mkdir -p docs/.vitepress/dist/examples && cp -r examples/benchmark/dist docs/.vitepress/dist/examples/benchmark
+      # Marp emits one self-contained HTML per deck, so unlike the benchmark app there is no
+      # base path to line up — the tree copies straight in, and each deck lands at
+      # /slides/<event>/ inside the same artifact VitePress and the benchmark app go into.
+      - run: cp -r docs/slides/dist docs/.vitepress/dist/slides
       - uses: actions/upload-pages-artifact@v5
         with:
           path: docs/.vitepress/dist

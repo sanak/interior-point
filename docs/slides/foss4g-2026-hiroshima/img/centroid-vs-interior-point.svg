@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 905 520" width="905" height="520"
+     font-family="system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif" role="img"
+     aria-label="A concave C-shaped polygon and a polygon with a hole. On both, the centroid falls outside the filled area while the interior point sits well inside a wide band of it.">
+
+  <!-- Left: concave C polygon, 420 by 300, left arm 130 wide -->
+  <path d="M 15 15 L 435 15 L 435 105 L 145 105 L 145 225 L 435 225 L 435 315 L 15 315 Z"
+        fill="#dfe3e8" stroke="#3a4048" stroke-width="3.5" stroke-linejoin="round"/>
+
+  <!-- Right: polygon with an off-centre hole, so the two scan-line sections stay untied -->
+  <path d="M 470 15 L 890 15 L 890 315 L 470 315 Z M 600 105 L 810 105 L 810 225 L 600 225 Z"
+        fill-rule="evenodd" fill="#dfe3e8" stroke="#3a4048" stroke-width="3.5" stroke-linejoin="round"/>
+
+  <!-- Centroid of the C polygon: (200.1974, 165), which lies in the notch -->
+  <g transform="translate(200.1974 165)">
+    <circle r="26" fill="#ffffff" stroke="#23272e" stroke-width="5" stroke-dasharray="10 6.34"/>
+    <path d="M -11.5 -11.5 L 11.5 11.5 M 11.5 -11.5 L -11.5 11.5" stroke="#23272e" stroke-width="5.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- Centroid of the ring: (673.75, 165), which lies in the hole -->
+  <g transform="translate(673.75 165)">
+    <circle r="26" fill="#ffffff" stroke="#23272e" stroke-width="5" stroke-dasharray="10 6.34"/>
+    <path d="M -11.5 -11.5 L 11.5 11.5 M 11.5 -11.5 L -11.5 11.5" stroke="#23272e" stroke-width="5.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- Interior point of the C polygon: (80, 165), the midpoint of the 130-wide left arm -->
+  <g transform="translate(80 165)">
+    <circle r="24" fill="#ffffff"/>
+    <circle r="18" fill="#0b5fbf"/>
+  </g>
+
+  <!-- Interior point of the ring: (535, 165), the midpoint of the 130-wide left band -->
+  <g transform="translate(535 165)">
+    <circle r="24" fill="#ffffff"/>
+    <circle r="18" fill="#0b5fbf"/>
+  </g>
+
+  <text x="225" y="364" text-anchor="middle" font-size="36" fill="#4a5058">concave polygon</text>
+  <text x="680" y="364" text-anchor="middle" font-size="36" fill="#4a5058">polygon with a hole</text>
+
+  <!-- Legend -->
+  <g transform="translate(120 418)">
+    <circle r="26" fill="#ffffff" stroke="#23272e" stroke-width="5" stroke-dasharray="10 6.34"/>
+    <path d="M -11.5 -11.5 L 11.5 11.5 M 11.5 -11.5 L -11.5 11.5" stroke="#23272e" stroke-width="5.5" stroke-linecap="round"/>
+  </g>
+  <text x="164" y="432" font-size="40" fill="#1f2328">centroid — can land outside the shape</text>
+
+  <g transform="translate(120 478)">
+    <circle r="24" fill="#ffffff"/>
+    <circle r="18" fill="#0b5fbf"/>
+  </g>
+  <text x="164" y="492" font-size="40" fill="#1f2328">interior point — always inside</text>
+</svg>

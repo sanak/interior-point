@@ -37,7 +37,7 @@ export default tseslint.config(
           // `docs/.vitepress/**` used to be listed here and is now covered by
           // `docs/tsconfig.json`, which `pnpm typecheck:docs` runs against. A file
           // in a project must not also appear below, so the two cannot overlap.
-          allowDefaultProject: ["eslint.config.mjs", "js/vite.config.ts"],
+          allowDefaultProject: ["eslint.config.mjs", "marp.config.mjs", "js/vite.config.ts"],
         },
         tsconfigRootDir: import.meta.dirname,
       },

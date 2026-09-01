@@ -14,14 +14,15 @@ Port of JTS (Java Topology Suite) InteriorPoint algorithm to **TypeScript** and 
   - `rs/core/` — the published crate (`interior-point`), `geo-types`-native; that is its only
     required dependency, and the `cli` feature adds the rest
   - `rs/wasm/` — wasm-bindgen bindings (`interior-point-wasm`), `publish = false`
-- `docs/` — All project documentation. **Only `docs/site/` is published.**
+- `docs/` — All project documentation. **Only `docs/site/` and `docs/slides/` are published.**
   - `docs/site/` — VitePress source directory (`srcDir`), deployed to GitHub Pages (base: `/interior-point/`)
   - `docs/site/public/` — Static assets copied to the site root
+  - `docs/slides/<event>/index.md` — Marp decks, built to `docs/slides/dist/` and published under `/slides/<event>/` without passing through VitePress; see Slides below
 - `upstream/jts/` — Verbatim copies of the tracked JTS sources and test resources, pinned by `upstream/jts/pin.json`. Never edit these files; see `upstream/jts/NOTICE.md`.
   `upstream/jts/main/`, `upstream/jts/test/`, and `upstream/jts/resources/` mirror JTS's Maven layout, and `js/src`/`rs/core/src` mirror `upstream/jts/main/` while `js/test`/`rs/core/tests`+`rs/core/src/test` mirror `upstream/jts/test/`, so each pair can be folder-diffed directly.
 - `testdata/` — Locally generated test fixtures only (upstream fixtures live under `upstream/jts/resources/`)
 
-Anything under `docs/` outside `docs/site/` is invisible to VitePress. To publish a document, move it into `docs/site/`. Do not reach for `srcExclude` — the boundary is the directory.
+Anything under `docs/` outside `docs/site/` is invisible to VitePress. To publish a document, move it into `docs/site/`. Do not reach for `srcExclude` — the boundary is the directory. `docs/slides/` is not an exception to that rule: VitePress never sees it either, and its decks reach the site the way `examples/benchmark` does, by being copied into the built tree.
 
 ## Commands
 
@@ -97,6 +98,39 @@ only accepted beside `--only`. Without `--write` it
 writes to `tmp/og/`. The benchmark targets need `pnpm examples:wasm` to have run, and the script
 stops with that instruction rather than running wasm-pack itself. Only the parsing and path
 resolution are covered by `pnpm test:scripts`; the images themselves are checked by looking at them.
+
+### Slides
+
+`pnpm slides:build` (`marp -I docs/slides -o docs/slides/dist`, then `scripts/slides-assets.mjs`)
+converts every deck under `docs/slides/` and keeps the directory structure, so
+`docs/slides/<event>/index.md` becomes `docs/slides/dist/<event>/index.html` and adding a deck
+touches no configuration. `marp -I` has no way to skip a file, so it also converts the Markdown
+directly under `docs/slides/` — `CLAUDE.md` — and the second command deletes that page before
+doing anything else: a deck always builds one directory down, so HTML at the top level of `dist/`
+is never one. That command then mirrors the source tree's other files — images and anything else
+that is not Markdown, minus dot-prefixed entries — into `dist/` at the same relative path, so one
+reference such as `img/x.svg` resolves from the source deck and from the built page alike. It
+walks the tree itself rather than calling `fs.cpSync`, which refuses a destination nested inside
+its source before it ever consults a filter.
+`@marp-team/marp-cli` is a root devDependency for the same reason `playwright` is: it is
+repository tooling, not a dependency of `docs/`. Naming a deck's source `index.md` is what makes
+its published URL a directory.
+
+Decks are published under `/slides/<event>/` by `ci.yml`'s docs job, which copies
+`docs/slides/dist` into `docs/.vitepress/dist/slides` on `main`, beside the copy that places
+`examples/benchmark`. That job is the only Pages publisher, and the whole site goes up as one
+artifact: a second workflow deploying a deck from a branch would upload a tree holding nothing
+but `slides/`, taking the VitePress pages and the benchmark app off the site until `main`
+published over them.
+
+A deck's code blocks are projected material rather than runnable examples, so `docs/slides/` is in
+`scripts/docs-examples.mjs`'s `EXEMPT_DIRS` and `pnpm test:docs` skips it. The citation guard is a
+different matter: its only directory exemptions are `upstream/` and `docs/site/public/`, so slide
+prose and speaker notes are held to the same vocabulary as the rest of the repository. Marp
+converts Markdown only, which is what `scripts/slides-assets.mjs` exists to finish. PDF, PPTX and
+image output need a browser, which HTML output does not, and they also need `--allow-local-files`
+before Marp will read a deck's own images — without it those exports come out with every local
+image missing and no error.
 
 ### CLI
 
