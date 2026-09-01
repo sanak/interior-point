@@ -26,7 +26,8 @@
     "test:examples": "pnpm --filter @interior-point/benchmark run test",
     "docs:dev": "pnpm --filter ./docs run dev",
     "docs:build": "pnpm --filter ./docs run build",
-    "docs:preview": "pnpm --filter ./docs run preview"
+    "docs:preview": "pnpm --filter ./docs run preview",
+    "slides:build": "marp -I docs/slides -o docs/slides/dist && node scripts/slides-assets.mjs"
   },
   "simple-git-hooks": {
     "pre-commit": "pnpm exec lint-staged"
@@ -48,6 +49,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@marp-team/marp-cli": "^4.5.0",
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",
     "lint-staged": "^15.5.2",

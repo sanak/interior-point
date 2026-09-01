@@ -27,8 +27,16 @@ import { REPO_ROOT } from "./jts-pin.mjs";
  * `cargo test --doc` already compiles and runs it.
  */
 
-/** Vendored JTS sources and copied static assets — no prose this repository authored. */
-const EXEMPT_DIRS = ["upstream/", "docs/site/public/"];
+/**
+ * Directories whose Markdown this script does not own. `upstream/` is vendored JTS and
+ * `docs/site/public/` is copied static assets, so neither holds prose this repository
+ * authored. `docs/slides/` is authored here, but a slide's code block is projected material
+ * chosen to fit on screen rather than a runnable example, so the `// =>` conventions this
+ * script enforces do not apply to it. The trailing slash is load-bearing: the check is a
+ * plain `startsWith`, not a glob, and `docs/slides` without it would also swallow a sibling
+ * like `docs/slides-notes.md`.
+ */
+const EXEMPT_DIRS = ["upstream/", "docs/site/public/", "docs/slides/"];
 
 /**
  * `rs/core/README.md` reaches the same guarantee by a shorter route: `lib.rs` carries
