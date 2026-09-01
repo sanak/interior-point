@@ -32,11 +32,25 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
   const hidden = new Set<string>();
   let selected: readonly Selected[] = [];
 
+  // Whether the page was opened *at* a view. The first dataset would otherwise be fitted over it,
+  // since loading it is what calls setDataset; a dataset dropped later is still fitted, because by
+  // then the hash describes wherever the reader last was rather than where they asked to start.
+  //
+  // This has to be read before the map is built. `hash: true` writes the hash on moveend, the
+  // constructor's own jumpTo to `center`/`zoom` fires one synchronously, and the first call
+  // through MapLibre's throttle is not deferred -- so by the time the constructor returns the URL
+  // always carries a view, and reading it afterwards reports one for every visitor.
+  let hashView = /^#\d/.test(window.location.hash);
+
+  // MapLibre's own `#zoom/lat/lng` hash, so a view can be linked to and reproduced -- which is what
+  // the slide deck's screenshot of this page is framed with. It reads the hash once on construction
+  // and writes it on every move afterwards.
   const map = new maplibregl.Map({
     container,
     style: styleUrl(darkQuery.matches),
     center: [132.45, 34.385],
     zoom: 11,
+    hash: true,
     attributionControl: false,
   });
   map.addControl(new maplibregl.AttributionControl({ compact: true }));
@@ -211,6 +225,10 @@ export function createBenchmarkMap(container: HTMLElement): BenchmarkMap {
       dataset = next;
       const source = map.getSource(DATASET_SOURCE) as GeoJSONSource | undefined;
       if (source) source.setData(datasetCollection(dataset));
+      if (hashView) {
+        hashView = false;
+        return;
+      }
       const bounds = boundsOf(dataset.features);
       if (bounds) map.fitBounds(bounds, { padding: 40, maxZoom: 17 });
     },
